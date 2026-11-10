@@ -1,0 +1,18 @@
+{
+  "original": {
+    "password_field": "ExternalAwacsModePassword",
+    "client_version": "1.9.0.0",
+    "server_version": "2.4.1.0",
+    "sync_received": true,
+    "authenticated_coalition": 0
+  },
+  "corrected_control": {
+    "password_field": "ExternalAWACSModePassword",
+    "client_version": "1.9.0.0",
+    "server_version": "2.4.1.0",
+    "sync_received": true,
+    "authenticated_coalition": 2
+  },
+  "compatible": false,
+  "audio_round_trip": "not attempted: original EAM authentication rejected"
+}
