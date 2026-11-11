@@ -1,0 +1,33 @@
+{
+  "corpus": "fixed synthetic local Piper recordings, not human accuracy evaluation",
+  "results": [
+    {
+      "call": "Overlord, Viper one one, bogey dope.",
+      "spoken_reply_transcript": "Wiker one one, Overlord, BRA, zero five three, five twenty three thousand, drag east Fulcrum.",
+      "end_to_first_reply_audio_seconds": 1.6368,
+      "reply_samples": 120960,
+      "rms": 4006.95
+    },
+    {
+      "call": "Overlord, Viper one one, request picture.",
+      "spoken_reply_transcript": "Viper one one, Overlord, single group, BRA, zero five three, five, twenty three thousand, drag east, Fulcrum,",
+      "end_to_first_reply_audio_seconds": 1.518,
+      "reply_samples": 147200,
+      "rms": 3605.17
+    },
+    {
+      "call": "Overlord, Viper one one, where is Sukhumi?",
+      "spoken_reply_transcript": "Viper one one, Overlord, Sukhumi, Baba, Shara, bearing one five seven two.",
+      "end_to_first_reply_audio_seconds": 1.3834,
+      "reply_samples": 83840,
+      "rms": 5015.95
+    },
+    {
+      "call": "Anapa approach, Viper one one, inbound.",
+      "spoken_reply_transcript": "Viper one one, an upper approach, fly heading to 9/7, descend and maintain 2000, reduce speed below 250 knots, for vectors to runway, zero four, entry south.",
+      "end_to_first_reply_audio_seconds": 1.7329,
+      "reply_samples": 203520,
+      "rms": 2877.84
+    }
+  ]
+}

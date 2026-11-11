@@ -10,7 +10,13 @@ The current-client SRS gate passed: EAM blue authentication, 251 MHz AM UDP Opus
 
 Images are built for `linux/amd64` by `.github/workflows/images.yml`. Action references are pinned to full commit SHAs. Runtime commands are shared-image subcommands, not four duplicate images.
 
-Image release references and final speech/resource verification are recorded after the publication run; do not deploy from mutable local `:dev` tags. This document is not yet a release approval.
+Published source: `3a3e881f22e8a58845cb745544f0855459eef051`. [Release workflow 43077999368](https://github.com/neboman11/overlordbot-local/actions/runs/43077999368) passed all 103 tests, published all images, then anonymously pulled those public packages on a fresh runner and passed four actual SRS speech calls. Machine-readable references: `benchmarks/images.json`. Pin digests, not mutable local `:dev` tags.
+
+| Components | Full image reference (tag + digest) |
+|---|---|
+| radio-gateway, brain, demo Tacview replay | `ghcr.io/neboman11/overlordbot-local-runtime:3a3e881f22e8a58845cb745544f0855459eef051@sha256:9bb5ee49cb359589b1324d4bd96a9437ab0b46d41a8937aa0f413b063c778681` |
+| stt-worker, tts-worker | `ghcr.io/neboman11/overlordbot-local-speech:3a3e881f22e8a58845cb745544f0855459eef051@sha256:57572acd93079c414f21ad2f20527f70bb753675d9473de9c9c7bfce9c414a12` |
+| demo SRS 2.4.1.0 | `ghcr.io/neboman11/overlordbot-local-srs:3a3e881f22e8a58845cb745544f0855459eef051@sha256:b2cfb9fa8dafcef895cba2bfaee6df7f07cae5572f40875e4c36cad36d065451` |
 
 - Runtime image: gateway, brain and local Tacview replay. Python/libopus; no AVX2 baseline.
 - Speech image: both workers; baked whisper tiny.en and Piper LJSpeech voice. whisper.cpp explicitly enables AVX, F16C and SSE4.2 and disables AVX2, FMA, BMI2, AVX-512, AMX, native tuning, GPU backends, BLAS and dynamic CPU variants. Static binary instruction audit runs during the build. Host libraries and ONNX Runtime use runtime dispatch.
@@ -77,6 +83,7 @@ Auxiliary configuration:
 - `scripts/replay_tacview.py`: `--host 0.0.0.0`, `--port 42674`, `--file fixtures/replay.acmi`, `--interval 1`, `--password ''`. Password is secret; replay only.
 - `scripts/benchmark_speech.py`: `--models tiny,base,small`, `--models-dir` from `MODEL_DIR` or `/models`, `--threads` from `WHISPER_THREADS` or 4 (comma-list supported), `--runs 3`, `--port` from `WHISPER_PORT` or 18080, `--fetch`, `--prompt`, `--output`.
 - `scripts/measure_stack.py`: `--runtime podman|docker`, `--output artifacts/resources.json`, then actual load command after `--`.
+- `scripts/record_corpus.py`: no arguments; run inside speech image with `/output` mounted to `fixtures/radio`. Uses baked LJSpeech model and zero synthesis noise, writes 16 kHz mono WAVs plus SHA256/text manifest. These are fixed synthetic functional inputs, not human accuracy measurements.
 - Dockerfile build inputs: pinned `PYTHON_IMAGE`; speech `WHISPER_CPP_REPOSITORY` and `WHISPER_CPP_COMMIT` from `models.lock.json`. `WHISPER_CPP_COMMIT` in speech runtime is provenance, not an inference selector. `PYTHONUNBUFFERED=1`, `PYTHONDONTWRITEBYTECODE=1`, `PYTHONPATH=/app` are fixed image settings. SRS image fixes `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` and writable `DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet`.
 
 ## Models, licenses and storage
@@ -113,6 +120,51 @@ No PVC, database or shared worker storage is needed. Models are baked read-only;
 
 Source is AGPL-3.0-or-later with original Jeffrey Jones attribution and ported asset provenance. whisper.cpp/Whisper weights are MIT; Piper engine is GPL-3.0-or-later; selected LJSpeech voice/dataset are public domain. See `speech/NOTICE.md`, `data/PROVENANCE.md`, `LICENSE`, and SRS image's included source offer. The research-restricted Lessac voice is not shipped.
 
+## Measured latency and resources
+
+Physical **Intel Xeon E5-2650 v2**, 16 visible logical CPUs, four whisper threads, AVX/F16C present and AVX2/FMA/BMI absent. Eight synthetic brevity utterances, roughly 2.6–5.4 seconds each; model already resident, OS page cache not forcibly cold. Full per-utterance text/timing, build flags and raw results: `benchmarks/speech-xeon-avx.json`.
+
+| STT model | Warm median seconds | Warm max seconds | Process RSS MiB | Raw word-error rate |
+|---|---:|---:|---:|---:|
+| tiny.en | 0.9598 | 0.9894 | 204.7 | 46.7% |
+| base.en | 2.1228 | 2.2064 | 296.5 | 42.5% |
+| small.en | 7.8550 | 8.0988 | 691.1 | 39.4% |
+
+Raw WER includes spoken-number versus digit differences and proper-name errors; it is **not command correctness or human-radio accuracy**. Parser checks separately cover 525 records, including the original corpus and 24 measured model transcripts. No human/friends' recordings were supplied or present upstream: PLAN milestone 4's human-recording acceptance remains pending. It must not be inferred from synthetic checks.
+
+Piper LJSpeech on the same physical Xeon:
+
+| `PIPER_THREADS` | Warm synthesis median seconds | Warm max seconds | Process RSS MiB |
+|---|---:|---:|---:|
+| 0 (runtime default) | 0.9272 | 1.4063 | 343.2 |
+| 4 (recommended) | 0.2639 | 0.4215 | 290.5 |
+
+Four-thread result: `benchmarks/speech-xeon-tuned.json`; tiny STT median 0.9539 seconds. **Choose tiny.en and set both thread counts to 4 for leafman/stickman.** A rough sum of separately measured medians plus the 0.2-second EOT timeout is 1.418 seconds, excluding LAN/HTTP/codec/reply-length variation. This is an estimate, **not a measured full-Xeon radio guarantee**; base/small do not meet the 1.5-second target on that CPU. QEMU Ivy Bridge additionally passed both speech engines (`benchmarks/avx-compatibility.json`); emulated duration is not hardware latency.
+
+Complete real SRS → STT → brain → Piper → SRS verification on **Ryzen 7 7700X**, same AVX-only whisper build, four-thread speech workers, fixed SHA-checked synthetic caller WAVs:
+
+| Call | End of caller transmission to first received reply packet, seconds |
+|---|---:|
+| Bogey dope | 0.6606 |
+| Picture | 0.6877 |
+| Sukhumi location | 0.6629 |
+| Anapa inbound ATC | 1.0036 |
+
+All four distinct spoken replies passed, including inbound runway/vector content. `benchmarks/e2e-ryzen.json` preserves recognized replies and audio levels. Packet timing excludes the player's audio/jitter-buffer delay. Published images also pass four-call GitHub Actions integration; those hosted-runner latencies were 1.3834–1.7329 seconds (`benchmarks/e2e-github-actions.json`), including brevity calls above the 1.5-second target. That run proves functionality, not the target SLO; it is neither a physical Xeon nor LAN deployment measurement.
+
+Measured **container** resources on Ryzen during that successful four-call run: three ready-idle samples, 52 load samples, approximately one-second sampling. CPU derives from cumulative CPU-time differences; **100% = one core**. Memory is decimal MB, not MiB. Raw data: `benchmarks/resources-ryzen.json`; derived table: `benchmarks/resources-summary.json`.
+
+| Component | Idle CPU mean % | Load CPU observed peak % | Idle memory mean MB | Load memory observed peak MB |
+|---|---:|---:|---:|---:|
+| radio-gateway | 0.06 | 16.34 | 25.48 | 37.99 |
+| brain | 0.00 | 15.39 | 27.01 | 38.41 |
+| stt-worker (tiny) | 0.00 | 133.37 | 305.70 | 316.90 |
+| tts-worker | 0.00 | 94.43 | 567.73 | 592.60 |
+| local SRS server | 0.03 | 11.11 | 55.72 | 58.78 |
+| Tacview replay | 0.00 | 7.01 | 18.58 | 18.87 |
+
+Short sampling rounds idle values to zero and averages sub-second inference bursts. These are observed demo peaks, not worst-case reservations; allow memory headroom and four runnable cores per worker when reproducing four-thread latency. Load-test longer/concurrent replies before imposing production limits. Bare-process Xeon RSS above is not interchangeable with complete-container memory.
+
 ## Server-side changes
 
 1. Keep existing SRS 2.4.1.0 server on TCP+UDP 5002. Enable External AWACS Mode and set separate non-empty coalition passwords through the existing sidecar's `SRS_EAM_BLUE_PASSWORD` / `SRS_EAM_RED_PASSWORD` settings. Supply matching selected password as gateway `SRS_EAM_PASSWORD`. Do not put actual passwords in this document.
@@ -141,7 +193,7 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 1. Build and run `sh scripts/stack.sh build` then `sh scripts/stack.sh verify`. Demo uses local SRS, replayed ACMI, real local STT/TTS and actual radio packets. No runtime egress route exists on its internal network.
 2. Verify all `/readyz` endpoints return 200; `/healthz` alone does not establish dependencies.
 3. In DCS, tune selected coalition to 251.000 AM and say **"Overlord, Viper one one, bogey dope"**. Pilot/callsign in telemetry must match. Expected: BRAA for the nearest hostile aircraft (or clean when none), never friendly/unknown-coalition contacts as hostile.
-4. Say **"Overlord, Viper one one, request picture"** and **"Overlord, Viper one one, where is Sukhumi"**. Verify distinct tactical picture vs airfield-location responses, not merely that some audio played.
+4. Say **"Overlord, Viper one one, request picture"** and **"Overlord, Viper one one, where is Sukhumi"**. Verify distinct tactical picture vs airfield-location responses, not merely that some audio played. With explicit wind configured, **"Anapa approach, Viper one one, inbound"** must produce runway/vector instructions for the matching pilot; otherwise an explicit negative.
 5. Change `STT_URLS`/`TTS_URLS` to remote worker addresses and ensure POST authentication matches. Stop one worker and verify ordered failover; it may add the failed endpoint's timeout to reply latency.
 6. Stop/pause telemetry beyond stale timeout: brain must become unready/refuse stale tactical replies. Resume a full telemetry connection and confirm state is rebuilt.
 7. Reproduce target measurements with `sh scripts/benchmark_remote.sh leafman` (all three models) or `sh scripts/benchmark_remote.sh leafman tiny` (recommended four-thread TTS). Requires existing verified SSH and unprivileged namespaces; does not use Kubernetes or install host packages. Actual end-to-end LAN latency still depends on network and chosen reply length.
@@ -149,6 +201,7 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 ## Known limits
 
 - Physical Xeon E5-2650 v2 inference is measured; complete radio reply timings were measured on Ryzen. Human/friends' SRS recordings were not available: corpus/audio checks use explicitly labeled synthetic local Piper speech, not human accuracy certification.
+- Proper nouns remain a weakness: fresh synthetic calls have produced “and Afra/and our for” for Anapa and occasional ignored calls. Fixed recordings make functional regression repeatable; they do not hide or solve general acoustic accuracy. Reply retranscription can also alter numbers/names. Validate human SRS recordings and operational phraseology before relying on ATC instructions.
 - One frequency and modulation per gateway. Reply path is half-duplex; receive audio during own transmission is discarded. No radio encryption/decryption, terrain line-of-sight model or concurrent overlapping-voice separation is implemented.
 - End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Segments are capped at 15 seconds; overload drops rather than retaining unbounded audio.
 - Whisper confidence is model token probability summary when present, not calibrated command correctness. Deterministic grammar deliberately ignores unrecognized/unaddressed calls rather than consulting a cloud/LLM fallback.

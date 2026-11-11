@@ -1,0 +1,51 @@
+{
+  "host": "AMD Ryzen 7 7700X",
+  "method": "After gateway and dependencies ready: 3 idle samples, then load sampling every >=1 sec. Podman CPU percentages derive from cumulative CPU-time deltas; 100% equals one core.",
+  "idle_samples": 3,
+  "load_samples": 52,
+  "exit_code": 0,
+  "components": [
+    {
+      "component": "srs",
+      "idle_cpu_percent_mean": 0.03,
+      "load_cpu_percent_peak": 11.11,
+      "idle_memory_mb_mean": 55.72,
+      "load_memory_mb_peak": 58.78
+    },
+    {
+      "component": "tacview",
+      "idle_cpu_percent_mean": 0.0,
+      "load_cpu_percent_peak": 7.01,
+      "idle_memory_mb_mean": 18.58,
+      "load_memory_mb_peak": 18.87
+    },
+    {
+      "component": "stt-worker",
+      "idle_cpu_percent_mean": 0.0,
+      "load_cpu_percent_peak": 133.37,
+      "idle_memory_mb_mean": 305.7,
+      "load_memory_mb_peak": 316.9
+    },
+    {
+      "component": "tts-worker",
+      "idle_cpu_percent_mean": 0.0,
+      "load_cpu_percent_peak": 94.43,
+      "idle_memory_mb_mean": 567.73,
+      "load_memory_mb_peak": 592.6
+    },
+    {
+      "component": "brain",
+      "idle_cpu_percent_mean": 0.0,
+      "load_cpu_percent_peak": 15.39,
+      "idle_memory_mb_mean": 27.01,
+      "load_memory_mb_peak": 38.41
+    },
+    {
+      "component": "radio-gateway",
+      "idle_cpu_percent_mean": 0.06,
+      "load_cpu_percent_peak": 16.34,
+      "idle_memory_mb_mean": 25.48,
+      "load_memory_mb_peak": 37.99
+    }
+  ]
+}

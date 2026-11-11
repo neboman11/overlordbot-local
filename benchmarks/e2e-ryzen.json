@@ -1,26 +1,33 @@
 {
-  "corpus": "synthetic local Piper, not human recordings",
+  "corpus": "fixed synthetic local Piper recordings, not human accuracy evaluation",
   "results": [
     {
       "call": "Overlord, Viper one one, bogey dope.",
-      "spoken_reply_transcript": "Viper one one, Overlord, BRA, zero five three, five twenty three thousand, drag east, Fulcrum.",
-      "end_to_first_reply_audio_seconds": 0.691,
-      "reply_samples": 119680,
-      "rms": 3521.9
+      "spoken_reply_transcript": "Viper one one, Overlord, BRA, zero five two five, twenty three thousand, drag east Fulcrum.",
+      "end_to_first_reply_audio_seconds": 0.6606,
+      "reply_samples": 119040,
+      "rms": 3224.39
     },
     {
       "call": "Overlord, Viper one one, request picture.",
-      "spoken_reply_transcript": "Viper one one, Overlord, single group, BRA, zero five three, five twenty three thousand, Drate East, Fulcrum.",
-      "end_to_first_reply_audio_seconds": 1.1967,
-      "reply_samples": 142720,
-      "rms": 3287.26
+      "spoken_reply_transcript": "Viper one one, Overlord, single group, BRA, zero five two, five twenty three thousand, drag east, Fulcrum.",
+      "end_to_first_reply_audio_seconds": 0.6877,
+      "reply_samples": 141440,
+      "rms": 3386.89
     },
     {
       "call": "Overlord, Viper one one, where is Sukhumi?",
-      "spoken_reply_transcript": "Viber one one, Overlord, Sukhumi, Baba Shara, bearing one five five two.",
-      "end_to_first_reply_audio_seconds": 1.0104,
-      "reply_samples": 88960,
-      "rms": 3633.51
+      "spoken_reply_transcript": "Viper one one, Overlord, Sukhumi, BRA, bearing one nine eight three.",
+      "end_to_first_reply_audio_seconds": 0.6629,
+      "reply_samples": 80640,
+      "rms": 4148.28
+    },
+    {
+      "call": "Anapa approach, Viper one one, inbound.",
+      "spoken_reply_transcript": "Viper one one, and ARPA approach, flying heading 296, descend and maintain 2000 reduced speed below 250 knots, for vectors to runway 04 entry south.",
+      "end_to_first_reply_audio_seconds": 1.0036,
+      "reply_samples": 197760,
+      "rms": 3595.07
     }
   ]
 }

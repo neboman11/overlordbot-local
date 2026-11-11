@@ -1,19 +1,23 @@
 {
-  "source_commit": "e3f9ed90dd8c57e746335e657110e9f673114527",
-  "workflow": "https://github.com/neboman11/overlordbot-local/actions/runs/43073715512",
+  "source_commit": "3a3e881f22e8a58845cb745544f0855459eef051",
   "platform": "linux/amd64",
+  "workflow": "https://github.com/neboman11/overlordbot-local/actions/runs/43077999368",
+  "verification": "All 103 tests and four real SRS audio calls passed; integration pulls public packages without registry authentication.",
   "images": {
     "runtime": {
-      "tag": "ghcr.io/neboman11/overlordbot-local-runtime:e3f9ed90dd8c57e746335e657110e9f673114527",
-      "digest": "ghcr.io/neboman11/overlordbot-local-runtime@sha256:1a2cf6cc5988e4395c8044bbea2e8ccfa6b098d4b16ecb64cd574aaeb6dc1527"
+      "tag": "ghcr.io/neboman11/overlordbot-local-runtime:3a3e881f22e8a58845cb745544f0855459eef051",
+      "digest": "sha256:9bb5ee49cb359589b1324d4bd96a9437ab0b46d41a8937aa0f413b063c778681",
+      "reference": "ghcr.io/neboman11/overlordbot-local-runtime:3a3e881f22e8a58845cb745544f0855459eef051@sha256:9bb5ee49cb359589b1324d4bd96a9437ab0b46d41a8937aa0f413b063c778681"
     },
     "speech": {
-      "tag": "ghcr.io/neboman11/overlordbot-local-speech:e3f9ed90dd8c57e746335e657110e9f673114527",
-      "digest": "ghcr.io/neboman11/overlordbot-local-speech@sha256:353dd9f56069bb1a498c06516f72432c749173eae92028b751c91bfb31371492"
+      "tag": "ghcr.io/neboman11/overlordbot-local-speech:3a3e881f22e8a58845cb745544f0855459eef051",
+      "digest": "sha256:57572acd93079c414f21ad2f20527f70bb753675d9473de9c9c7bfce9c414a12",
+      "reference": "ghcr.io/neboman11/overlordbot-local-speech:3a3e881f22e8a58845cb745544f0855459eef051@sha256:57572acd93079c414f21ad2f20527f70bb753675d9473de9c9c7bfce9c414a12"
     },
     "srs": {
-      "tag": "ghcr.io/neboman11/overlordbot-local-srs:e3f9ed90dd8c57e746335e657110e9f673114527",
-      "digest": "ghcr.io/neboman11/overlordbot-local-srs@sha256:9ae9c350e230cb271f847b811b858dec315c638049f21e0bcfa8e2b7d1bbc504"
+      "tag": "ghcr.io/neboman11/overlordbot-local-srs:3a3e881f22e8a58845cb745544f0855459eef051",
+      "digest": "sha256:b2cfb9fa8dafcef895cba2bfaee6df7f07cae5572f40875e4c36cad36d065451",
+      "reference": "ghcr.io/neboman11/overlordbot-local-srs:3a3e881f22e8a58845cb745544f0855459eef051@sha256:b2cfb9fa8dafcef895cba2bfaee6df7f07cae5572f40875e4c36cad36d065451"
     }
   }
 }
