@@ -1,0 +1,12 @@
+FROM docker.io/library/python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+LABEL org.opencontainers.image.source="https://github.com/neboman11/overlordbot-local" org.opencontainers.image.licenses="GPL-3.0"
+COPY licenses/ /usr/share/licenses/srs/
+ADD --checksum=sha256:46268dd35204d04426974f66d25eaddaebbaa6b133a7bd227675fae30ed88127 https://github.com/ciribob/DCS-SimpleRadioStandalone/releases/download/2.4.1.0/SRS-Server-Commandline-Linux /usr/local/bin/srs-server
+RUN chmod 755 /usr/local/bin/srs-server && useradd --uid 10001 --create-home bot
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet
+WORKDIR /tmp
+USER 10001
+EXPOSE 5002/tcp 5002/udp
+HEALTHCHECK --interval=15s --timeout=3s CMD python -c "import socket; socket.create_connection(('127.0.0.1',5002),timeout=2).close()"
+ENTRYPOINT ["/usr/local/bin/srs-server"]
+CMD ["--clientExportPath", "/tmp/clients.json"]

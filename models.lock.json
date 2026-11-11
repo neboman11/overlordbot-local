@@ -1,0 +1,80 @@
+{
+  "whisper_cpp": {
+    "repository": "https://github.com/ggml-org/whisper.cpp",
+    "tag": "v1.9.5",
+    "commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+    "license": "MIT"
+  },
+  "models": [
+    {
+      "name": "ggml-tiny.en.bin",
+      "sets": [
+        "default",
+        "benchmark"
+      ],
+      "kind": "whisper",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.en.bin",
+      "sha256": "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+      "size": 77704715,
+      "license": "MIT (OpenAI Whisper weights, converted by ggerganov/whisper.cpp)"
+    },
+    {
+      "name": "ggml-base.en.bin",
+      "sets": [
+        "benchmark"
+      ],
+      "kind": "whisper",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base.en.bin",
+      "sha256": "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002",
+      "size": 147964211,
+      "license": "MIT (OpenAI Whisper weights, converted by ggerganov/whisper.cpp)"
+    },
+    {
+      "name": "ggml-small.en.bin",
+      "sets": [
+        "benchmark"
+      ],
+      "kind": "whisper",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.en.bin",
+      "sha256": "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d",
+      "size": 487614201,
+      "license": "MIT (OpenAI Whisper weights, converted by ggerganov/whisper.cpp)"
+    },
+    {
+      "name": "en_US-ljspeech-medium.onnx",
+      "sets": [
+        "default",
+        "benchmark"
+      ],
+      "kind": "piper",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+      "sha256": "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22",
+      "size": 63531379,
+      "license": "rhasspy/piper-voices repository tagged MIT; MODEL_CARD: trained by Bryce Beattie on the LJ Speech dataset, dataset licence public domain (https://keithito.com/LJ-Speech-Dataset/); trainer states public domain (https://brycebeattie.com/files/tts/)"
+    },
+    {
+      "name": "en_US-ljspeech-medium.onnx.json",
+      "sets": [
+        "default",
+        "benchmark"
+      ],
+      "kind": "piper-config",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx.json",
+      "sha256": "141d612cc0a95ed7efc1ca936b845c2364967f2e9217c5dbfcf69fc4d6c65860",
+      "size": 4972,
+      "license": "same as en_US-ljspeech-medium.onnx; audio.sample_rate 22050 (resampled to 16000 by NativeTTS), espeak voice en"
+    },
+    {
+      "name": "en_US-ljspeech-medium.MODEL_CARD",
+      "sets": [
+        "default",
+        "benchmark"
+      ],
+      "kind": "provenance",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/MODEL_CARD",
+      "sha256": "fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d",
+      "size": 517,
+      "license": "dataset licence: public domain"
+    }
+  ]
+}

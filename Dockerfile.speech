@@ -1,0 +1,91 @@
+# Speech workers (stt-worker, tts-worker) for AVX-without-AVX2 CPUs (Xeon E5 v2 / Ivy Bridge-EP).
+#   docker build -f Dockerfile.speech -t localhost/overlordbot-local-speech:dev .
+#   docker run --rm -p 8082:8082 localhost/overlordbot-local-speech:dev              # stt-worker
+#   docker run --rm -p 8083:8083 -e HTTP_PORT=8083 localhost/overlordbot-local-speech:dev tts-worker
+# CPU only. No GPU backends are compiled. Models are fetched at build time from
+# commit-pinned URLs in models.lock.json and verified against their SHA256.
+ARG PYTHON_IMAGE=docker.io/library/python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+
+FROM ${PYTHON_IMAGE} AS whisper-build
+ARG WHISPER_CPP_REPOSITORY=https://github.com/ggml-org/whisper.cpp.git
+ARG WHISPER_CPP_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential cmake git ca-certificates binutils grep \
+ && rm -rf /var/lib/apt/lists/*
+# Tag v1.9.5 is commit d1be6fde11ac6e0407606b4e42fe72d34add8037; fetch by commit, not by mutable tag.
+RUN git init -q /src/whisper.cpp \
+ && git -C /src/whisper.cpp fetch -q --depth 1 "$WHISPER_CPP_REPOSITORY" "$WHISPER_CPP_COMMIT" \
+ && git -C /src/whisper.cpp checkout -q --detach FETCH_HEAD \
+ && test "$(git -C /src/whisper.cpp rev-parse HEAD)" = "$WHISPER_CPP_COMMIT"
+# Baseline x86-64 plus SSE4.2, F16C and AVX only (ggml adds -msse4.2 -mf16c -mavx).
+# GGML_NATIVE=OFF prevents -march=native; AVX2, FMA, BMI2, AVX-VNNI, AVX-512 and AMX are off;
+# no runtime CPU-variant dispatch (GGML_BACKEND_DL/GGML_CPU_ALL_VARIANTS off); static libraries.
+# MA_NO_FLAC: miniaudio's bundled dr_flac (examples/miniaudio.h, compiled into common-whisper.cpp)
+# contains inline-asm "rep; bsr" = LZCNT, CPUID-guarded at runtime. The worker only sends WAV, so the
+# FLAC decoder is compiled out instead of whitelisting it in the audit below.
+RUN cmake -S /src/whisper.cpp -B /src/build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_FLAGS="-march=x86-64 -mtune=generic -DMA_NO_FLAC" \
+      -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic -DMA_NO_FLAC" \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_SERVER=ON -DWHISPER_BUILD_TESTS=OFF \
+      -DWHISPER_CURL=OFF -DWHISPER_SDL2=OFF -DWHISPER_FFMPEG=OFF \
+      -DWHISPER_COREML=OFF -DWHISPER_OPENVINO=OFF \
+      -DGGML_NATIVE=OFF -DGGML_CPU=ON -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF \
+      -DGGML_SSE42=ON -DGGML_AVX=ON -DGGML_F16C=ON \
+      -DGGML_AVX2=OFF -DGGML_FMA=OFF -DGGML_BMI2=OFF -DGGML_AVX_VNNI=OFF \
+      -DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF \
+      -DGGML_AMX_TILE=OFF -DGGML_AMX_INT8=OFF -DGGML_AMX_BF16=OFF \
+      -DGGML_OPENMP=ON -DGGML_LLAMAFILE=OFF -DGGML_BLAS=OFF -DGGML_CCACHE=OFF -DGGML_LTO=OFF \
+      -DGGML_CUDA=OFF -DGGML_HIP=OFF -DGGML_MUSA=OFF -DGGML_VULKAN=OFF -DGGML_METAL=OFF \
+      -DGGML_SYCL=OFF -DGGML_OPENCL=OFF -DGGML_WEBGPU=OFF -DGGML_OPENVINO=OFF -DGGML_RPC=OFF \
+      -DGGML_ZDNN=OFF -DGGML_HEXAGON=OFF -DGGML_ZENDNN=OFF -DGGML_VIRTGPU=OFF \
+ && cmake --build /src/build --config Release --target whisper-server -j"$(nproc)" \
+ && install -m 0755 /src/build/bin/whisper-server /usr/local/bin/whisper-server \
+ && install -D -m 0644 /src/whisper.cpp/LICENSE /usr/local/share/licenses/whisper.cpp/LICENSE \
+ && cmake -LA -N /src/build | grep -E '^(GGML_|WHISPER_|CMAKE_C(XX)?_FLAGS|CMAKE_BUILD_TYPE|BUILD_SHARED_LIBS)' > /usr/local/share/whisper-build-flags.txt
+# Instruction audit of the static binary: reject FMA, AVX2 (incl. 256-bit integer ops),
+# BMI1/BMI2/LZCNT, AVX-512 and AMX. Mnemonics must match whole (andnpd/pextrw are SSE2 and allowed).
+# Shared libc/libstdc++/libgomp are not in this binary and select variants at runtime.
+RUN objdump -d --no-show-raw-insn /usr/local/bin/whisper-server > /tmp/disasm \
+ && if grep -P -m 20 '\t(?:vfn?m(?:add|sub)\w+|vfmaddsub\w+|vfmsubadd\w+|vp?gather\w+|vpbroadcast[bwdq]|vperm(?:d|q|pd|ps)|vinserti128|vextracti128|vpmaskmov[dq]|vps[lr]lv[dq]|vpsravd|vpblendd|shlx|shrx|sarx|rorx|pdep|pext|mulx|andn|bextr|blsi|blsr|blsmsk|bzhi|tzcnt|lzcnt|kmov[bwdq]|tile\w+|vpdpbusds?)(?=\s|$)|%zmm|\tvp(?!ermil|erm2f128|test)\w+\s[^#]*%ymm' /tmp/disasm; then \
+      echo 'whisper-server contains instructions beyond AVX/F16C' >&2; exit 1; fi \
+ && rm /tmp/disasm
+
+FROM ${PYTHON_IMAGE}
+LABEL org.opencontainers.image.source="https://github.com/neboman11/overlordbot-local" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.title="overlordbot-local-speech" \
+      org.opencontainers.image.description="Local whisper.cpp STT and Piper TTS workers for AVX CPUs without AVX2"
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgomp1 libstdc++6 ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --uid 10001 --create-home bot
+WORKDIR /app
+COPY requirements-speech.txt models.lock.json ./
+RUN pip install --no-cache-dir --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-speech.txt
+COPY scripts/fetch_models.py ./scripts/fetch_models.py
+RUN python scripts/fetch_models.py --set default --dest /models
+COPY --from=whisper-build /usr/local/bin/whisper-server /usr/local/bin/whisper-server
+COPY --from=whisper-build /usr/local/share/whisper-build-flags.txt /usr/local/share/whisper-build-flags.txt
+COPY --from=whisper-build /usr/local/share/licenses/whisper.cpp/LICENSE /usr/local/share/licenses/whisper.cpp/LICENSE
+COPY LICENSE ./LICENSE
+COPY speech/NOTICE.md ./speech/NOTICE.md
+COPY scripts/benchmark_speech.py ./scripts/benchmark_speech.py
+COPY overlord/ ./overlord/
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app \
+    WHISPER_MODEL=/models/ggml-tiny.en.bin \
+    WHISPER_SERVER=/usr/local/bin/whisper-server \
+    WHISPER_THREADS=4 \
+    WHISPER_PORT=18080 \
+    PIPER_MODEL=/models/en_US-ljspeech-medium.onnx \
+    PIPER_CONFIG=/models/en_US-ljspeech-medium.onnx.json \
+    PIPER_VOICE=en_US-ljspeech-medium \
+    PIPER_THREADS=0 \
+    WHISPER_CPP_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
+USER 10001
+EXPOSE 8082 8083
+# stt-worker default port; tts-worker must run with HTTP_PORT=8083 (or override the check).
+HEALTHCHECK --interval=15s --timeout=3s --start-period=60s CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('HTTP_PORT','8082')+'/readyz',timeout=2)"
+ENTRYPOINT ["python", "-m", "overlord"]
+CMD ["stt-worker"]

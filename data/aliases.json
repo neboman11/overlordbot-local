@@ -1,0 +1,65 @@
+{
+ "airfields": {
+  "Anapa-Vityazevo": [
+   "anapa",
+   "an apple",
+   "and apple",
+   "an other",
+   "a napa",
+   "napa"
+  ]
+ },
+ "callsigns": {
+  "dolt": [
+   "adult",
+   "adults",
+   "dult"
+  ],
+  "harem": [
+   "heron"
+  ],
+  "cypher": [
+   "cipher"
+  ],
+  "caracal": [
+   "caracol",
+   "karakol"
+  ],
+  "wellerman": [
+   "vellum"
+  ]
+ },
+ "unit_attributes": {
+  "fighter": [
+   "fighters"
+  ],
+  "fixed wing": [
+   "fixed wings",
+   "plane",
+   "planes",
+   "aircraft"
+  ],
+  "helicopter": [
+   "helicopters",
+   "chopper",
+   "choppers",
+   "copter",
+   "copters",
+   "helo",
+   "helos",
+   "heli",
+   "helis"
+  ],
+  "bomber": [
+   "bombers"
+  ],
+  "attack": [
+   "ground attack",
+   "attacker",
+   "attackers"
+  ],
+  "transport": [
+   "cargo"
+  ]
+ }
+}

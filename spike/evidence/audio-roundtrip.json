@@ -1,0 +1,12 @@
+{
+  "server": "2.4.1.0",
+  "frequency_hz": 251000000,
+  "modulation": "AM",
+  "coalition": 2,
+  "source_samples": 16000,
+  "captured_samples": 16000,
+  "playback_samples": 16000,
+  "playback_rms": 4895.55,
+  "tone_energy_fraction": 0.9864,
+  "passed": true
+}

@@ -1,0 +1,26 @@
+{
+  "corpus": "synthetic local Piper, not human recordings",
+  "results": [
+    {
+      "call": "Overlord, Viper one one, bogey dope.",
+      "spoken_reply_transcript": "Viper one one, Overlord, BRA, zero five three, five twenty three thousand, drag east, Fulcrum.",
+      "end_to_first_reply_audio_seconds": 0.691,
+      "reply_samples": 119680,
+      "rms": 3521.9
+    },
+    {
+      "call": "Overlord, Viper one one, request picture.",
+      "spoken_reply_transcript": "Viper one one, Overlord, single group, BRA, zero five three, five twenty three thousand, Drate East, Fulcrum.",
+      "end_to_first_reply_audio_seconds": 1.1967,
+      "reply_samples": 142720,
+      "rms": 3287.26
+    },
+    {
+      "call": "Overlord, Viper one one, where is Sukhumi?",
+      "spoken_reply_transcript": "Viber one one, Overlord, Sukhumi, Baba Shara, bearing one five five two.",
+      "end_to_first_reply_audio_seconds": 1.0104,
+      "reply_samples": 88960,
+      "rms": 3633.51
+    }
+  ]
+}

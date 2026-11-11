@@ -1,0 +1,865 @@
+{
+ "airfield_names": {
+  "Aba Musa Island": [
+   "abu musa",
+   "OIBA"
+  ],
+  "Abu Dhabi Intl": [
+   "abu dhabi",
+   "OMAA"
+  ],
+  "Abu al-Duhur": [
+   "OS57"
+  ],
+  "Adana Sakirpasa": [
+   "adana",
+   "sakirpasa",
+   "LTAF"
+  ],
+  "Al Ain Intl": [
+   "al ain",
+   "OMAL"
+  ],
+  "Al Dhafra AFB": [
+   "al dhafra",
+   "dhafra",
+   "dafra",
+   "OMAM"
+  ],
+  "Al Maktoum Intl": [
+   "al maktoum",
+   "OMDW"
+  ],
+  "Al Minhad AFB": [
+   "al minhad"
+  ],
+  "Al Qusayr": [
+   "OS70"
+  ],
+  "Al-Bateen": [
+   "al bateen",
+   "OMAD"
+  ],
+  "Al-Dumayr": [
+   "OS61"
+  ],
+  "Aleppo": [
+   "OSAP"
+  ],
+  "An Nasiriyah": [
+   "OS64"
+  ],
+  "Anapa-Vityazevo": [
+   "anapa",
+   "onapa",
+   "napa",
+   "apple",
+   "another",
+   "after",
+   "apa",
+   "app",
+   "upper",
+   "URKA",
+   "vityazevo"
+  ],
+  "Bandar Abbas Intl": [
+   "bandar abbas",
+   "OIKB"
+  ],
+  "Bandar Lengeh": [
+   "OIBL"
+  ],
+  "Bander-e-Jask": [
+   "OIZJ"
+  ],
+  "Bassel Al-Assad": [
+   "OSLK"
+  ],
+  "Batumi": [
+   "UGSB",
+   "But to me",
+   "Who to me"
+  ],
+  "Beatty Airport": [
+   "beatty"
+  ],
+  "Beirut-Rafic Hariri": [
+   "hariri",
+   "rafic",
+   "beirut",
+   "OLBA"
+  ],
+  "Beslan": [
+   "URMO"
+  ],
+  "Boulder City Airport": [
+   "boulder",
+   "boulder city"
+  ],
+  "CVN_71": [
+   "cvn 71",
+   "roosevelt"
+  ],
+  "CVN_72": [
+   "cvn 72",
+   "lincoln"
+  ],
+  "CVN_73": [
+   "cvn 73",
+   "washington"
+  ],
+  "Creech AFB": [
+   "creech"
+  ],
+  "Damascus": [
+   "OSDI"
+  ],
+  "Echo Bay": [],
+  "Eyn Shemer": [
+   "LLES"
+  ],
+  "Fujairah Intl": [
+   "fujairah",
+   "OMFJ"
+  ],
+  "Gelendzhik": [
+   "gelend",
+   "gelen",
+   "URKG"
+  ],
+  "Groom Lake AFB": [
+   "groom lake"
+  ],
+  "Gudauta": [
+   "UG23",
+   "go data"
+  ],
+  "Haifa": [
+   "LLHA"
+  ],
+  "Hama": [
+   "OS58"
+  ],
+  "Hatay": [],
+  "Henderson Executive": [
+   "henderson"
+  ],
+  "Incirlik": [
+   "LTAG"
+  ],
+  "Jean Airport": [
+   "jean"
+  ],
+  "Jirah": [
+   "OS62"
+  ],
+  "Jiroft": [
+   "jiroft",
+   "giroft",
+   "OIKJ"
+  ],
+  "Kerman": [
+   "kerman",
+   "OIKK"
+  ],
+  "Khalkhalah": [
+   "OS69"
+  ],
+  "Khasab": [
+   "kasab",
+   "casab",
+   "OOKB"
+  ],
+  "King Hussein Air College": [
+   "hussein",
+   "college",
+   "OJMF"
+  ],
+  "Kiryat Shmona": [
+   "LLKS"
+  ],
+  "Kish Intl": [
+   "kish",
+   "OIBK"
+  ],
+  "Kobuleti": [
+   "UG5X"
+  ],
+  "Krasnodar-Center": [
+   "kras center",
+   "URKL",
+   "krasnodar center"
+  ],
+  "Krasnodar-Pashkovsky": [
+   "kras pash",
+   "URKK",
+   "krasnodar pashkovsky"
+  ],
+  "Krymsk": [
+   "URKW"
+  ],
+  "Kutaisi": [
+   "UGKO"
+  ],
+  "Kuweires": [
+   "OS66"
+  ],
+  "Kuznetsov": [],
+  "Lar": [
+   "OISL"
+  ],
+  "Laughlin Airport": [
+   "laughlin"
+  ],
+  "Lavan Island": [
+   "lavan",
+   "OIBV"
+  ],
+  "Lincoln County": [],
+  "Liwa AFB": [
+   "liwa",
+   "OMLW"
+  ],
+  "Marj Ruhayyil": [
+   "OS63"
+  ],
+  "Marj as Sultan North": [
+   "sultan north"
+  ],
+  "Marj as Sultan South": [
+   "sultan south"
+  ],
+  "Maykop-Khanskaya": [
+   "maykop",
+   "makeup",
+   "make up",
+   "URKH",
+   "maykop khanskaya"
+  ],
+  "McCarren Intl Airport": [
+   "McCarren"
+  ],
+  "Megiddo": [
+   "LLMG"
+  ],
+  "Mesquite": [],
+  "Mezzeh": [
+   "OS67"
+  ],
+  "Mina Airport": [
+   "mina"
+  ],
+  "Minakh": [
+   "OS71"
+  ],
+  "Mineralnye Vody": [
+   "minvody",
+   "vody",
+   "mineralnye",
+   "minaral",
+   "URMM"
+  ],
+  "Mozdok": [
+   "XRMF"
+  ],
+  "Nalchik": [
+   "URMN"
+  ],
+  "Nellis AFB": [
+   "nellis"
+  ],
+  "North Las Vegas": [
+   "vegas"
+  ],
+  "Novorossiysk": [
+   "novo",
+   "nova",
+   "URKN"
+  ],
+  "Pahute Mesa Airstrip": [],
+  "Palmyra": [
+   "OSPR"
+  ],
+  "Qabr as Sitt": [],
+  "Qeshm Island": [
+   "qeshm",
+   "OIKQ"
+  ],
+  "Ramat David": [
+   "LLRD"
+  ],
+  "Ras Al Khaimah Intl": [
+   "OMRK"
+  ],
+  "Rayak": [
+   "OLRA"
+  ],
+  "Rene Mouawad": [
+   "Rene",
+   "OLKA"
+  ],
+  "Sas Al Nakheel": [
+   "OMNK",
+   "Nakheel"
+  ],
+  "Senaki-Kolkhi": [
+   "UGKS",
+   "senaki",
+   "kolkhi"
+  ],
+  "Sharjah Intl": [
+   "OMSJ",
+   "sharjah"
+  ],
+  "Shiraz Intl": [
+   "shiraz",
+   "OISS"
+  ],
+  "Sir Abu Nuayr": [
+   "OMSN"
+  ],
+  "Sirri Island": [
+   "sirri",
+   "siri",
+   "OIBS"
+  ],
+  "Sochi-Adler": [
+   "sochi",
+   "adler",
+   "URSS"
+  ],
+  "Soganlug": [
+   "UG24"
+  ],
+  "Stennis": [
+   "cvn 74"
+  ],
+  "Sukhumi-Babushara": [
+   "sukhumi",
+   "UGSS",
+   "sukhumi babushara"
+  ],
+  "Tabqa": [
+   "OS59"
+  ],
+  "Taftanaz": [],
+  "Tbilisi-Lochini": [
+   "tbilisi",
+   "lochini",
+   "UGTB"
+  ],
+  "Tonopah Airport": [],
+  "Tonopah Test Range Airfield": [
+   "tonopah"
+  ],
+  "Tunb Island AFB": [
+   "OIGI"
+  ],
+  "Tunb Kochak": [
+   "OITK"
+  ],
+  "Vaziani": [
+   "UG27"
+  ],
+  "Wujah Al Hajar": [
+   "Z190"
+  ],
+  "nearest": [
+   "newest airfield",
+   "closest airfield",
+   "nearest airbase",
+   "closest airbase",
+   "nearest airfield"
+  ],
+  "Dubai Intl": [
+   "OMDB"
+  ],
+  "Havadarya": [
+   "OIKP"
+  ]
+ },
+ "mission_types": {
+  "cap": [
+   "combat air patrol"
+  ],
+  "cas": [
+   "close air support"
+  ],
+  "oca": [
+   "offensive counter air"
+  ],
+  "strike": [],
+  "bai": [
+   "battlefield interdiction",
+   "battle interdiction",
+   "battlefield air interdiction"
+  ],
+  "dead": [
+   "destruction of enemy air defence",
+   "destruction enemy air defence",
+   "denial of enemy air defence",
+   "denial enemy air defence",
+   "deed",
+   "destruction of enemy air defense",
+   "destruction enemy air defense",
+   "denial of enemy air defense",
+   "denial enemy air defense"
+  ],
+  "sead": [
+   "suppression of enemy air defence",
+   "suppression enemy air defence",
+   "seed",
+   "suppression of enemy air defense",
+   "suppression enemy air defense"
+  ],
+  "recon": [
+   "reconnaissance",
+   "recce",
+   "scout"
+  ],
+  "asuw": [
+   "anti-surface warfare",
+   "anti surface warfare",
+   "anti-shipping",
+   "anti shipping"
+  ]
+ },
+ "phraselists": {
+  "callsignGroupNames": [
+   "hog",
+   "tusk",
+   "pontiac",
+   "dolt",
+   "reflex",
+   "wombat",
+   "phoenix",
+   "rage",
+   "raven",
+   "odin",
+   "sabre",
+   "anvil",
+   "thistle",
+   "bullet",
+   "deviant",
+   "pulsar",
+   "chevy",
+   "dodge",
+   "ford",
+   "springfield",
+   "buttercock",
+   "ambush",
+   "bunny",
+   "bruiser",
+   "lynx",
+   "rose",
+   "cookie",
+   "cooler",
+   "terminus",
+   "flatline",
+   "bull dog",
+   "hot dog",
+   "bin chicken",
+   "ghost rider",
+   "hot shot",
+   "back stop",
+   "war dog"
+  ],
+  "awacsCallsigns": [
+   "overlord",
+   "magic",
+   "darkstar",
+   "screwtop",
+   "chalice",
+   "focus"
+  ],
+  "tankerCallsigns": [
+   "shell",
+   "texaco",
+   "arco"
+  ],
+  "flightAndElementNumbers": [
+   "11",
+   "12",
+   "13",
+   "14",
+   "15",
+   "16",
+   "17",
+   "18",
+   "19",
+   "21",
+   "22",
+   "23",
+   "24",
+   "25",
+   "26",
+   "27",
+   "28",
+   "29",
+   "31",
+   "32",
+   "33",
+   "34",
+   "35",
+   "36",
+   "37",
+   "38",
+   "39",
+   "41",
+   "42",
+   "43",
+   "44",
+   "45",
+   "46",
+   "47",
+   "48",
+   "49",
+   "51",
+   "52",
+   "53",
+   "54",
+   "55",
+   "56",
+   "57",
+   "58",
+   "59",
+   "61",
+   "62",
+   "63",
+   "64",
+   "65",
+   "66",
+   "67",
+   "68",
+   "69",
+   "71",
+   "72",
+   "73",
+   "74",
+   "75",
+   "76",
+   "77",
+   "78",
+   "79",
+   "81",
+   "82",
+   "83",
+   "84",
+   "85",
+   "86",
+   "87",
+   "88",
+   "89",
+   "91",
+   "92",
+   "93",
+   "94",
+   "95",
+   "96",
+   "97",
+   "98",
+   "99",
+   "01",
+   "02",
+   "03",
+   "04",
+   "05",
+   "06",
+   "07",
+   "08",
+   "09"
+  ],
+  "flightNumbers": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9",
+   "one",
+   "two",
+   "three",
+   "four",
+   "five",
+   "six",
+   "seven",
+   "eight",
+   "nine"
+  ],
+  "elementNumbers": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9",
+   "one",
+   "two",
+   "three",
+   "four",
+   "five",
+   "six",
+   "seven",
+   "eight",
+   "nine"
+  ],
+  "bogeyDopeCommands": [
+   "bogey dope",
+   "shopping",
+   "request bogey dope",
+   "requesting bogey dope",
+   "another bogey dope",
+   "request for bogey dope",
+   "requesting for bogey dope",
+   "bug dope"
+  ],
+  "bearingToCommands": [
+   "bearing to",
+   "vector to",
+   "bearing of",
+   "vector of",
+   "where is",
+   "location of"
+  ],
+  "pictureCommands": [
+   "picture",
+   "request picture",
+   "requesting picture"
+  ],
+  "radioCheckCommands": [
+   "radio check",
+   "radioshack",
+   "comm check",
+   "comms check",
+   "mic check",
+   "mike check"
+  ],
+  "warningRadiusCommands": [
+   "set warning radius",
+   "set threat radius",
+   "warn me",
+   "set tripwire",
+   "tripwire",
+   "set perimeter",
+   "perimeter"
+  ],
+  "airfieldControllerNames": [
+   "tower",
+   "ground",
+   "approach"
+  ],
+  "aircraftIdentifiers": [
+   "eagle",
+   "falcon",
+   "warthog",
+   "foxhound",
+   "fulcrum",
+   "fishbed",
+   "curl",
+   "clank",
+   "lancer",
+   "stratofortress",
+   "harrier",
+   "hercules",
+   "globemaster",
+   "hawkeye",
+   "sentry",
+   "aardvark",
+   "nighthawk",
+   "tomcat",
+   "strike eagle",
+   "hornet",
+   "candid",
+   "extender",
+   "stratotanker",
+   "flogger",
+   "foxbat",
+   "mirage",
+   "predator",
+   "viking",
+   "fencer",
+   "fitter",
+   "frogfoot",
+   "flanker",
+   "tornado",
+   "bear",
+   "blackjack",
+   "backfire",
+   "codling",
+   "huey",
+   "cobra",
+   "apache",
+   "chinook",
+   "super stallion",
+   "helix",
+   "hokum",
+   "hind",
+   "halo",
+   "hip",
+   "kiowa",
+   "sea king",
+   "seahawk",
+   "blackhawk",
+   "tiger-2",
+   "gazelle",
+   "viggen",
+   "aviojet",
+   "a-10",
+   "an-26b",
+   "mainstay",
+   "a-50",
+   "an-30",
+   "b-1b",
+   "b-52",
+   "c-130",
+   "c-17",
+   "f-15",
+   "f-117",
+   "c-5",
+   "kc-10",
+   "f-35",
+   "u-2",
+   "f-4",
+   "phantom",
+   "s-3",
+   "f-104",
+   "p-38",
+   "a-4",
+   "skyhawk",
+   "e-2",
+   "e-2c",
+   "e-3",
+   "e-3a",
+   "f-111",
+   "f-14",
+   "f-15e",
+   "f-16",
+   "f-18",
+   "fa-18",
+   "av-8b",
+   "f-18e",
+   "super hornet",
+   "mig-25",
+   "mig-23",
+   "ch-46",
+   "ch-47",
+   "mig-17",
+   "mig-19",
+   "su-30",
+   "su-33",
+   "mig-31",
+   "il-76",
+   "il-78",
+   "kc-135",
+   "mig-29",
+   "rq-1"
+  ],
+  "aircraftAttributes": [
+   "fighter",
+   "transport",
+   "plane",
+   "fixed wing",
+   "helicopter",
+   "helo",
+   "attack",
+   "chopper",
+   "copter",
+   "awacs",
+   "heli",
+   "bomber",
+   "short range",
+   "medium range",
+   "long range",
+   "attacker"
+  ],
+  "readyToTaxiCommands": [
+   "ready to taxi",
+   "request taxi",
+   "requesting taxi"
+  ],
+  "inboundCommand": [
+   "inbound",
+   "inbound to airfield",
+   "inbound to airbase"
+  ],
+  "declareCommand": [
+   "declare"
+  ],
+  "abortInboundCommands": [
+   "abort inbound",
+   "aborting inbound",
+   "abort approach",
+   "aborting approach",
+   "cancel inbound",
+   "cancel approach",
+   "wave off",
+   "wave-off",
+   "waving off",
+   "going around"
+  ],
+  "commanderCallsigns": [
+   "command",
+   "ops",
+   "operations",
+   "hq",
+   "headquarters"
+  ],
+  "joinMissionCommands": [
+   "join mission",
+   "joining mission",
+   "request join mission",
+   "joining tasking",
+   "join tasking"
+  ]
+ },
+ "parser_extensions": {
+  "_comment": "Additions made by overlordbot-local, not present in OverlordBot.lu. See data/PROVENANCE.md.",
+  "nearest_airfield": [
+   "nearest",
+   "closest",
+   "nearest base",
+   "closest base"
+  ],
+  "awacs_callsigns": [
+   "wizard",
+   "anyface"
+  ],
+  "callsign_fillers": [
+   "this",
+   "is",
+   "a",
+   "an",
+   "the",
+   "at",
+   "of",
+   "and",
+   "but",
+   "or",
+   "for",
+   "to",
+   "too",
+   "on",
+   "it",
+   "its",
+   "um",
+   "uh",
+   "thanks",
+   "ok",
+   "okay",
+   "so",
+   "yeah",
+   "hey",
+   "please",
+   "again",
+   "flight",
+   "with",
+   "you"
+  ]
+ }
+}

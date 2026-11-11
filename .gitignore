@@ -1,3 +1,6 @@
 .cache/
 __pycache__/
 *.pyc
+.env
+artifacts/
+spike/evidence/*.wav

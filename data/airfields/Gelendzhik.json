@@ -1,0 +1,234 @@
+{
+ "name": "Gelendzhik",
+ "lat": 44.56767458600406,
+ "lon": 38.0041463505281,
+ "alt": 22.00992202758789,
+ "parking_spots": [
+  {
+   "name": "Apron South",
+   "lat": 44.571829153112,
+   "lon": 38.007451618997
+  },
+  {
+   "name": "Maintenance Area",
+   "lat": 44.575005055079,
+   "lon": 38.008578913774
+  },
+  {
+   "name": "Apron North",
+   "lat": 44.575748597647,
+   "lon": 38.012427180971
+  }
+ ],
+ "runways": [
+  {
+   "heading": 220,
+   "name": "Runway-2 2",
+   "lat": 44.577952644664,
+   "lon": 38.018337535575
+  },
+  {
+   "heading": 40,
+   "name": "Runway-0 4",
+   "lat": 44.567523609922,
+   "lon": 38.004501318965
+  }
+ ],
+ "junctions": [
+  {
+   "name": "Mike Runway04",
+   "lat": 44.56746265522,
+   "lon": 38.004403994382
+  },
+  {
+   "name": "Mike Runway22",
+   "lat": 44.578387115383,
+   "lon": 38.018936667192
+  },
+  {
+   "name": "Mike Whiskey",
+   "lat": 44.573579960091,
+   "lon": 38.010644901768
+  }
+ ],
+ "navigation_paths": [
+  {
+   "name": "Runway",
+   "source": "Mike Runway04",
+   "target": "Runway-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-0 4",
+   "target": "Mike Runway04",
+   "cost": 999
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Runway04",
+   "target": "Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Whiskey",
+   "target": "Mike Runway04",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Runway22",
+   "target": "Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Whiskey",
+   "target": "Mike Runway22",
+   "cost": 1
+  },
+  {
+   "name": "Runway",
+   "source": "Mike Runway22",
+   "target": "Runway-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-2 2",
+   "target": "Mike Runway22",
+   "cost": 999
+  },
+  {
+   "name": "Whiskey",
+   "source": "Maintenance Area",
+   "target": "Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Whiskey",
+   "source": "Mike Whiskey",
+   "target": "Maintenance Area",
+   "cost": 999
+  },
+  {
+   "name": "Mike",
+   "source": "Apron North",
+   "target": "Mike Runway22",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Runway22",
+   "target": "Apron North",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Apron South",
+   "target": "Mike Runway04",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike Runway04",
+   "target": "Apron South",
+   "cost": 100
+  },
+  {
+   "name": "Runway",
+   "source": "Mike Runway04",
+   "target": "Mike Runway22",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Mike Runway22",
+   "target": "Mike Runway04",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "initial-0 4",
+   "target": "Runway-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "initial-2 2",
+   "target": "Runway-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 4",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 2",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 4",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 2",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "initial-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "initial-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "initial-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "initial-2 2",
+   "cost": 999
+  }
+ ],
+ "waypoints": [
+  {
+   "name": "Entry-Exit West",
+   "lat": 44.6275333,
+   "lon": 37.93795
+  },
+  {
+   "name": "Entry-Exit East",
+   "lat": 44.53515,
+   "lon": 38.1098167
+  },
+  {
+   "name": "initial-0 4",
+   "lat": 44.5354667,
+   "lon": 37.9639667
+  },
+  {
+   "name": "initial-2 2",
+   "lat": 44.6092667,
+   "lon": 38.0572667
+  }
+ ]
+}

@@ -1,0 +1,81 @@
+name: overlordbot-local
+services:
+  srs:
+    image: localhost/overlordbot-local-srs:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.srs
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ['exec /usr/local/bin/srs-server --clientExportPath /tmp/clients.json --enableEAM true --eamBluePassword "$$SRS_EAM_PASSWORD" --coalitionSecurity true']
+    environment:
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set a disposable SRS_EAM_PASSWORD}
+    networks: [radio]
+  tacview:
+    image: localhost/overlordbot-local-runtime:dev
+    build: .
+    entrypoint: ["python", "scripts/replay_tacview.py"]
+    command: ["--file", "fixtures/replay.acmi"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1',42674),timeout=2).close()"]
+      interval: 10s
+    networks: [radio]
+  brain:
+    image: localhost/overlordbot-local-runtime:dev
+    command: ["brain"]
+    environment:
+      TACVIEW_HOST: tacview
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8081'
+      # Demo wind is explicitly configured, never fabricated from Tacview.
+      ATC_WIND_FROM_DEG: ${ATC_WIND_FROM_DEG:-0}
+    depends_on: [tacview]
+    networks: [radio]
+  stt-worker:
+    image: localhost/overlordbot-local-speech:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.speech
+    command: ["stt-worker"]
+    environment:
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8082'
+      WHISPER_THREADS: ${WHISPER_THREADS:-4}
+    networks: [radio]
+  tts-worker:
+    image: localhost/overlordbot-local-speech:dev
+    command: ["tts-worker"]
+    environment:
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8083'
+      PIPER_THREADS: ${PIPER_THREADS:-4}
+    networks: [radio]
+  radio-gateway:
+    image: localhost/overlordbot-local-runtime:dev
+    command: ["radio-gateway"]
+    environment:
+      SRS_HOST: srs
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
+      COALITION: '2'
+      SRS_FREQUENCY_HZ: '251000000'
+      STT_URLS: ${STT_URLS:-http://stt-worker:8082}
+      TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
+      BRAIN_URL: http://brain:8081
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8080'
+    depends_on: [srs, brain, stt-worker, tts-worker]
+    networks: [radio]
+  verify:
+    profiles: [verify]
+    image: localhost/overlordbot-local-runtime:dev
+    entrypoint: ["python", "/verify/e2e.py"]
+    environment:
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
+      API_TOKEN: ${API_TOKEN:-}
+    volumes:
+      - ./scripts:/verify:ro
+      - ./artifacts:/artifacts:rw
+    depends_on: [radio-gateway]
+    networks: [radio]
+networks:
+  radio:
+    internal: true

@@ -1,0 +1,9 @@
+This image includes the unmodified DCS-SimpleRadioStandalone Linux server 2.4.1.0.
+Copyright remains with its upstream authors. GPL-3.0 license: SRS-GPL3.txt.
+Corresponding source, build projects, dependencies and publication scripts:
+https://github.com/ciribob/DCS-SimpleRadioStandalone/tree/f7bdcd42d41eff1e912cd0465b8a22c78108c53c
+Source archive:
+https://github.com/ciribob/DCS-SimpleRadioStandalone/archive/f7bdcd42d41eff1e912cd0465b8a22c78108c53c.tar.gz
+Binary provenance and SHA256 verification: Dockerfile.srs in
+https://github.com/neboman11/overlordbot-local
+No upstream server source modifications were made.

@@ -1,0 +1,524 @@
+{
+ "name": "Anapa-Vityazevo",
+ "lat": 45.01317473377168,
+ "lon": 37.35978347755592,
+ "alt": 43.00004196166992,
+ "parking_spots": [
+  {
+   "name": "Whiskey Spots",
+   "lat": 45.0025587,
+   "lon": 37.3325848
+  },
+  {
+   "name": "Apron 2",
+   "lat": 45.0052733,
+   "lon": 37.3415787
+  },
+  {
+   "name": "Apron 1",
+   "lat": 45.0101579,
+   "lon": 37.3481762
+  },
+  {
+   "name": "East Apron",
+   "lat": 45.011298718132,
+   "lon": 37.364347816973
+  },
+  {
+   "name": "East Apron 1",
+   "lat": 45.009448531727,
+   "lon": 37.367123153259
+  },
+  {
+   "name": "Maintenance Area",
+   "lat": 45.0069344,
+   "lon": 37.3381935
+  },
+  {
+   "name": "Echo Spots",
+   "lat": 45.0094606,
+   "lon": 37.363513
+  },
+  {
+   "name": "Echo Spots 1",
+   "lat": 45.0102612,
+   "lon": 37.3691373
+  },
+  {
+   "name": "Echo Spots 2",
+   "lat": 45.0072648,
+   "lon": 37.3679661
+  }
+ ],
+ "runways": [
+  {
+   "heading": 40,
+   "name": "Runway-0 4",
+   "lat": 44.99635264512,
+   "lon": 37.335871691948
+  },
+  {
+   "heading": 220,
+   "name": "Runway-2 2",
+   "lat": 45.013562231472,
+   "lon": 37.359744919983
+  }
+ ],
+ "navigation_paths": [
+  {
+   "name": "Alpha",
+   "source": "Alpha Mike",
+   "target": "Runway-0 4",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Runway-0 4",
+   "target": "Alpha Mike",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Runway",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Mike Whiskey",
+   "target": "Bravo Runway",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Runway",
+   "target": "Charlie Mike",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Mike",
+   "target": "Charlie Runway",
+   "cost": 1
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-0 4",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Runway-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Charlie Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Charlie Runway",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "Delta",
+   "source": "Runway-2 2",
+   "target": "Delta Mike",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Mike",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Bravo Mike Whiskey",
+   "target": "Alpha Mike",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Alpha Mike",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Charlie Mike",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Bravo Mike Whiskey",
+   "target": "Charlie Mike",
+   "cost": 1
+  },
+  {
+   "name": "Whiskey",
+   "source": "November Whiskey",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Whiskey",
+   "source": "Bravo Mike Whiskey",
+   "target": "November Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Delta Mike",
+   "target": "Mike November",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike November",
+   "target": "Delta Mike",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike November",
+   "target": "Charlie Mike",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Charlie Mike",
+   "target": "Mike November",
+   "cost": 1
+  },
+  {
+   "name": "Whiskey",
+   "source": "Whiskey Spots",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Whiskey",
+   "source": "Bravo Mike Whiskey",
+   "target": "Whiskey Spots",
+   "cost": 999
+  },
+  {
+   "name": "Echo",
+   "source": "Echo Spots",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Echo",
+   "source": "Runway-2 2",
+   "target": "Echo Spots",
+   "cost": 999
+  },
+  {
+   "name": "Echo",
+   "source": "Echo Spots 1",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Echo",
+   "source": "Runway-2 2",
+   "target": "Echo Spots 1",
+   "cost": 999
+  },
+  {
+   "name": "Echo",
+   "source": "Echo Spots 2",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Echo",
+   "source": "Runway-2 2",
+   "target": "Echo Spots 2",
+   "cost": 999
+  },
+  {
+   "name": "November",
+   "source": "Maintenance Area",
+   "target": "November Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Whiskey",
+   "target": "Maintenance Area",
+   "cost": 100
+  },
+  {
+   "name": "November",
+   "source": "Maintenance Area",
+   "target": "Mike November",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "Mike November",
+   "target": "Maintenance Area",
+   "cost": 100
+  },
+  {
+   "name": "Echo",
+   "source": "East Apron",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Echo",
+   "source": "Runway-2 2",
+   "target": "East Apron",
+   "cost": 100
+  },
+  {
+   "name": "Echo",
+   "source": "East Apron 1",
+   "target": "Runway-2 2",
+   "cost": 1
+  },
+  {
+   "name": "Echo",
+   "source": "Runway-2 2",
+   "target": "East Apron 1",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Apron 2",
+   "target": "Bravo Mike Whiskey",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Bravo Mike Whiskey",
+   "target": "Apron 2",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Apron 2",
+   "target": "Charlie Mike",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Charlie Mike",
+   "target": "Apron 2",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Apron 1",
+   "target": "Mike November",
+   "cost": 1
+  },
+  {
+   "name": "Mike",
+   "source": "Mike November",
+   "target": "Apron 1",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Delta Mike",
+   "target": "Apron 1",
+   "cost": 100
+  },
+  {
+   "name": "Mike",
+   "source": "Apron 1",
+   "target": "Delta Mike",
+   "cost": 1
+  },
+  {
+   "name": "Final",
+   "source": "Initial-0 4",
+   "target": "Runway-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "Initial-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry South",
+   "target": "Initial-0 4",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 4",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "Initial-2 2",
+   "target": "Runway-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit North",
+   "target": "Initial-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "Initial-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 2",
+   "target": "Entry-Exit North",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 2",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Charlie Runway",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Charlie Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Runway-2 2",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-2 2",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  }
+ ],
+ "junctions": [
+  {
+   "name": "Alpha Mike",
+   "lat": 44.9981578,
+   "lon": 37.3332707
+  },
+  {
+   "name": "Bravo Mike Whiskey",
+   "lat": 45.0030686,
+   "lon": 37.3397771
+  },
+  {
+   "name": "Charlie Mike",
+   "lat": 45.0056625,
+   "lon": 37.3435851
+  },
+  {
+   "name": "Delta Mike",
+   "lat": 45.0153986,
+   "lon": 37.3570236
+  },
+  {
+   "name": "Mike November",
+   "lat": 45.0078665,
+   "lon": 37.3465924
+  },
+  {
+   "name": "November Whiskey",
+   "lat": 45.0041228,
+   "lon": 37.3348995
+  },
+  {
+   "name": "Bravo Runway",
+   "lat": 45.0011993,
+   "lon": 37.3424703
+  },
+  {
+   "name": "Charlie Runway",
+   "lat": 45.0038921,
+   "lon": 37.3462753
+  },
+  {
+   "name": "Runway Intermediate B",
+   "lat": 45.006792333239,
+   "lon": 37.350438598252
+  },
+  {
+   "name": "Runway Intermediate A",
+   "lat": 45.01094601189,
+   "lon": 37.356096860936
+  }
+ ],
+ "waypoints": [
+  {
+   "name": "Initial-0 4",
+   "lat": 44.968494408832,
+   "lon": 37.295967005446
+  },
+  {
+   "name": "Initial-2 2",
+   "lat": 45.040899386835,
+   "lon": 37.400080564567
+  },
+  {
+   "name": "Entry-Exit North",
+   "lat": 45.1082167,
+   "lon": 37.3957667
+  },
+  {
+   "name": "Entry-Exit East",
+   "lat": 45.040945,
+   "lon": 37.4930833
+  },
+  {
+   "name": "Entry-Exit West",
+   "lat": 45.0122,
+   "lon": 37.2223667
+  },
+  {
+   "name": "Entry South",
+   "lat": 44.8947,
+   "lon": 37.2905167
+  },
+  {
+   "name": "Exit South",
+   "lat": 44.9139833,
+   "lon": 37.4015
+  }
+ ]
+}

@@ -1,64 +1,64 @@
-# overlordbot-local
+# OverlordBot Local
 
-**Status: stopped at milestone 1, as requested when protocol incompatibility is found. This is an investigation, not a working bot.**
+Local-only voice AWACS/ATC for DCS World over SRS 2.4.1.0. Speech workers can run on another LAN machine; gateway stays near SRS. No Azure, LUIS, cloud speech APIs, Discord dependency, DCS modification, or Kubernetes manifests.
 
-[PLAN.md](PLAN.md) remains the rewrite specification. No Kubernetes clusters or argocd-definitions files were accessed or modified.
+## Architecture and runtime
 
-## Measured incompatibility
+- `radio-gateway`: current SRS EAM client, TCP control, UDP Opus, per-speaker end-of-transmission segmentation, STT → brain → TTS orchestration, radio playback.
+- `brain`: Tacview ACMI 2.x state, deterministic brevity parser, ported domain logic and phraseology, bundled aircraft/airfield encyclopedia.
+- `stt-worker`: stateless HTTP boundary around persistent local whisper.cpp model.
+- `tts-worker`: stateless HTTP boundary around local Piper voice.
 
-Against the official SRS 2.4.1.0 Linux executable in a local, network-isolated container:
+Python standard library was chosen for network/control/domain services: direct, inspectable protocols, no web framework/dependency stack, straightforward port of the small domain model. Native whisper.cpp, Piper/ONNX and libopus do compute-heavy work. Independent HTTP endpoints allow workers to move off the DCS host without shared storage or session affinity. No optional LLM is required.
 
-| EAM password JSON property | TCP SYNC | Returned coalition |
-|---|---|---|
-| Original `ExternalAwacsModePassword` | Accepted | 0: authentication rejected |
-| Current `ExternalAWACSModePassword` | Accepted | 2: blue authentication accepted |
+## Run locally
 
-Both probes advertise the original protocol version `1.9.0.0`. The positive control changes only password-property spelling (each connection also has a distinct client GUID). The failure is **not** the advertised version. Evidence: [spike/evidence/protocol.json](spike/evidence/protocol.json).
-
-Original emits `ExternalAwacsModePassword` without a JSON property override. SRS now declares `ExternalAWACSModePassword` and deserializes with System.Text.Json without enabling case-insensitive matching. The original key is therefore ignored. Original parser also uses the old spelling for the response property, but the authentication probe tests outbound compatibility only.
-
-## Reproduce
-
-Requirements: Linux amd64, Podman (or Docker), curl, sha256sum; initial downloads require internet. No speech/cloud API is used. After downloads, the SRS process and probes run with `--network none`; this also prevents upstream SRS update checks and Sentry telemetry from reaching the internet.
+Linux amd64; Docker Compose or Podman + podman-compose; internet needed only for building/downloading pinned dependencies/models. Inference does not need internet. The local stack uses an **internal container network**, with no runtime internet route or published host ports.
 
 ```sh
-sh spike/run.sh
-# Alternatively:
-CONTAINER_RUNTIME=docker sh spike/run.sh
+sh scripts/stack.sh build
+sh scripts/stack.sh verify
+sh scripts/stack.sh down
 ```
 
-Exit 0 means the **incompatibility was reproduced**, not that milestone 1 passed. The probe checks real newline-delimited JSON over TCP loopback inside the server container, asserts both results, and saves JSON evidence. A changed outcome or transport failure exits nonzero. It uses only a disposable test password, not a real credential. `CONTAINER_RUNTIME` defaults to `podman`; this is the only launcher configuration variable. SRS listens on TCP/UDP 5002 inside its isolated container, with no published ports.
+`verify` launches SRS, replayed Tacview, all four services, synthesizes radio calls using real local Piper, sends them over SRS, receives spoken replies, and retranscribes those replies for assertions. Generated audio and measured results go in ignored `artifacts/`. This is a synthetic corpus, not human voice or live DCS certification.
 
-Pinned SRS binary:
+To run services separately:
 
-- URL: https://github.com/ciribob/DCS-SimpleRadioStandalone/releases/download/2.4.1.0/SRS-Server-Commandline-Linux
-- SHA256: `46268dd35204d04426974f66d25eaddaebbaa6b133a7bd227675fae30ed88127`
-- Python container: `docker.io/library/python@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f`
+```sh
+python -m overlord radio-gateway
+python -m overlord brain
+python -m overlord stt-worker
+python -m overlord tts-worker
+```
 
-The script verifies the binary checksum on every run. Downloads are cached in ignored `.cache/`. Python standard library was chosen for this disposable protocol probe: no dependencies, direct TCP/JSON, easy-to-inspect evidence. The production runtime has not been selected at this gate.
+Set `STT_URLS` and `TTS_URLS` to comma-separated remote worker base URLs. Endpoints fail over on transport errors and server failures, not malformed requests. Set `API_TOKEN` identically on services for Bearer authentication. Use a private LAN/VPN or TLS proxy; SRS and Tacview native protocols are not encrypted.
 
-## Source references and licensing
+## Worker contracts
 
-Original reference cloned at `../overlordbot-reference`, revision `c7d34d51bfe66faf6bb8ff9e22688351e99cee70`:
+- `POST /transcribe`: `Content-Type: audio/pcm`, mono signed 16-bit little-endian PCM at **16000 Hz**, 0.1–15 seconds. Optional `X-Prompt` header. Returns JSON `{text, confidence}`; confidence may be null when unavailable from the engine.
+- `POST /synthesize`: JSON `{text, voice?}`. Returns `audio/pcm`, mono s16le at **16000 Hz**.
+- `POST /respond` on brain: JSON `{text, coalition}`; returns `{reply, parsed}`. Unaddressed or unknown calls have no reply. Stale telemetry returns 503 rather than fabricated contacts.
+- All services: `/healthz`, `/readyz`, `/metrics`. HTTP POST bodies capped at 1 MiB, concurrent in-flight processing capped at four per process. Native engine calls are serialized by each model adapter.
 
-- [NetworkMessage.cs](https://gitlab.com/overlordbot/srs-bot/-/blob/c7d34d51bfe66faf6bb8ff9e22688351e99cee70/OverlordBot.SimpleRadio/Network/Util/NetworkMessage.cs): lines 46, 50–54, old password key and serialization.
-- [DataClient.cs](https://gitlab.com/overlordbot/srs-bot/-/blob/c7d34d51bfe66faf6bb8ff9e22688351e99cee70/OverlordBot.SimpleRadio/Network/DataClient.cs): lines 84–101, SYNC and EAM requests.
-- Original copyright: Jeffrey Jones, 2020–2022; AGPL-3.0-or-later. Domain code, parser cases, and encyclopedia have not yet been copied or ported.
+## Verification
 
-SRS reference cloned at `../srs-2.4.1.0-reference`, release tag `2.4.1.0`, revision `f7bdcd42d41eff1e912cd0465b8a22c78108c53c`:
+```sh
+python3 -m unittest discover -s tests -v
+sh spike/run.sh     # historical old-client casing incompatibility reproduction
+sh spike/audio.sh   # real current-client SRS audio/WAV round trip
+```
 
-- [NetworkMessage.cs](https://github.com/ciribob/DCS-SimpleRadioStandalone/blob/f7bdcd42d41eff1e912cd0465b8a22c78108c53c/Common/Models/NetworkMessage.cs): line 47, current password key.
-- [SRSClientSession.cs](https://github.com/ciribob/DCS-SimpleRadioStandalone/blob/f7bdcd42d41eff1e912cd0465b8a22c78108c53c/Common/Network/Server/SRSClientSession.cs): lines 113–116, deserializer options.
-- [ServerSync.cs](https://github.com/ciribob/DCS-SimpleRadioStandalone/blob/f7bdcd42d41eff1e912cd0465b8a22c78108c53c/Common/Network/Server/ServerSync.cs): lines 551–583, authentication response.
+The audio spike passed against official SRS 2.4.1.0: 16,000 input samples, 16,000 captured samples, 16,000 playback samples, 98.64% returned 440 Hz tone energy. See `spike/evidence/audio-roundtrip.json`. `spike/audio.sh` uses host `/usr/lib/libopus.so.0`; normal service images install libopus themselves.
 
-The probe is newly written; upstream binaries/sources are not committed or redistributed here. This repository's code is licensed AGPL-3.0-or-later; see [LICENSE](LICENSE).
+The old client used `ExternalAwacsModePassword`; SRS now expects `ExternalAWACSModePassword`. That old-client incompatibility is preserved as historical evidence, **not a blocker for this rewrite**, which implements current protocol. Successful EAM authentication alone is not audio proof; the separate audio spike exercises UDP Opus in both directions.
 
-## Gate and known limits
+Telemetry parser/replay tests cover deltas, reference offsets, sparse coordinates, deletion, coalition filtering, invalid/non-finite coordinates, stale state, reset/reconnect, and password handshake. Real mission-specific exporter behavior and human speech accuracy still require operator validation.
 
-- UDP Opus reception, frequency routing, WAV recording/playback: **not attempted after EAM incompatibility was established**.
-- Tacview, STT/TTS, parser/responders, speech corpus, latency/resource measurements, CI images, and deployment: **not implemented or measured**.
-- No AVX-only Xeon measurements were performed; no latency claim is made.
-- No images were published; no finished `DEPLOY.md` is supplied. The handoff contract applies when the rewrite is ready, which it is not.
-- Official Linux server required a writable .NET bundle extraction directory and an explicit `--clientExportPath /tmp/clients.json` in this read-only container. The probe sets both. Its shutdown emitted an upstream `ObjectDisposedException` after completing authentication; this is not audio validation.
+## Upstream and license
 
-Next engineering step, after lifting the requested stop gate: use the exact SRS 2.4.1.0 EAM property spelling, then finish milestone 1 with two radio clients, real Opus traffic, WAV capture, and playback before any worker/domain implementation.
+Derived from [OverlordBot](https://gitlab.com/overlordbot/srs-bot), revision `c7d34d51bfe66faf6bb8ff9e22688351e99cee70`, copyright Jeffrey Jones. Licensed AGPL-3.0-or-later; [LICENSE](LICENSE) contains full terms. Modified source is offered at https://github.com/neboman11/overlordbot-local. Data/case provenance is recorded with the ported assets.
+
+SRS protocol reference: [2.4.1.0](https://github.com/ciribob/DCS-SimpleRadioStandalone/tree/f7bdcd42d41eff1e912cd0465b8a22c78108c53c). Its unmodified Linux server is downloaded from a pinned release URL and checked against SHA256 `46268dd35204d04426974f66d25eaddaebbaa6b133a7bd227675fae30ed88127`. The official server attempts update checks and telemetry and logs its EAM test password; the integration network blocks outbound access. Its observed shutdown `ObjectDisposedException` occurs after successful radio exchanges.
+
+No clusters or argocd-definitions were changed. Deployment and all measured limitations are documented in the deployment handoff when packaging verification is complete.

@@ -1,0 +1,239 @@
+{
+ "name": "Nalchik",
+ "lat": 43.50998473505967,
+ "lon": 43.62488628801948,
+ "alt": 430.01043701171875,
+ "parking_spots": [
+  {
+   "name": "Apron 2",
+   "lat": 43.513191090253,
+   "lon": 43.642730413694
+  },
+  {
+   "name": "Apron 1",
+   "lat": 43.511471416956,
+   "lon": 43.639408325336
+  }
+ ],
+ "runways": [
+  {
+   "heading": 240,
+   "name": "Runway-2 4",
+   "lat": 43.518316486373,
+   "lon": 43.648060213843
+  },
+  {
+   "heading": 60,
+   "name": "Runway-0 6",
+   "lat": 43.509731716809,
+   "lon": 43.624995136183
+  }
+ ],
+ "junctions": [
+  {
+   "name": "Alpha Bravo",
+   "lat": 43.510433711327,
+   "lon": 43.634927366122
+  },
+  {
+   "name": "Bravo Runway",
+   "lat": 43.511521538913,
+   "lon": 43.629869013259
+  },
+  {
+   "name": "Alpha Runway",
+   "lat": 43.50970347608,
+   "lon": 43.624861870914
+  }
+ ],
+ "navigation_paths": [
+  {
+   "name": "Runway",
+   "source": "Alpha Runway",
+   "target": "Runway-2 4",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-2 4",
+   "target": "Alpha Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Runway-2 4",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-2 4",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Alpha Runway",
+   "target": "Runway-0 6",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-0 6",
+   "target": "Alpha Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Runway-0 6",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-0 6",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Runway",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Bravo",
+   "target": "Alpha Runway",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Runway",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Alpha Bravo",
+   "target": "Bravo Runway",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Apron 1",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Bravo",
+   "target": "Apron 1",
+   "cost": 100
+  },
+  {
+   "name": "Alpha",
+   "source": "Apron 2",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Bravo",
+   "target": "Apron 2",
+   "cost": 100
+  },
+  {
+   "name": "Final",
+   "source": "Initial-2 4",
+   "target": "Runway-2 4",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "Initial-0 6",
+   "target": "Runway-0 6",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 6",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 6",
+   "target": "Entry-Exit South",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 4",
+   "target": "Entry-Exit North",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 4",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "Initial-0 6",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit South",
+   "target": "Initial-0 6",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit North",
+   "target": "Initial-2 4",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "Initial-2 4",
+   "cost": 999
+  }
+ ],
+ "waypoints": [
+  {
+   "name": "Initial-2 4",
+   "lat": 43.53775,
+   "lon": 43.6996167
+  },
+  {
+   "name": "Initial-0 6",
+   "lat": 43.4934333,
+   "lon": 43.5703833
+  },
+  {
+   "name": "Entry-Exit West",
+   "lat": 43.5380833,
+   "lon": 43.4994
+  },
+  {
+   "name": "Entry-Exit North",
+   "lat": 43.6122667,
+   "lon": 43.6625
+  },
+  {
+   "name": "Entry-Exit East",
+   "lat": 43.5416167,
+   "lon": 43.7902833
+  },
+  {
+   "name": "Entry-Exit South",
+   "lat": 43.4374333,
+   "lon": 43.5431
+  }
+ ]
+}

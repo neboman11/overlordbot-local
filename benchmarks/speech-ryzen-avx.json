@@ -1,0 +1,914 @@
+{
+  "generated_at": "2026-11-11T17:31:19.717982+00:00",
+  "host": {
+    "cpu_model": "AMD Ryzen 7 7700X 8-Core Processor",
+    "cpu_flags": {
+      "sse4_2": true,
+      "avx": true,
+      "f16c": true,
+      "fma": true,
+      "avx2": true,
+      "bmi1": true,
+      "bmi2": true,
+      "avx512f": true,
+      "avx_vnni": false,
+      "amx_tile": false
+    },
+    "logical_cpus": 16,
+    "affinity_cpus": 16,
+    "kernel": "7.3.3-1-cachyos",
+    "python": "3.14.10",
+    "xeon_e5_v2_measured": false,
+    "measurement_scope": "Measured on AMD Ryzen 7 7700X 8-Core Processor. Binaries are the AVX-only (no AVX2/FMA) build, but this host is NOT a Xeon E5 v2; these numbers are not Ivy Bridge latencies.",
+    "whisper_cmake_cache": {
+      "BUILD_SHARED_LIBS:BOOL": "OFF",
+      "CMAKE_BUILD_TYPE:STRING": "Release",
+      "CMAKE_CXX_FLAGS:STRING": "-march=x86-64 -mtune=generic -DMA_NO_FLAC",
+      "CMAKE_CXX_FLAGS_DEBUG:STRING": "-g",
+      "CMAKE_CXX_FLAGS_MINSIZEREL:STRING": "-Os -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELEASE:STRING": "-O3 -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING": "-O2 -g -DNDEBUG",
+      "CMAKE_C_FLAGS:STRING": "-march=x86-64 -mtune=generic -DMA_NO_FLAC",
+      "CMAKE_C_FLAGS_DEBUG:STRING": "-g",
+      "CMAKE_C_FLAGS_MINSIZEREL:STRING": "-Os -DNDEBUG",
+      "CMAKE_C_FLAGS_RELEASE:STRING": "-O3 -DNDEBUG",
+      "CMAKE_C_FLAGS_RELWITHDEBINFO:STRING": "-O2 -g -DNDEBUG",
+      "GGML_ACCELERATE:BOOL": "ON",
+      "GGML_ALL_WARNINGS_3RD_PARTY:BOOL": "OFF",
+      "GGML_AMX_BF16:BOOL": "OFF",
+      "GGML_AMX_INT8:BOOL": "OFF",
+      "GGML_AMX_TILE:BOOL": "OFF",
+      "GGML_AVX:BOOL": "ON",
+      "GGML_AVX2:BOOL": "OFF",
+      "GGML_AVX512:BOOL": "OFF",
+      "GGML_AVX512_BF16:BOOL": "OFF",
+      "GGML_AVX512_VBMI:BOOL": "OFF",
+      "GGML_AVX512_VNNI:BOOL": "OFF",
+      "GGML_AVX_VNNI:BOOL": "OFF",
+      "GGML_BACKEND_DIR:PATH": "",
+      "GGML_BACKEND_DL:BOOL": "OFF",
+      "GGML_BIN_INSTALL_DIR:PATH": "bin",
+      "GGML_BLAS:BOOL": "OFF",
+      "GGML_BLAS_VENDOR:STRING": "Generic",
+      "GGML_BMI2:BOOL": "OFF",
+      "GGML_BUILD_EXAMPLES:BOOL": "OFF",
+      "GGML_BUILD_TESTS:BOOL": "OFF",
+      "GGML_CCACHE:BOOL": "OFF",
+      "GGML_CPU:BOOL": "ON",
+      "GGML_CPU_ALL_VARIANTS:BOOL": "OFF",
+      "GGML_CPU_ARM_ARCH:STRING": "",
+      "GGML_CPU_HBM:BOOL": "OFF",
+      "GGML_CPU_KLEIDIAI:BOOL": "OFF",
+      "GGML_CPU_POWERPC_CPUTYPE:STRING": "",
+      "GGML_CPU_REPACK:BOOL": "ON",
+      "GGML_CUDA:BOOL": "OFF",
+      "GGML_CUDA_CCCL_VERSION:STRING": "",
+      "GGML_CUDA_COMPRESSION_MODE:STRING": "size",
+      "GGML_CUDA_FA:BOOL": "ON",
+      "GGML_CUDA_FA_ALL_QUANTS:BOOL": "OFF",
+      "GGML_CUDA_FA_QUANTS:STRING": "q4_0-q4_0;q8_0-q8_0;f16-f16;bf16-bf16",
+      "GGML_CUDA_FORCE_CUBLAS:BOOL": "OFF",
+      "GGML_CUDA_FORCE_MMQ:BOOL": "OFF",
+      "GGML_CUDA_GRAPHS:BOOL": "OFF",
+      "GGML_CUDA_NCCL:BOOL": "ON",
+      "GGML_CUDA_NO_PEER_COPY:BOOL": "OFF",
+      "GGML_CUDA_NO_VMM:BOOL": "OFF",
+      "GGML_ET:BOOL": "OFF",
+      "GGML_ET_SYSEMU:BOOL": "OFF",
+      "GGML_F16C:BOOL": "ON",
+      "GGML_FMA:BOOL": "OFF",
+      "GGML_GPROF:BOOL": "OFF",
+      "GGML_HEXAGON:BOOL": "OFF",
+      "GGML_HIP:BOOL": "OFF",
+      "GGML_HIP_EXPORT_METRICS:BOOL": "OFF",
+      "GGML_HIP_GRAPHS:BOOL": "ON",
+      "GGML_HIP_MMQ_MFMA:BOOL": "ON",
+      "GGML_HIP_NO_VMM:BOOL": "ON",
+      "GGML_HIP_RCCL:BOOL": "OFF",
+      "GGML_INCLUDE_INSTALL_DIR:PATH": "include",
+      "GGML_LASX:BOOL": "ON",
+      "GGML_LIB_INSTALL_DIR:PATH": "lib",
+      "GGML_LLAMAFILE:BOOL": "OFF",
+      "GGML_LSX:BOOL": "ON",
+      "GGML_LTO:BOOL": "OFF",
+      "GGML_METAL:BOOL": "OFF",
+      "GGML_METAL_EMBED_LIBRARY:BOOL": "OFF",
+      "GGML_METAL_MACOSX_VERSION_MIN:STRING": "",
+      "GGML_METAL_NDEBUG:BOOL": "OFF",
+      "GGML_METAL_SHADER_DEBUG:BOOL": "OFF",
+      "GGML_METAL_STD:STRING": "",
+      "GGML_METAL_TARGET_OS:STRING": "macos",
+      "GGML_MUSA:BOOL": "OFF",
+      "GGML_MUSA_GRAPHS:BOOL": "OFF",
+      "GGML_MUSA_MUDNN_COPY:BOOL": "OFF",
+      "GGML_NATIVE:BOOL": "OFF",
+      "GGML_OPENCL:BOOL": "OFF",
+      "GGML_OPENCL_EMBED_KERNELS:BOOL": "ON",
+      "GGML_OPENCL_PROFILING:BOOL": "OFF",
+      "GGML_OPENCL_TARGET_VERSION:STRING": "300",
+      "GGML_OPENCL_USE_ADRENO_KERNELS:BOOL": "ON",
+      "GGML_OPENMP:BOOL": "ON",
+      "GGML_OPENMP_FETCH:BOOL": "OFF",
+      "GGML_OPENVINO:BOOL": "OFF",
+      "GGML_RPC:BOOL": "OFF",
+      "GGML_RVV:BOOL": "ON",
+      "GGML_RV_ZFH:BOOL": "ON",
+      "GGML_RV_ZICBOP:BOOL": "ON",
+      "GGML_RV_ZIHINTPAUSE:BOOL": "ON",
+      "GGML_RV_ZVFBFWMA:BOOL": "OFF",
+      "GGML_RV_ZVFH:BOOL": "ON",
+      "GGML_SCHED_MAX_COPIES:STRING": "4",
+      "GGML_SCHED_NO_REALLOC:BOOL": "OFF",
+      "GGML_SSE42:BOOL": "ON",
+      "GGML_STATIC:BOOL": "OFF",
+      "GGML_SYCL:BOOL": "OFF",
+      "GGML_SYCL_DEVICE_ARCH:STRING": "",
+      "GGML_SYCL_DNN:BOOL": "ON",
+      "GGML_SYCL_F16:BOOL": "OFF",
+      "GGML_SYCL_GRAPH:BOOL": "ON",
+      "GGML_SYCL_HOST_MEM_FALLBACK:BOOL": "ON",
+      "GGML_SYCL_SUPPORT_LEVEL_ZERO_API:BOOL": "ON",
+      "GGML_SYCL_TARGET:STRING": "INTEL",
+      "GGML_VIRTGPU:BOOL": "OFF",
+      "GGML_VIRTGPU_BACKEND:BOOL": "OFF",
+      "GGML_VULKAN:BOOL": "OFF",
+      "GGML_VULKAN_CHECK_RESULTS:BOOL": "OFF",
+      "GGML_VULKAN_DEBUG:BOOL": "OFF",
+      "GGML_VULKAN_MEMORY_DEBUG:BOOL": "OFF",
+      "GGML_VULKAN_RUN_TESTS:BOOL": "OFF",
+      "GGML_VULKAN_SHADERS_GEN_TOOLCHAIN:FILEPATH": "",
+      "GGML_VULKAN_SHADER_DEBUG_INFO:BOOL": "OFF",
+      "GGML_VULKAN_VALIDATE:BOOL": "OFF",
+      "GGML_VXE:BOOL": "OFF",
+      "GGML_WEBGPU:BOOL": "OFF",
+      "GGML_WEBGPU_CPU_PROFILE:BOOL": "OFF",
+      "GGML_WEBGPU_DEBUG:BOOL": "OFF",
+      "GGML_WEBGPU_GPU_PROFILE:BOOL": "OFF",
+      "GGML_WEBGPU_JSPI:BOOL": "ON",
+      "GGML_XTHEADVECTOR:BOOL": "OFF",
+      "GGML_ZDNN:BOOL": "OFF",
+      "GGML_ZENDNN:BOOL": "OFF",
+      "WHISPER_ALL_WARNINGS:BOOL": "ON",
+      "WHISPER_ALL_WARNINGS_3RD_PARTY:BOOL": "OFF",
+      "WHISPER_BIN_INSTALL_DIR:PATH": "bin",
+      "WHISPER_BUILD_EXAMPLES:BOOL": "ON",
+      "WHISPER_BUILD_IS_DEV:BOOL": "ON",
+      "WHISPER_BUILD_SERVER:BOOL": "ON",
+      "WHISPER_BUILD_TESTS:BOOL": "OFF",
+      "WHISPER_COMMON_FFMPEG:BOOL": "OFF",
+      "WHISPER_COREML:BOOL": "OFF",
+      "WHISPER_COREML_ALLOW_FALLBACK:BOOL": "OFF",
+      "WHISPER_CURL:BOOL": "OFF",
+      "WHISPER_FATAL_WARNINGS:BOOL": "OFF",
+      "WHISPER_INCLUDE_INSTALL_DIR:PATH": "include",
+      "WHISPER_LIB_INSTALL_DIR:PATH": "lib",
+      "WHISPER_OPENVINO:BOOL": "OFF",
+      "WHISPER_SANITIZE_ADDRESS:BOOL": "OFF",
+      "WHISPER_SANITIZE_THREAD:BOOL": "OFF",
+      "WHISPER_SANITIZE_UNDEFINED:BOOL": "OFF",
+      "WHISPER_SDL2:BOOL": "OFF",
+      "WHISPER_USE_SYSTEM_GGML:BOOL": "OFF",
+      "WHISPER_USE_SYSTEM_LLAMA:BOOL": "OFF",
+      "WHISPER_VITISAI:BOOL": "OFF"
+    },
+    "whisper_cpp_commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+    "onnxruntime": {
+      "version": "1.31.1",
+      "device": "CPU",
+      "providers": [
+        "AzureExecutionProvider",
+        "CPUExecutionProvider"
+      ]
+    },
+    "piper_tts": "1.8.0",
+    "numpy": "2.5.4",
+    "numpy_simd": {
+      "baseline": [
+        "X86_V2"
+      ],
+      "dispatch_active": [
+        "X86_V3",
+        "X86_V4",
+        "AVX512_ICL"
+      ]
+    }
+  },
+  "page_cache_note": "cold_start_s includes process start and model load; model files may already be in the OS page cache.",
+  "corpus": {
+    "kind": "synthetic",
+    "label": "SYNTHETIC: generated by Piper en_US-ljspeech-medium, not human or radio-degraded speech",
+    "phrases": [
+      {
+        "text": "Overlord, Viper one one, bogey dope.",
+        "duration_s": 2.415,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0498,
+        "synth_warm_s": [
+          0.048
+        ]
+      },
+      {
+        "text": "Overlord, Viper one one, request picture.",
+        "duration_s": 3.146,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0557,
+        "synth_warm_s": [
+          0.0525
+        ]
+      },
+      {
+        "text": "Overlord, Enfield two one, declare, bullseye zero four five, thirty.",
+        "duration_s": 5.503,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0906,
+        "synth_warm_s": [
+          0.084
+        ]
+      },
+      {
+        "text": "Anapa ground, Hornet three one, ready to taxi.",
+        "duration_s": 3.506,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0574,
+        "synth_warm_s": [
+          0.06
+        ]
+      },
+      {
+        "text": "Kutaisi approach, Eagle one two, inbound.",
+        "duration_s": 3.077,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0483,
+        "synth_warm_s": [
+          0.0466
+        ]
+      },
+      {
+        "text": "Overlord, Uzi one one, location of Batumi.",
+        "duration_s": 3.646,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0569,
+        "synth_warm_s": [
+          0.0613
+        ]
+      },
+      {
+        "text": "Overlord, Dodge four one, checking in, angels twenty.",
+        "duration_s": 3.529,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0544,
+        "synth_warm_s": [
+          0.0531
+        ]
+      },
+      {
+        "text": "Batumi tower, Viper two two, inbound for landing.",
+        "duration_s": 3.878,
+        "in_2_6s_range": true,
+        "synth_first_s": 0.0623,
+        "synth_warm_s": [
+          0.0561
+        ]
+      }
+    ]
+  },
+  "stt_prompt": "Overlord, Viper, Enfield, Hornet, Eagle, Uzi, Dodge, bogey dope, request picture, declare, bullseye, angels, inbound, ready to taxi, Anapa, Kutaisi, Batumi.",
+  "tts": {
+    "voice": "en_US-ljspeech-medium",
+    "model": "/models/en_US-ljspeech-medium.onnx",
+    "native_rate_hz": 22050,
+    "output_rate_hz": 16000,
+    "threads_setting": 0,
+    "cold_load_and_warmup_s": 1.0998,
+    "first_synthesis_s": {
+      "n": 8,
+      "min": 0.0483,
+      "median": 0.0563,
+      "p90": 0.0906,
+      "max": 0.0906
+    },
+    "warm_synthesis_s": {
+      "n": 8,
+      "min": 0.0466,
+      "median": 0.0546,
+      "p90": 0.084,
+      "max": 0.084
+    },
+    "process_rss_before_load": {
+      "vmhwm_mib": 24.3,
+      "vmrss_mib": 24.3
+    },
+    "process_rss_after": {
+      "vmhwm_mib": 355.9,
+      "vmrss_mib": 292.2
+    }
+  },
+  "stt": [
+    {
+      "model": "tiny",
+      "file": "/models/ggml-tiny.en.bin",
+      "size_bytes": 77704715,
+      "threads": 4,
+      "command": [
+        "/usr/local/bin/whisper-server",
+        "--model",
+        "/models/ggml-tiny.en.bin",
+        "--threads",
+        "4",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18080",
+        "--language",
+        "en",
+        "--no-timestamps",
+        "--no-language-probabilities",
+        "--no-gpu"
+      ],
+      "system_info": "n_threads = 4 / 16 | WHISPER : VITISAI = 0 | COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | F16C = 1 | OPENMP = 1 | REPACK = 1 |",
+      "cold_start_s": 0.1072,
+      "first_inference_after_load_s": 0.3006,
+      "warm_latency_s": {
+        "n": 8,
+        "min": 0.294,
+        "median": 0.2986,
+        "p90": 0.3336,
+        "max": 0.3336
+      },
+      "warm_real_time_factor": {
+        "n": 8,
+        "min": 0.0606,
+        "median": 0.0849,
+        "p90": 0.1229,
+        "max": 0.1229
+      },
+      "mean_wer": 0.4765,
+      "server_rss_after_load": {
+        "vmhwm_mib": 109.5,
+        "vmrss_mib": 109.5
+      },
+      "server_rss_after_runs": {
+        "vmhwm_mib": 207.4,
+        "vmrss_mib": 207.4
+      },
+      "utterances": [
+        {
+          "reference": "Overlord, Viper one one, bogey dope.",
+          "audio_s": 2.415,
+          "text": "Overlord, Viper, 1-1-bobey dope.",
+          "confidence": 0.6937351198518065,
+          "wer": 0.5,
+          "latency_s": [
+            0.3006,
+            0.2969
+          ],
+          "latency_kind": [
+            "first_after_load",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.18,
+            1.19
+          ]
+        },
+        {
+          "reference": "Overlord, Viper one one, request picture.",
+          "audio_s": 3.146,
+          "text": "Overlord, Viper 1-1, request picture.",
+          "confidence": 0.8368422494773359,
+          "wer": 0.3333,
+          "latency_s": [
+            0.2922,
+            0.294
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.18,
+            1.17
+          ]
+        },
+        {
+          "reference": "Overlord, Enfield two one, declare, bullseye zero four five, thirty.",
+          "audio_s": 5.503,
+          "text": "Overlord Enfield, 2, 1, declare, bull-sized, 0, 4, 5, 30.",
+          "confidence": 0.7194529538998051,
+          "wer": 0.8,
+          "latency_s": [
+            0.3151,
+            0.3336
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.26,
+            1.27
+          ]
+        },
+        {
+          "reference": "Anapa ground, Hornet three one, ready to taxi.",
+          "audio_s": 3.506,
+          "text": "An arper ground, corner 3-1, ready to taxi.",
+          "confidence": 0.6736654053102266,
+          "wer": 0.625,
+          "latency_s": [
+            0.3015,
+            0.3002
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.15,
+            1.14
+          ]
+        },
+        {
+          "reference": "Kutaisi approach, Eagle one two, inbound.",
+          "audio_s": 3.077,
+          "text": "QTacey approach Eagle 1-2 inbound.",
+          "confidence": 0.5079463857141931,
+          "wer": 0.5,
+          "latency_s": [
+            0.2973,
+            0.294
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.15,
+            1.14
+          ]
+        },
+        {
+          "reference": "Overlord, Uzi one one, location of Batumi.",
+          "audio_s": 3.646,
+          "text": "Overlord, Uzi, 1-1, location of Bartoury.",
+          "confidence": 0.6467077710970733,
+          "wer": 0.4286,
+          "latency_s": [
+            0.3065,
+            0.3067
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.16,
+            1.17
+          ]
+        },
+        {
+          "reference": "Overlord, Dodge four one, checking in, angels twenty.",
+          "audio_s": 3.529,
+          "text": "Overlord, Dodge for one checking in, angels 20.",
+          "confidence": 0.7403422577293545,
+          "wer": 0.25,
+          "latency_s": [
+            0.2972,
+            0.2968
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.14,
+            1.15
+          ]
+        },
+        {
+          "reference": "Batumi tower, Viper two two, inbound for landing.",
+          "audio_s": 3.878,
+          "text": "Bartumi Tower, Viper 2-2, inbound for landing.",
+          "confidence": 0.7277024364498474,
+          "wer": 0.375,
+          "latency_s": [
+            0.3005,
+            0.3014
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            1.14,
+            1.17
+          ]
+        }
+      ]
+    },
+    {
+      "model": "base",
+      "file": "/bench/ggml-base.en.bin",
+      "size_bytes": 147964211,
+      "threads": 4,
+      "command": [
+        "/usr/local/bin/whisper-server",
+        "--model",
+        "/bench/ggml-base.en.bin",
+        "--threads",
+        "4",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18081",
+        "--language",
+        "en",
+        "--no-timestamps",
+        "--no-language-probabilities",
+        "--no-gpu"
+      ],
+      "system_info": "n_threads = 4 / 16 | WHISPER : VITISAI = 0 | COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | F16C = 1 | OPENMP = 1 | REPACK = 1 |",
+      "cold_start_s": 0.0541,
+      "first_inference_after_load_s": 0.6573,
+      "warm_latency_s": {
+        "n": 8,
+        "min": 0.6433,
+        "median": 0.665,
+        "p90": 1.2395,
+        "max": 1.2395
+      },
+      "warm_real_time_factor": {
+        "n": 8,
+        "min": 0.1257,
+        "median": 0.2007,
+        "p90": 0.3196,
+        "max": 0.3196
+      },
+      "mean_wer": 0.4463,
+      "server_rss_after_load": {
+        "vmhwm_mib": 189.6,
+        "vmrss_mib": 189.6
+      },
+      "server_rss_after_runs": {
+        "vmhwm_mib": 297.8,
+        "vmrss_mib": 297.8
+      },
+      "utterances": [
+        {
+          "reference": "Overlord, Viper one one, bogey dope.",
+          "audio_s": 2.415,
+          "text": "Overlord, Viper 1-1, Bogey Dote.",
+          "confidence": 0.64582924748861,
+          "wer": 0.5,
+          "latency_s": [
+            0.6573,
+            0.6494
+          ],
+          "latency_kind": [
+            "first_after_load",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.61,
+            2.59
+          ]
+        },
+        {
+          "reference": "Overlord, Viper one one, request picture.",
+          "audio_s": 3.146,
+          "text": "Overlord, Viper 1-1, request picture.",
+          "confidence": 0.8539842309408924,
+          "wer": 0.3333,
+          "latency_s": [
+            0.6433,
+            0.6433
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.58,
+            2.57
+          ]
+        },
+        {
+          "reference": "Overlord, Enfield two one, declare, bullseye zero four five, thirty.",
+          "audio_s": 5.503,
+          "text": "Overlord, Enfield, 2-1, declare, bullseye, 0-4-5-30.",
+          "confidence": 0.7737040815627265,
+          "wer": 0.6,
+          "latency_s": [
+            0.6836,
+            0.6916
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.73,
+            2.69
+          ]
+        },
+        {
+          "reference": "Anapa ground, Hornet three one, ready to taxi.",
+          "audio_s": 3.506,
+          "text": "An arbor ground, Cornet 3-1, ready to taxi.",
+          "confidence": 0.8044043549606672,
+          "wer": 0.625,
+          "latency_s": [
+            0.6931,
+            0.6902
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.69,
+            2.66
+          ]
+        },
+        {
+          "reference": "Kutaisi approach, Eagle one two, inbound.",
+          "audio_s": 3.077,
+          "text": "Kutaisi approach Eagle 1-2 inbound.",
+          "confidence": 0.7128739301818909,
+          "wer": 0.3333,
+          "latency_s": [
+            0.6681,
+            0.6674
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.61,
+            2.58
+          ]
+        },
+        {
+          "reference": "Overlord, Uzi one one, location of Batumi.",
+          "audio_s": 3.646,
+          "text": "Overlord, Uzi-1-1, Location of Bartouy.",
+          "confidence": 0.6779599943074923,
+          "wer": 0.4286,
+          "latency_s": [
+            0.6685,
+            0.6626
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.61,
+            2.59
+          ]
+        },
+        {
+          "reference": "Overlord, Dodge four one, checking in, angels twenty.",
+          "audio_s": 3.529,
+          "text": "Overlord, Dodge 4-1, checking in, Angels 20.",
+          "confidence": 0.7549537152015516,
+          "wer": 0.375,
+          "latency_s": [
+            0.6568,
+            0.6571
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.57,
+            2.57
+          ]
+        },
+        {
+          "reference": "Batumi tower, Viper two two, inbound for landing.",
+          "audio_s": 3.878,
+          "text": "Bartumi Tower, Viper 2.2, inbound for landing.",
+          "confidence": 0.8012139068519248,
+          "wer": 0.375,
+          "latency_s": [
+            0.6602,
+            1.2395
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            2.57,
+            3.41
+          ]
+        }
+      ]
+    },
+    {
+      "model": "small",
+      "file": "/bench/ggml-small.en.bin",
+      "size_bytes": 487614201,
+      "threads": 4,
+      "command": [
+        "/usr/local/bin/whisper-server",
+        "--model",
+        "/bench/ggml-small.en.bin",
+        "--threads",
+        "4",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18082",
+        "--language",
+        "en",
+        "--no-timestamps",
+        "--no-language-probabilities",
+        "--no-gpu"
+      ],
+      "system_info": "n_threads = 4 / 16 | WHISPER : VITISAI = 0 | COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | F16C = 1 | OPENMP = 1 | REPACK = 1 |",
+      "cold_start_s": 0.1064,
+      "first_inference_after_load_s": 2.4078,
+      "warm_latency_s": {
+        "n": 8,
+        "min": 2.4018,
+        "median": 3.2826,
+        "p90": 4.3729,
+        "max": 4.3729
+      },
+      "warm_real_time_factor": {
+        "n": 8,
+        "min": 0.5936,
+        "median": 0.9069,
+        "p90": 1.2391,
+        "max": 1.2391
+      },
+      "mean_wer": 0.4411,
+      "server_rss_after_load": {
+        "vmhwm_mib": 563.4,
+        "vmrss_mib": 563.4
+      },
+      "server_rss_after_runs": {
+        "vmhwm_mib": 691.5,
+        "vmrss_mib": 691.5
+      },
+      "utterances": [
+        {
+          "reference": "Overlord, Viper one one, bogey dope.",
+          "audio_s": 2.415,
+          "text": "Overlord, Viper, 1-1, bogey dope.",
+          "confidence": 0.7495603163689792,
+          "wer": 0.3333,
+          "latency_s": [
+            2.4078,
+            2.8603
+          ],
+          "latency_kind": [
+            "first_after_load",
+            "warm"
+          ],
+          "server_cpu_s": [
+            9.59,
+            10.34
+          ]
+        },
+        {
+          "reference": "Overlord, Viper one one, request picture.",
+          "audio_s": 3.146,
+          "text": "Overlord, Viper 1-1, request picture.",
+          "confidence": 0.8598884643040767,
+          "wer": 0.3333,
+          "latency_s": [
+            2.385,
+            3.7646
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            9.51,
+            11.8
+          ]
+        },
+        {
+          "reference": "Overlord, Enfield two one, declare, bullseye zero four five, thirty.",
+          "audio_s": 5.503,
+          "text": "Overlord, Enfield, 2-1, declare, bullseye 045-30.",
+          "confidence": 0.761016759319297,
+          "wer": 0.6,
+          "latency_s": [
+            4.4393,
+            3.2665
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            12.92,
+            10.88
+          ]
+        },
+        {
+          "reference": "Anapa ground, Hornet three one, ready to taxi.",
+          "audio_s": 3.506,
+          "text": "And Arbor Ground, Cornet 3-1, ready to taxi.",
+          "confidence": 0.7334989700702232,
+          "wer": 0.625,
+          "latency_s": [
+            2.4277,
+            3.3768
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            9.57,
+            10.73
+          ]
+        },
+        {
+          "reference": "Kutaisi approach, Eagle one two, inbound.",
+          "audio_s": 3.077,
+          "text": "Kutaisi Approach, Eagle 1-2 inbound.",
+          "confidence": 0.7356615615798061,
+          "wer": 0.3333,
+          "latency_s": [
+            4.1903,
+            2.4018
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            12.01,
+            9.49
+          ]
+        },
+        {
+          "reference": "Overlord, Uzi one one, location of Batumi.",
+          "audio_s": 3.646,
+          "text": "Overlord, Uzi 1-1, location of barteri.",
+          "confidence": 0.7985020590608284,
+          "wer": 0.4286,
+          "latency_s": [
+            2.4353,
+            2.4349
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            9.61,
+            9.59
+          ]
+        },
+        {
+          "reference": "Overlord, Dodge four one, checking in, angels twenty.",
+          "audio_s": 3.529,
+          "text": "Overlord Dodge 4-1, checking in, angels 20.",
+          "confidence": 0.7857699423162128,
+          "wer": 0.375,
+          "latency_s": [
+            3.1024,
+            4.3729
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            10.36,
+            12.22
+          ]
+        },
+        {
+          "reference": "Batumi tower, Viper two two, inbound for landing.",
+          "audio_s": 3.878,
+          "text": "Bar-Tumi Tower, Viper 2-2, inbound for landing.",
+          "confidence": 0.7210151782777304,
+          "wer": 0.5,
+          "latency_s": [
+            2.4509,
+            3.2987
+          ],
+          "latency_kind": [
+            "first_for_utterance",
+            "warm"
+          ],
+          "server_cpu_s": [
+            9.65,
+            10.92
+          ]
+        }
+      ]
+    }
+  ]
+}

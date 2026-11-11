@@ -1,0 +1,7 @@
+.git
+.cache
+.env
+__pycache__
+**/__pycache__
+spike/evidence/*.wav
+artifacts

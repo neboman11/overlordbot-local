@@ -1,0 +1,486 @@
+{
+ "name": "Gudauta",
+ "lat": 43.1142917,
+ "lon": 40.56975,
+ "alt": 69,
+ "parking_spots": [
+  {
+   "name": "Apron Alpha",
+   "lat": 43.10465519349,
+   "lon": 40.56928882836
+  },
+  {
+   "name": "Apron Bravo",
+   "lat": 43.118865420048,
+   "lon": 40.570359467008
+  },
+  {
+   "name": "Apron Charlie",
+   "lat": 43.115876515055,
+   "lon": 40.559986541374
+  }
+ ],
+ "runways": [
+  {
+   "heading": 330,
+   "name": "Runway-3 3",
+   "lat": 43.104836468976,
+   "lon": 40.575455356652
+  },
+  {
+   "heading": 150,
+   "name": "Runway-1 5",
+   "lat": 43.123738147524,
+   "lon": 40.564047591806
+  }
+ ],
+ "navigation_paths": [
+  {
+   "name": "Alpha",
+   "source": "Alpha Alpha",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Bravo",
+   "target": "Alpha Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Bravo",
+   "target": "Alpha Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Charlie",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Charlie",
+   "target": "Alpha Delta",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Delta",
+   "target": "Alpha Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Delta",
+   "target": "Alpha Echo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Echo",
+   "target": "Alpha Delta",
+   "cost": 1
+  },
+  {
+   "name": "X-Ray",
+   "source": "Alpha Echo",
+   "target": "Apron Charlie",
+   "cost": 100
+  },
+  {
+   "name": "X-Ray",
+   "source": "Apron Charlie",
+   "target": "Alpha Echo",
+   "cost": 1
+  },
+  {
+   "name": "X-Ray",
+   "source": "Alpha Foxtrot",
+   "target": "Apron Charlie",
+   "cost": 100
+  },
+  {
+   "name": "X-Ray",
+   "source": "Apron Charlie",
+   "target": "Alpha Foxtrot",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Echo",
+   "target": "Alpha Foxtrot",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Foxtrot",
+   "target": "Alpha Echo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Foxtrot",
+   "target": "Alpha Gulf",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Gulf",
+   "target": "Alpha Foxtrot",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Alpha Gulf",
+   "target": "Delta Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Charlie",
+   "target": "Alpha Gulf",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Charlie",
+   "target": "Runway Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Runway Charlie",
+   "target": "Delta Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Runway Charlie",
+   "target": "Delta Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Alpha",
+   "target": "Runway Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Alpha",
+   "target": "Delta Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Bravo",
+   "target": "Delta Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Apron 2",
+   "source": "Delta Bravo",
+   "target": "Apron Bravo",
+   "cost": 100
+  },
+  {
+   "name": "Apron 2",
+   "source": "Apron Bravo",
+   "target": "Delta Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Gulf",
+   "target": "Alpha Hotel",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Hotel",
+   "target": "Alpha Gulf",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Hotel",
+   "target": "Runway-1 5",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Runway-1 5",
+   "target": "Alpha Hotel",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Alpha",
+   "target": "Runway-3 3",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Runway-3 3",
+   "target": "Alpha Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-3 3",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Runway-3 3",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Runway Charlie",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Charlie",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Charlie",
+   "target": "Runway-1 5",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-1 5",
+   "target": "Runway Charlie",
+   "cost": 999
+  },
+  {
+   "name": "Apron 1",
+   "source": "Alpha Bravo",
+   "target": "Apron Alpha",
+   "cost": 100
+  },
+  {
+   "name": "Apron 1",
+   "source": "Apron Alpha",
+   "target": "Alpha Bravo",
+   "cost": 1
+  },
+  {
+   "name": "Apron 1",
+   "source": "Alpha Alpha",
+   "target": "Apron Alpha",
+   "cost": 100
+  },
+  {
+   "name": "Apron 1",
+   "source": "Apron Alpha",
+   "target": "Alpha Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Apron 1",
+   "source": "Alpha Charlie",
+   "target": "Apron Alpha",
+   "cost": 100
+  },
+  {
+   "name": "Apron 1",
+   "source": "Apron Alpha",
+   "target": "Alpha Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "Initial-1 5",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit West",
+   "target": "Initial-3 3",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit North",
+   "target": "Initial-1 5",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "Initial-1 5",
+   "cost": 999
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit East",
+   "target": "Initial-3 3",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "Initial-3 3",
+   "target": "Runway-3 3",
+   "cost": 999
+  },
+  {
+   "name": "Final",
+   "source": "Initial-1 5",
+   "target": "Runway-1 5",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-3 3",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-3 3",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-1 5",
+   "target": "Entry-Exit West",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-1 5",
+   "target": "Entry-Exit East",
+   "cost": 999
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-1 5",
+   "target": "Entry-Exit North",
+   "cost": 999
+  }
+ ],
+ "junctions": [
+  {
+   "name": "Runway Intermediate B",
+   "lat": 43.114329931017,
+   "lon": 40.56973950936
+  },
+  {
+   "name": "Delta Alpha",
+   "lat": 43.119927814045,
+   "lon": 40.568066684241
+  },
+  {
+   "name": "Delta Bravo",
+   "lat": 43.118500059595,
+   "lon": 40.569723685871
+  },
+  {
+   "name": "Delta Charlie",
+   "lat": 43.119103104364,
+   "lon": 40.565397889996
+  },
+  {
+   "name": "Alpha Alpha",
+   "lat": 43.103968768629,
+   "lon": 40.574491027253
+  },
+  {
+   "name": "Alpha Bravo",
+   "lat": 43.1050295855,
+   "lon": 40.569605064483
+  },
+  {
+   "name": "Alpha Charlie",
+   "lat": 43.106842894661,
+   "lon": 40.565580600202
+  },
+  {
+   "name": "Alpha Delta",
+   "lat": 43.111128526976,
+   "lon": 40.564933817329
+  },
+  {
+   "name": "Alpha Echo",
+   "lat": 43.114847178239,
+   "lon": 40.564405235693
+  },
+  {
+   "name": "Alpha Foxtrot",
+   "lat": 43.117587241306,
+   "lon": 40.56403717232
+  },
+  {
+   "name": "Alpha Gulf",
+   "lat": 43.118979466385,
+   "lon": 40.563712871715
+  },
+  {
+   "name": "Alpha Hotel",
+   "lat": 43.12362628246,
+   "lon": 40.562066721613
+  },
+  {
+   "name": "Runway Intermediate A",
+   "lat": 43.109813507046,
+   "lon": 40.572454795219
+  },
+  {
+   "name": "Runway Charlie",
+   "lat": 43.11954985036,
+   "lon": 40.566605428652
+  }
+ ],
+ "waypoints": [
+  {
+   "name": "Initial-3 3",
+   "lat": 43.0722583,
+   "lon": 40.5939861
+  },
+  {
+   "name": "Initial-1 5",
+   "lat": 43.1682667,
+   "lon": 40.5375417
+  },
+  {
+   "name": "Entry-Exit North",
+   "lat": 43.20805,
+   "lon": 40.50425
+  },
+  {
+   "name": "Entry-Exit East",
+   "lat": 43.1028,
+   "lon": 40.6923
+  },
+  {
+   "name": "Entry-Exit West",
+   "lat": 43.1459667,
+   "lon": 40.3442833
+  }
+ ]
+}

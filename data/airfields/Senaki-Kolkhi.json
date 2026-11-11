@@ -1,0 +1,738 @@
+{
+ "name": "Senaki-Kolkhi",
+ "lat": 42.2409,
+ "lon": 42.0476833,
+ "alt": 43,
+ "parking_spots": [
+  {
+   "name": "Apron Bravo",
+   "lat": 42.245197768192,
+   "lon": 42.044407420053
+  },
+  {
+   "name": "Apron Delta",
+   "lat": 42.241001828133,
+   "lon": 42.057622058864
+  },
+  {
+   "name": "Apron Golf",
+   "lat": 42.246387177462,
+   "lon": 42.036948619635
+  },
+  {
+   "name": "Apron Foxtrot",
+   "lat": 42.245484285909,
+   "lon": 42.034852711816
+  },
+  {
+   "name": "Apron November South",
+   "lat": 42.241851690596,
+   "lon": 42.054539370343
+  },
+  {
+   "name": "Apron November North",
+   "lat": 42.243358122525,
+   "lon": 42.054918517549
+  },
+  {
+   "name": "Apron Charlie South 1",
+   "lat": 42.244726709049,
+   "lon": 42.0490856574
+  },
+  {
+   "name": "Apron Charlie South 2",
+   "lat": 42.245987814813,
+   "lon": 42.047545096973
+  },
+  {
+   "name": "Apron Charlie North 1",
+   "lat": 42.245671142764,
+   "lon": 42.050970548433
+  },
+  {
+   "name": "Apron Charlie North 2",
+   "lat": 42.246841247836,
+   "lon": 42.049892121177
+  }
+ ],
+ "runways": [
+  {
+   "heading": 270,
+   "name": "Runway-2 7",
+   "lat": 42.239022870603,
+   "lon": 42.060913273042
+  },
+  {
+   "heading": 90,
+   "name": "Runway-0 9",
+   "lat": 42.242656610782,
+   "lon": 42.035257804325
+  }
+ ],
+ "navigation_paths": [
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate A",
+   "target": "Charlie Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate A",
+   "target": "Delta November",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "Delta November",
+   "target": "November Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "Charlie November",
+   "target": "November Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate A",
+   "target": "Charlie November",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta November",
+   "target": "Delta Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Intermediate A",
+   "target": "Delta November",
+   "cost": 1
+  },
+  {
+   "name": "Delta",
+   "source": "Delta Intermediate A",
+   "target": "Apron Delta",
+   "cost": 100
+  },
+  {
+   "name": "Delta",
+   "source": "Apron Delta",
+   "target": "Delta Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-2 7",
+   "target": "Delta Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Delta Runway",
+   "target": "Runway-2 7",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Delta Runway",
+   "target": "Charlie Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Charlie Runway",
+   "target": "Delta Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Charlie Runway",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Charlie Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate A",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Runway Intermediate A",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway Intermediate B",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Runway Intermediate B",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Bravo Runway",
+   "target": "Runway-0 9",
+   "cost": 999
+  },
+  {
+   "name": "Runway",
+   "source": "Runway-0 9",
+   "target": "Bravo Runway",
+   "cost": 999
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate A",
+   "target": "Apron November North",
+   "cost": 100
+  },
+  {
+   "name": "November",
+   "source": "Apron November North",
+   "target": "November Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate A",
+   "target": "Apron November South",
+   "cost": 100
+  },
+  {
+   "name": "November",
+   "source": "Apron November South",
+   "target": "November Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "Charlie November",
+   "target": "November Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate B",
+   "target": "Charlie November",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie November",
+   "target": "Charlie Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate B",
+   "target": "Charlie November",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate B",
+   "target": "November Intermediate C",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate C",
+   "target": "November Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate C",
+   "target": "November Intermediate D",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate D",
+   "target": "November Intermediate C",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "November Intermediate D",
+   "target": "Bravo November",
+   "cost": 1
+  },
+  {
+   "name": "November",
+   "source": "Bravo November",
+   "target": "November Intermediate D",
+   "cost": 1
+  },
+  {
+   "name": "Zulu",
+   "source": "Bravo November",
+   "target": "Foxtrot Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Zulu",
+   "source": "Foxtrot Alpha",
+   "target": "Bravo November",
+   "cost": 1
+  },
+  {
+   "name": "Foxtrot",
+   "source": "Foxtrot Alpha",
+   "target": "Foxtrot Golf",
+   "cost": 1
+  },
+  {
+   "name": "Foxtrot",
+   "source": "Foxtrot Golf",
+   "target": "Foxtrot Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Foxtrot Alpha",
+   "target": "Alpha Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate A",
+   "target": "Foxtrot Alpha",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate A",
+   "target": "Alpha Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate B",
+   "target": "Alpha Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate B",
+   "target": "Alpha Intermediate C",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate C",
+   "target": "Alpha Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Intermediate C",
+   "target": "Alpha Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Alpha",
+   "source": "Alpha Charlie",
+   "target": "Alpha Intermediate C",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Alpha Charlie",
+   "target": "Bravo Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Bravo Charlie",
+   "target": "Alpha Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Bravo Charlie",
+   "target": "Charlie Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate A",
+   "target": "Bravo Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Charlie",
+   "target": "Bravo Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Intermediate B",
+   "target": "Bravo Charlie",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Intermediate B",
+   "target": "Bravo Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Intermediate A",
+   "target": "Bravo Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Intermediate A",
+   "target": "Bravo November",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo November",
+   "target": "Bravo Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Golf",
+   "source": "Foxtrot Golf",
+   "target": "Apron Golf",
+   "cost": 100
+  },
+  {
+   "name": "Golf",
+   "source": "Apron Golf",
+   "target": "Foxtrot Golf",
+   "cost": 1
+  },
+  {
+   "name": "Foxtrot",
+   "source": "Foxtrot Golf",
+   "target": "Apron Foxtrot",
+   "cost": 100
+  },
+  {
+   "name": "Foxtrot",
+   "source": "Apron Foxtrot",
+   "target": "Foxtrot Golf",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate A",
+   "target": "Apron Charlie South 2",
+   "cost": 100
+  },
+  {
+   "name": "Charlie",
+   "source": "Apron Charlie South 2",
+   "target": "Charlie Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate A",
+   "target": "Apron Charlie North 2",
+   "cost": 100
+  },
+  {
+   "name": "Charlie",
+   "source": "Apron Charlie North 2",
+   "target": "Charlie Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate B",
+   "target": "Apron Charlie North 1",
+   "cost": 100
+  },
+  {
+   "name": "Charlie",
+   "source": "Apron Charlie North 1",
+   "target": "Charlie Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Charlie",
+   "source": "Charlie Intermediate B",
+   "target": "Apron Charlie South 1",
+   "cost": 100
+  },
+  {
+   "name": "Charlie",
+   "source": "Apron Charlie South 1",
+   "target": "Charlie Intermediate B",
+   "cost": 1
+  },
+  {
+   "name": "Bravo",
+   "source": "Bravo Intermediate A",
+   "target": "Apron Bravo",
+   "cost": 100
+  },
+  {
+   "name": "Bravo",
+   "source": "Apron Bravo",
+   "target": "Bravo Intermediate A",
+   "cost": 1
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit Ketilari",
+   "target": "Initial-2 7",
+   "cost": 1
+  },
+  {
+   "name": "Outbound",
+   "source": "Initial-2 7",
+   "target": "Entry-Exit Ketilari",
+   "cost": 1
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit Nosiri",
+   "target": "Initial-2 7",
+   "cost": 1
+  },
+  {
+   "name": "Outbound",
+   "source": "Initial-2 7",
+   "target": "Entry-Exit Nosiri",
+   "cost": 1
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit River West",
+   "target": "Initial-0 9",
+   "cost": 1
+  },
+  {
+   "name": "Outbount",
+   "source": "Initial-0 9",
+   "target": "Entry-Exit River West",
+   "cost": 1
+  },
+  {
+   "name": "Inbound",
+   "source": "Entry-Exit Zeni",
+   "target": "Initial-0 9",
+   "cost": 1
+  },
+  {
+   "name": "Outbound",
+   "source": "Initial-0 9",
+   "target": "Entry-Exit Zeni",
+   "cost": 1
+  },
+  {
+   "name": "Final",
+   "source": "Initial-0 9",
+   "target": "Runway-0 9",
+   "cost": 1
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-0 9",
+   "target": "Initial-0 9",
+   "cost": 1
+  },
+  {
+   "name": "Final",
+   "source": "Initial-2 7",
+   "target": "Runway-2 7",
+   "cost": 1
+  },
+  {
+   "name": "Outbound",
+   "source": "Runway-2 7",
+   "target": "Initial-2 7",
+   "cost": 1
+  },
+  {
+   "name": "Zulu",
+   "source": "Foxtrot Alpha",
+   "target": "Runway-0 9",
+   "cost": 1
+  },
+  {
+   "name": "Zulu",
+   "source": "Runway-0 9",
+   "target": "Foxtrot Alpha",
+   "cost": 1
+  }
+ ],
+ "junctions": [
+  {
+   "name": "Charlie Intermediate A",
+   "lat": 42.246432833575,
+   "lon": 42.048746588981
+  },
+  {
+   "name": "Charlie Intermediate B",
+   "lat": 42.245092173661,
+   "lon": 42.050018384681
+  },
+  {
+   "name": "Bravo Charlie",
+   "lat": 42.247916176172,
+   "lon": 42.04733487249
+  },
+  {
+   "name": "November Intermediate B",
+   "lat": 42.243397447397,
+   "lon": 42.049076463947
+  },
+  {
+   "name": "November Intermediate D",
+   "lat": 42.244100884049,
+   "lon": 42.044102629913
+  },
+  {
+   "name": "November Intermediate C",
+   "lat": 42.243690071578,
+   "lon": 42.047027121433
+  },
+  {
+   "name": "Delta Intermediate A",
+   "lat": 42.241059704695,
+   "lon": 42.057258884783
+  },
+  {
+   "name": "Bravo Intermediate A",
+   "lat": 42.246000497277,
+   "lon": 42.043631622991
+  },
+  {
+   "name": "Bravo Intermediate B",
+   "lat": 42.24729665148,
+   "lon": 42.046012110857
+  },
+  {
+   "name": "Foxtrot Golf",
+   "lat": 42.245505943689,
+   "lon": 42.03615133605
+  },
+  {
+   "name": "Foxtrot Alpha",
+   "lat": 42.245047415776,
+   "lon": 42.037248424149
+  },
+  {
+   "name": "Runway Intermediate A",
+   "lat": 42.240921036518,
+   "lon": 42.047518040594
+  },
+  {
+   "name": "Bravo November",
+   "lat": 42.244554383091,
+   "lon": 42.040976148939
+  },
+  {
+   "name": "Runway Intermediate B",
+   "lat": 42.241535931252,
+   "lon": 42.04316194054
+  },
+  {
+   "name": "Charlie November",
+   "lat": 42.242989470518,
+   "lon": 42.051999024943
+  },
+  {
+   "name": "Alpha Intermediate A",
+   "lat": 42.246175849084,
+   "lon": 42.039353360713
+  },
+  {
+   "name": "Delta November",
+   "lat": 42.242201578623,
+   "lon": 42.057513622385
+  },
+  {
+   "name": "Alpha Intermediate B",
+   "lat": 42.247567353904,
+   "lon": 42.041914740504
+  },
+  {
+   "name": "Alpha Intermediate C",
+   "lat": 42.248853852333,
+   "lon": 42.044275706056
+  },
+  {
+   "name": "Delta Runway",
+   "lat": 42.239606409878,
+   "lon": 42.056837428609
+  },
+  {
+   "name": "Alpha Charlie",
+   "lat": 42.249810460416,
+   "lon": 42.045994413044
+  },
+  {
+   "name": "Charlie Runway",
+   "lat": 42.240387319603,
+   "lon": 42.051328851877
+  },
+  {
+   "name": "Bravo Runway",
+   "lat": 42.242406809223,
+   "lon": 42.037099952739
+  },
+  {
+   "name": "November Intermediate A",
+   "lat": 42.242595099851,
+   "lon": 42.054700286219
+  }
+ ],
+ "waypoints": [
+  {
+   "name": "Entry-Exit Zeni",
+   "lat": 42.312826079937,
+   "lon": 41.920440504685
+  },
+  {
+   "name": "Entry-Exit River West",
+   "lat": 42.191594329475,
+   "lon": 41.921770466605
+  },
+  {
+   "name": "Entry-Exit Ketilari",
+   "lat": 42.164217101985,
+   "lon": 42.170178645586
+  },
+  {
+   "name": "Entry-Exit Nosiri",
+   "lat": 42.284551334296,
+   "lon": 42.145698154754
+  },
+  {
+   "name": "Initial-2 7",
+   "lat": 42.233047513779,
+   "lon": 42.101914088482
+  },
+  {
+   "name": "Initial-0 9",
+   "lat": 42.248788318588,
+   "lon": 41.993483533868
+  }
+ ]
+}

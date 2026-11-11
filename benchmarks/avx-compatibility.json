@@ -1,0 +1,9 @@
+{
+  "emulator": "qemu-x86_64 -cpu IvyBridge",
+  "physical_xeon_benchmark": false,
+  "scope": "Piper/ONNX synthesis and whisper.cpp tiny.en transcription",
+  "text": "Overlord, Viper one one, bogey dope.",
+  "samples": 39753,
+  "emulated_elapsed_seconds": 140.951,
+  "passed": true
+}
