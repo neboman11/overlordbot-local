@@ -152,9 +152,13 @@ class Brain:
                 else:
                     remaining.append(event)
             self.events = remaining
-            vocabulary = [self.callsign] + sorted({unit.get('callsign') or unit.get('pilot') or ''
-                                                  for unit in units if unit['coalition'] == coalition})[:32]
-            vocabulary += [field.name for field in domain.AIRFIELDS]
+            friendly = [unit for unit in units if unit['coalition'] == coalition
+                        and (unit.get('callsign') or unit.get('pilot'))][:32]
+            vocabulary = [self.callsign] + sorted({unit.get('callsign') or unit.get('pilot') for unit in friendly})
+            nearby = [field for field in domain.AIRFIELDS
+                      if any(domain.distance_m(field.lat, field.lon, unit['lat'], unit['lon']) <= 1000000
+                             for unit in friendly)]
+            vocabulary += [domain.pronounce_airbase(field.name) for field in (nearby or domain.AIRFIELDS)]
             return {'events': out, 'vocabulary': vocabulary}
 
     def start(self):

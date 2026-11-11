@@ -74,6 +74,7 @@ services:
     volumes:
       - ./scripts:/verify:ro
       - ./artifacts:/artifacts:rw
+      - ./fixtures/radio:/corpus:ro
     depends_on: [radio-gateway]
     networks: [radio]
 networks:

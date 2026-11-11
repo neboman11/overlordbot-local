@@ -1,0 +1,19 @@
+{
+  "source_commit": "e3f9ed90dd8c57e746335e657110e9f673114527",
+  "workflow": "https://github.com/neboman11/overlordbot-local/actions/runs/43073715512",
+  "platform": "linux/amd64",
+  "images": {
+    "runtime": {
+      "tag": "ghcr.io/neboman11/overlordbot-local-runtime:e3f9ed90dd8c57e746335e657110e9f673114527",
+      "digest": "ghcr.io/neboman11/overlordbot-local-runtime@sha256:1a2cf6cc5988e4395c8044bbea2e8ccfa6b098d4b16ecb64cd574aaeb6dc1527"
+    },
+    "speech": {
+      "tag": "ghcr.io/neboman11/overlordbot-local-speech:e3f9ed90dd8c57e746335e657110e9f673114527",
+      "digest": "ghcr.io/neboman11/overlordbot-local-speech@sha256:353dd9f56069bb1a498c06516f72432c749173eae92028b751c91bfb31371492"
+    },
+    "srs": {
+      "tag": "ghcr.io/neboman11/overlordbot-local-srs:e3f9ed90dd8c57e746335e657110e9f673114527",
+      "digest": "ghcr.io/neboman11/overlordbot-local-srs@sha256:9ae9c350e230cb271f847b811b858dec315c638049f21e0bcfa8e2b7d1bbc504"
+    }
+  }
+}

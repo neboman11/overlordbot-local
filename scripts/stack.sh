@@ -13,10 +13,10 @@ else
 fi
 case ${1:-verify} in
   build) $COMPOSE build ;;
-  up) $COMPOSE up -d ;;
+  up) $COMPOSE up -d --force-recreate ;;
   down) $COMPOSE down ;;
   verify)
-    $COMPOSE up -d
+    $COMPOSE up -d --force-recreate
     $COMPOSE --profile verify run --rm verify
     ;;
   *) printf 'usage: %s build|up|verify|down\n' "$0" >&2; exit 2 ;;

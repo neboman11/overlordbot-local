@@ -48,3 +48,29 @@ jobs:
           path: |
             image-*.json
             tag-*.txt
+  integration:
+    needs: publish
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify published images over real SRS
+        run: |
+          set -eu
+          for component in runtime speech srs; do
+            image="ghcr.io/neboman11/overlordbot-local-${component}:${GITHUB_SHA}"
+            docker pull "$image"
+            docker tag "$image" "localhost/overlordbot-local-${component}:dev"
+          done
+          SRS_EAM_PASSWORD=$(openssl rand -hex 24)
+          echo "::add-mask::$SRS_EAM_PASSWORD"
+          export SRS_EAM_PASSWORD
+          mkdir -p artifacts
+          chmod 777 artifacts
+          docker compose up -d
+          docker compose --profile verify run --rm verify
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: radio-verification
+          path: artifacts/

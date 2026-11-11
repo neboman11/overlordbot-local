@@ -1,0 +1,28 @@
+{
+  "kind": "curated synthetic functional regression corpus, not human accuracy evaluation",
+  "model": "en_US-ljspeech-medium (models.lock.json)",
+  "noise_scale": 0,
+  "noise_w_scale": 0,
+  "recordings": [
+    {
+      "text": "Overlord, Viper one one, bogey dope.",
+      "file": "call-0.wav",
+      "sha256": "cbee85402398402a1b62cfa99ee7488527824f9bd6a7734012f4d5e6f269cfe2"
+    },
+    {
+      "text": "Overlord, Viper one one, request picture.",
+      "file": "call-1.wav",
+      "sha256": "10b34a14d4b5fe919231d37261e9cfc9b33b905296d61ff790f1871b0455447c"
+    },
+    {
+      "text": "Overlord, Viper one one, where is Sukhumi?",
+      "file": "call-2.wav",
+      "sha256": "307375c78c1dc7e2b09709282cebd0dc000bb1475a533df7a0af879a4de36480"
+    },
+    {
+      "text": "Anapa approach, Viper one one, inbound.",
+      "file": "call-3.wav",
+      "sha256": "7f0a2d4bce525b8eafd08c52d396666216c19a1d076d71fd3b042d7e68f21df7"
+    }
+  ]
+}

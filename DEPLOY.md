@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Local-only SRS 2.4.1.0 AWACS/ATC rewrite. Deployment is separate: **no Kubernetes clusters or argocd-definitions were accessed or changed**. All workers use local models and accept remote HTTP requests; no cloud inference API or GPU is required.
+Local-only SRS 2.4.1.0 AWACS/ATC rewrite. Deployment is separate: **no Kubernetes API calls, objects, services, or argocd-definitions files were touched**. Physical Xeon benchmarks used existing SSH access to leafman, an isolated unprivileged user/mount/PID namespace, and temporary files removed afterward; no host packages or daemons were installed.
 
 The current-client SRS gate passed: EAM blue authentication, 251 MHz AM UDP Opus reception into a 16 kHz WAV, then WAV playback over SRS to a second client. Evidence: `spike/evidence/audio-roundtrip.json`. Historical old-client JSON casing mismatch is not a rewrite blocker.
 
@@ -54,6 +54,9 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `TACVIEW_PORT` | `42674` | Telemetry TCP port | No |
 | `TACVIEW_PASSWORD` | empty | Tacview password, encoded CRC-64/WE over UTF-16LE for handshake | **Yes** |
 | `TACVIEW_STALE_SECONDS` | `30` | Readiness cutoff since telemetry activity; disconnected state is reset | No |
+| `BRAIN_ROLES` | `awacs,atc` | Comma-separated enabled controller roles | No |
+| `ATC_WIND_FROM_DEG` | empty | Explicit wind-from degrees 0–359, or JSON airfield-name-to-degrees map; absent wind refuses active-runway selection. Demo explicitly sets 0. | No |
+| `AWACS_PILOT` | empty | Optional live AWACS pilot/name prefix required for AWACS station availability | No |
 | `WHISPER_MODEL` | `/models/ggml-tiny.en.bin` | STT model file, baked by default | No |
 | `WHISPER_SERVER` | `/usr/local/bin/whisper-server` | Persistent local native server binary | No |
 | `WHISPER_THREADS` | `4` | STT CPU threads | No |
@@ -63,7 +66,7 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `PIPER_MODEL` | `/models/en_US-ljspeech-medium.onnx` | Loaded TTS model | No |
 | `PIPER_CONFIG` | `PIPER_MODEL` + `.json` | Piper model metadata/config | No |
 | `PIPER_VOICE` | `en_US-ljspeech-medium` | Sole allowed voice identifier per worker | No |
-| `PIPER_THREADS` | `0` | ONNX intra-op threads; 0 selects engine default | No |
+| `PIPER_THREADS` | `0` | ONNX intra-op threads; 0 is engine default. **Set 4 on Xeon**; demo uses 4. | No |
 
 No Discord token is used or supported; DCSServerBot remains its owner. No LLM credentials, Azure credentials, DCS-gRPC endpoint or cloud fallback exists.
 
@@ -90,6 +93,21 @@ Auxiliary configuration:
 | Piper model card | 517 | License/provenance |
 
 Pinned whisper source: `https://github.com/ggml-org/whisper.cpp`, commit `d1be6fde11ac6e0407606b4e42fe72d34add8037`. Whisper model URLs use Hugging Face revision `5359861c739e955e79d9a303bcbc70fb988958b1`; voice URLs use `rhasspy/piper-voices` revision `cf910fb59f1d79ab3b625a63993a108751c6c25d`. Full URLs and SHA256 values are committed in `models.lock.json`, not mutable branch references.
+
+Pinned download URLs and SHA256:
+
+- `ggml-tiny.en.bin`: https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.en.bin
+  - `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f`
+- `ggml-base.en.bin`: https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base.en.bin
+  - `a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002`
+- `ggml-small.en.bin`: https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.en.bin
+  - `c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d`
+- `en_US-ljspeech-medium.onnx`: https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx
+  - `6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22`
+- `en_US-ljspeech-medium.onnx.json`: https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx.json
+  - `141d612cc0a95ed7efc1ca936b845c2364967f2e9217c5dbfcf69fc4d6c65860`
+- Voice model card: https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/MODEL_CARD
+  - `fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d`
 
 No PVC, database or shared worker storage is needed. Models are baked read-only; worker processes need writable temporary space. Gateway buffers at most 32 active speakers, 15 seconds per segment, and four queued transmissions. Domain/game state is ephemeral and rebuilt from Tacview. Restart loses transient state. Demo artifacts and optional benchmark model downloads are local verification files, not required deployment volumes.
 
@@ -126,11 +144,11 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 4. Say **"Overlord, Viper one one, request picture"** and **"Overlord, Viper one one, where is Sukhumi"**. Verify distinct tactical picture vs airfield-location responses, not merely that some audio played.
 5. Change `STT_URLS`/`TTS_URLS` to remote worker addresses and ensure POST authentication matches. Stop one worker and verify ordered failover; it may add the failed endpoint's timeout to reply latency.
 6. Stop/pause telemetry beyond stale timeout: brain must become unready/refuse stale tactical replies. Resume a full telemetry connection and confirm state is rebuilt.
-7. Capture timing on actual leafman/stickman before accepting the 1.5-second target. A portable build and desktop timings are not measurements of Ivy Bridge hardware.
+7. Reproduce target measurements with `sh scripts/benchmark_remote.sh leafman` (all three models) or `sh scripts/benchmark_remote.sh leafman tiny` (recommended four-thread TTS). Requires existing verified SSH and unprivileged namespaces; does not use Kubernetes or install host packages. Actual end-to-end LAN latency still depends on network and chosen reply length.
 
 ## Known limits
 
-- Physical Xeon E5-2650 v2 latency and real human SRS recognition accuracy require target hardware/recordings. This workstation is Ryzen 7 7700X; synthetic local Piper speech is explicitly labeled, not presented as human validation.
+- Physical Xeon E5-2650 v2 inference is measured; complete radio reply timings were measured on Ryzen. Human/friends' SRS recordings were not available: corpus/audio checks use explicitly labeled synthetic local Piper speech, not human accuracy certification.
 - One frequency and modulation per gateway. Reply path is half-duplex; receive audio during own transmission is discarded. No radio encryption/decryption, terrain line-of-sight model or concurrent overlapping-voice separation is implemented.
 - End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Segments are capped at 15 seconds; overload drops rather than retaining unbounded audio.
 - Whisper confidence is model token probability summary when present, not calibrated command correctness. Deterministic grammar deliberately ignores unrecognized/unaddressed calls rather than consulting a cloud/LLM fallback.

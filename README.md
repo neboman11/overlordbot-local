@@ -1,19 +1,19 @@
 # OverlordBot Local
 
-Local-only voice AWACS/ATC for DCS World over SRS 2.4.1.0. Speech workers can run on another LAN machine; gateway stays near SRS. No Azure, LUIS, cloud speech APIs, Discord dependency, DCS modification, or Kubernetes manifests.
+Local-only voice AWACS/ATC for DCS World over SRS 2.4.1.0. Speech workers can run on another LAN machine; gateway stays near SRS. No Azure, LUIS, cloud speech/LLM APIs, Discord dependency, GPU requirement, or Kubernetes deployment changes.
 
-## Architecture and runtime
+## Services and runtime choice
 
-- `radio-gateway`: current SRS EAM client, TCP control, UDP Opus, per-speaker end-of-transmission segmentation, STT → brain → TTS orchestration, radio playback.
-- `brain`: Tacview ACMI 2.x state, deterministic brevity parser, ported domain logic and phraseology, bundled aircraft/airfield encyclopedia.
-- `stt-worker`: stateless HTTP boundary around persistent local whisper.cpp model.
-- `tts-worker`: stateless HTTP boundary around local Piper voice.
+- **radio-gateway**: current SRS EAM client, TCP control, UDP Opus, bounded per-speaker transmission assembly, STT → brain → TTS orchestration, radio playback.
+- **brain**: Tacview ACMI 2.x state, deterministic grammar, AWACS/ATC responders and monitoring, original aircraft/airfield encyclopedia and phraseology.
+- **stt-worker**: stateless HTTP API around a persistent local whisper.cpp model, built for AVX/F16C without AVX2/FMA.
+- **tts-worker**: stateless HTTP API around persistent local Piper/ONNX inference, public-domain LJSpeech voice, native audio resampled to 16 kHz.
 
-Python standard library was chosen for network/control/domain services: direct, inspectable protocols, no web framework/dependency stack, straightforward port of the small domain model. Native whisper.cpp, Piper/ONNX and libopus do compute-heavy work. Independent HTTP endpoints allow workers to move off the DCS host without shared storage or session affinity. No optional LLM is required.
+Python standard library keeps control/network/domain services inspectable and dependency-light; native whisper.cpp, Piper/ONNX and libopus handle compute. Independent HTTP workers need neither shared storage nor player/session affinity. Gateway/brain stay lightweight and models move away from DCS-exclusive cores.
 
-## Run locally
+## Run the complete local stack
 
-Linux amd64; Docker Compose or Podman + podman-compose; internet needed only for building/downloading pinned dependencies/models. Inference does not need internet. The local stack uses an **internal container network**, with no runtime internet route or published host ports.
+Requirements: Linux amd64, Docker Compose or Podman + podman-compose. Internet is needed for pinned build inputs/model downloads, **not inference**. The demo uses an internal container network without published ports or runtime internet access.
 
 ```sh
 sh scripts/stack.sh build
@@ -21,9 +21,13 @@ sh scripts/stack.sh verify
 sh scripts/stack.sh down
 ```
 
-`verify` launches SRS, replayed Tacview, all four services, synthesizes radio calls using real local Piper, sends them over SRS, receives spoken replies, and retranscribes those replies for assertions. Generated audio and measured results go in ignored `artifacts/`. This is a synthetic corpus, not human voice or live DCS certification.
+Verification starts real SRS 2.4.1.0, a replayed Tacview stream, and all four services. It replays SHA256-checked, fixed **synthetic Piper caller recordings** over SRS; real STT parses them, brain calculates replies, and real Piper replies are received over SRS and retranscribed for distinct bogey-dope, picture, airfield-location and inbound-ATC assertions. This is a curated functional corpus, **not human speech accuracy certification**. Caller recordings are in `fixtures/radio`; regeneration uses `scripts/record_corpus.py` inside the pinned speech image. Results/WAVs go to ignored `artifacts/`.
 
-To run services separately:
+`up` and `verify` recreate demo containers so rebuilt images cannot silently leave old services running. Real players/friends' recordings should be added before operational accuracy acceptance.
+
+## Deploy or move workers elsewhere
+
+See **[DEPLOY.md](DEPLOY.md)** for exact published tags/digests, every configuration key/secret, measured resources and latency, server changes, health checks, and limits. [benchmarks/](benchmarks/) contains raw physical Xeon/Ryzen measurements and release provenance.
 
 ```sh
 python -m overlord radio-gateway
@@ -32,33 +36,41 @@ python -m overlord stt-worker
 python -m overlord tts-worker
 ```
 
-Set `STT_URLS` and `TTS_URLS` to comma-separated remote worker base URLs. Endpoints fail over on transport errors and server failures, not malformed requests. Set `API_TOKEN` identically on services for Bearer authentication. Use a private LAN/VPN or TLS proxy; SRS and Tacview native protocols are not encrypted.
+Set comma-separated `STT_URLS` / `TTS_URLS` to remote worker base URLs. Set common `API_TOKEN` for Bearer authentication; use private LAN/VPN or a TLS proxy. Transport/5xx failures fail over, but invalid requests and redirects do not. Do not place STT on sunman's DCS cores.
 
-## Worker contracts
+ATC runway selection requires **explicit** `ATC_WIND_FROM_DEG` (number or per-airfield JSON); Tacview has no wind. Demo explicitly uses 0. Shared monitors provide warning-radius calls and ATC taxi/inbound follow-ups. Notifications preserve coalition, frequency, generation, controller revision and expiry; canceled/stale instructions are revalidated before playback.
 
-- `POST /transcribe`: `Content-Type: audio/pcm`, mono signed 16-bit little-endian PCM at **16000 Hz**, 0.1–15 seconds. Optional `X-Prompt` header. Returns JSON `{text, confidence}`; confidence may be null when unavailable from the engine.
-- `POST /synthesize`: JSON `{text, voice?}`. Returns `audio/pcm`, mono s16le at **16000 Hz**.
-- `POST /respond` on brain: JSON `{text, coalition}`; returns `{reply, parsed}`. Unaddressed or unknown calls have no reply. Stale telemetry returns 503 rather than fabricated contacts.
-- All services: `/healthz`, `/readyz`, `/metrics`. HTTP POST bodies capped at 1 MiB, concurrent in-flight processing capped at four per process. Native engine calls are serialized by each model adapter.
+## APIs
 
-## Verification
+| Component | Request | Response |
+|---|---|---|
+| STT | `POST /transcribe`, `audio/pcm`, 16 kHz mono s16le, 0.1–15 s; optional `X-Prompt` | JSON `{text, confidence}` |
+| TTS | `POST /synthesize`, JSON `{text, voice?}` | 16 kHz mono s16le `audio/pcm` |
+| Brain | `POST /respond`, JSON `{text, coalition, channel?}` | JSON `{reply, parsed, notes}` |
+| Brain | `POST /events`, `{coalition, channel}` | Channel-scoped notifications and mission-local vocabulary hints |
+| Brain | `POST /validate-event`, returned event metadata | `{valid}` for immediate pre-playback validation |
+
+All services expose `/healthz`, `/readyz`, `/metrics`. Stale telemetry refuses tactical requests rather than fabricating positions. Unknown/ambiguous calls remain unanswered or receive an explicit negative.
+
+## Checks and evidence
 
 ```sh
 python3 -m unittest discover -s tests -v
-sh spike/run.sh     # historical old-client casing incompatibility reproduction
-sh spike/audio.sh   # real current-client SRS audio/WAV round trip
+sh spike/run.sh       # historical old-client casing incompatibility
+sh spike/audio.sh     # current SRS receive/WAV/playback proof
+sh scripts/benchmark_remote.sh leafman  # isolated SSH/user-namespace benchmark; no Kubernetes
 ```
 
-The audio spike passed against official SRS 2.4.1.0: 16,000 input samples, 16,000 captured samples, 16,000 playback samples, 98.64% returned 440 Hz tone energy. See `spike/evidence/audio-roundtrip.json`. `spike/audio.sh` uses host `/usr/lib/libopus.so.0`; normal service images install libopus themselves.
+103 behavioral tests pass, with 525 individually checked parser corpus records and no skipped cases. Original labels remain preserved where 17 corrections/policy decisions are documented in `data/PROVENANCE.md`. Benchmarks include actual E5-2650 v2 execution, not just AVX-disabled builds on newer CPUs; QEMU Ivy Bridge additionally exercised both speech engines.
 
-The old client used `ExternalAwacsModePassword`; SRS now expects `ExternalAWACSModePassword`. That old-client incompatibility is preserved as historical evidence, **not a blocker for this rewrite**, which implements current protocol. Successful EAM authentication alone is not audio proof; the separate audio spike exercises UDP Opus in both directions.
+SRS audio gate: 16,000 samples sent, captured and played back; 98.64% returned 440 Hz tone energy. Original bot's `ExternalAwacsModePassword` casing does not match current SRS `ExternalAWACSModePassword`; rewrite implements current protocol directly.
 
-Telemetry parser/replay tests cover deltas, reference offsets, sparse coordinates, deletion, coalition filtering, invalid/non-finite coordinates, stale state, reset/reconnect, and password handshake. Real mission-specific exporter behavior and human speech accuracy still require operator validation.
+Known limits include proper-name speech errors, no human-radio accuracy certification, finite bundled ATC coverage, explicit wind configuration, no terrain masking/radio decryption, and no mission-specific gRPC task-dispatch service. These are detailed in the handoff, not hidden behind fake successful replies.
 
-## Upstream and license
+## Upstream and licensing
 
-Derived from [OverlordBot](https://gitlab.com/overlordbot/srs-bot), revision `c7d34d51bfe66faf6bb8ff9e22688351e99cee70`, copyright Jeffrey Jones. Licensed AGPL-3.0-or-later; [LICENSE](LICENSE) contains full terms. Modified source is offered at https://github.com/neboman11/overlordbot-local. Data/case provenance is recorded with the ported assets.
+Derived from [OverlordBot](https://gitlab.com/overlordbot/srs-bot), commit `c7d34d51bfe66faf6bb8ff9e22688351e99cee70`, copyright Jeffrey Jones. Modified source is offered at https://github.com/neboman11/overlordbot-local under **AGPL-3.0-or-later**; full terms in [LICENSE](LICENSE), asset provenance in [data/PROVENANCE.md](data/PROVENANCE.md).
 
-SRS protocol reference: [2.4.1.0](https://github.com/ciribob/DCS-SimpleRadioStandalone/tree/f7bdcd42d41eff1e912cd0465b8a22c78108c53c). Its unmodified Linux server is downloaded from a pinned release URL and checked against SHA256 `46268dd35204d04426974f66d25eaddaebbaa6b133a7bd227675fae30ed88127`. The official server attempts update checks and telemetry and logs its EAM test password; the integration network blocks outbound access. Its observed shutdown `ObjectDisposedException` occurs after successful radio exchanges.
+SRS reference: [2.4.1.0](https://github.com/ciribob/DCS-SimpleRadioStandalone/tree/f7bdcd42d41eff1e912cd0465b8a22c78108c53c). Demo image preserves its GPL license/source offer. Speech dependency/model sources and licenses are in [speech/NOTICE.md](speech/NOTICE.md) and `models.lock.json`; every model/config/card has a commit-pinned URL and SHA256. Research-restricted Lessac voice is not shipped.
 
-No clusters or argocd-definitions were changed. Deployment and all measured limitations are documented in the deployment handoff when packaging verification is complete.
+No Kubernetes APIs, objects, services, or argocd-definitions files were changed. Physical leafman measurements used temporary standalone user namespaces and no host package installation.
