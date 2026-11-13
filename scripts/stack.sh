@@ -16,8 +16,8 @@ case ${1:-verify} in
   up) $COMPOSE up -d --force-recreate ;;
   down) $COMPOSE down ;;
   verify)
-    $COMPOSE up -d --force-recreate
-    $COMPOSE --profile verify run --rm verify
+    $COMPOSE -f compose.yaml -f compose.verify.yaml up -d --force-recreate
+    $COMPOSE -f compose.yaml -f compose.verify.yaml --profile verify run --rm verify
     ;;
   *) printf 'usage: %s build|up|verify|down\n' "$0" >&2; exit 2 ;;
 esac

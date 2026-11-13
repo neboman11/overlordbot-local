@@ -23,7 +23,7 @@ sh scripts/stack.sh verify
 sh scripts/stack.sh down
 ```
 
-Verification starts real SRS 2.4.1.0, a replayed Tacview stream, and all four services. It replays SHA256-checked, fixed **synthetic Piper caller recordings** over SRS; real STT parses them, brain calculates replies, and real Piper replies are received over SRS and retranscribed for distinct bogey-dope, picture, airfield-location and inbound-ATC assertions. This is a curated functional corpus, **not human speech accuracy certification**. Caller recordings are in `fixtures/radio`; regeneration uses `scripts/record_corpus.py` inside the pinned speech image. Results/WAVs go to ignored `artifacts/`.
+Verification starts real SRS 2.4.1.0, a replayed Tacview stream, and all four services. It replays SHA256-checked, fixed **synthetic Piper caller recordings** over SRS; real STT parses them and the brain calculates replies. A verification-only wrapper records real Piper PCM and its source text. Received radio audio must match that PCM's exact Opus round-trip, and the matched source text must contain the scenario's operating facts. Outbound Whisper captions are diagnostic, not the acceptance oracle. This is a curated functional corpus, **not human speech or TTS-pronunciation accuracy certification**. Caller recordings are in `fixtures/radio`; regeneration uses `scripts/record_corpus.py` inside the pinned speech image. Results, traces and WAVs go to ignored `artifacts/`.
 
 `up` and `verify` recreate demo containers so rebuilt images cannot silently leave old services running. Real players/friends' recordings should be added before operational accuracy acceptance.
 

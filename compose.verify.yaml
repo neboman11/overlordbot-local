@@ -1,0 +1,9 @@
+# Verification-only overlay: swaps tts-worker's entrypoint for a recording wrapper around the
+# real NativeTTS. Use: docker compose -f compose.yaml -f compose.verify.yaml ...
+services:
+  tts-worker:
+    entrypoint: ["python", "/verify/recording_tts.py"]
+    command: []
+    volumes:
+      - ./scripts:/verify:ro
+      - ./artifacts:/artifacts:rw

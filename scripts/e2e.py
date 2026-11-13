@@ -21,6 +21,58 @@ def atc_reply_facts(text):
     return runways == ['04'] and bool(re.search(r'\b(?:2\s*000|two thousand)\b', normalized))
 
 
+def spoken_facts(expected, text):
+    """Critical facts of the actual TTS source text for one fixed caller scenario."""
+    normalized = re.sub(r'[^a-z0-9 ]', ' ', text.lower())
+    altitude = bool(re.search(r'23[ ,]*000|twenty three thousand', normalized))
+    return {'bogey': 'bra' in normalized and altitude and 'group' not in normalized,
+            'picture': 'group' in normalized and altitude,
+            'airfield': 'sukhumi' in normalized and 'bearing' in normalized,
+            'atc': atc_reply_facts(text)}[expected]
+
+
+def opus_roundtrip(pcm):
+    """Exactly SRSClient.transmit's framing and codec, then SRS receive decoding, without pacing."""
+    encoder = Opus()
+    decoder = Opus()
+    try:
+        return b''.join(decoder.decode(encoder.encode(pcm[offset:offset + 1280].ljust(1280, b'\0')))
+                        for offset in range(0, len(pcm), 1280))
+    finally:
+        encoder.close()
+        decoder.close()
+
+
+def trace_ids(directory):
+    path = Path(directory) / 'tts-trace.jsonl'
+    if not path.exists():
+        return set()
+    return {json.loads(line)['id'] for line in path.read_text().splitlines() if line}
+
+
+def matched_tts(directory, known, reply):
+    """New actual-TTS trace row whose hashed captured PCM Opus-roundtrips to exactly the received PCM."""
+    directory = Path(directory)
+    path = directory / 'tts-trace.jsonl'
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line] if path.exists() else []
+    matches = []
+    for row in rows:
+        if row['id'] in known:
+            continue
+        name = row['pcm_file']
+        if (not re.fullmatch(r'[0-9a-f]{32}', row['id']) or name != f"tts-{row['id']}.pcm"
+                or not isinstance(row['text'], str) or not isinstance(row['at'], (int, float))):
+            raise RuntimeError('Malformed TTS trace row')
+        pcm = (directory / name).read_bytes()
+        if hashlib.sha256(pcm).hexdigest() != row['pcm_sha256']:
+            raise RuntimeError('TTS trace PCM hash mismatch: ' + name)
+        if pcm and opus_roundtrip(pcm) == reply:
+            matches.append(row)
+    if not matches:
+        raise RuntimeError('Received SRS audio matches no new actual TTS trace')
+    return matches[-1]['text']
+
+
 def wait_ready(url, deadline):
     while time.monotonic() < deadline:
         try:
@@ -79,25 +131,25 @@ def main():
                 if (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) != (1, 2, 16000):
                     raise RuntimeError('Caller recordings must be mono 16 kHz s16le WAV')
                 pcm = audio.readframes(audio.getnframes())
+            known = trace_ids(output)
             client.transmit(pcm)
             reply, latency = receive_reply(client)
             with wave.open(str(output / f'reply-{index}.wav'), 'wb') as recording:
                 recording.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
                 recording.writeframes(reply)
-            heard = json.loads(stt.post('/transcribe', reply, 'audio/pcm', {'X-Prompt': 'Viper one one, Overlord, BRA, twenty three thousand, one ship Fulcrum, one group, Sukhumi, bearing.'}))
-            normalized = re.sub(r'[^a-z0-9 ]', ' ', heard['text'].lower())
-            altitude = bool(re.search(r'23[ ,]*000|twenty three thousand', normalized))
-            correct = {'bogey': ('bra' in normalized and altitude and 'group' not in normalized),
-                       'picture': ('group' in normalized and altitude),
-                       'airfield': ('sukhumi' in normalized and 'bearing' in normalized),
-                       'atc': atc_reply_facts(heard['text'])}
-            if not correct[expected]:
-                raise RuntimeError(f'Unexpected {expected} spoken answer to {text!r}: {heard}')
+            tts_text = matched_tts(output, known, reply)
+            if not spoken_facts(expected, tts_text):
+                raise RuntimeError(f'Unexpected {expected} spoken answer to {text!r}: {tts_text!r}')
+            try:  # Outbound ASR caption is diagnostic only: it neither proves nor vetoes facts.
+                caption = json.loads(stt.post('/transcribe', reply, 'audio/pcm'))['text']
+            except Exception as error:
+                caption = f'<unavailable: {error}>'
             samples = array.array('h', reply)
             rms = math.sqrt(sum(value * value for value in samples) / len(samples))
             if rms < 100:
                 raise RuntimeError('Reply is silent')
-            item = {'call': text, 'spoken_reply_transcript': heard['text'],
+            item = {'call': text, 'spoken_reply_transcript': caption,
+                    'tts_text': tts_text, 'audio_verified': True,
                     'end_to_first_reply_audio_seconds': round(latency, 4),
                     'reply_samples': len(samples), 'rms': round(rms, 2)}
             results.append(item)

@@ -623,7 +623,7 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 
 ## Verification steps
 
-1. Build and run `sh scripts/stack.sh build` then `sh scripts/stack.sh verify`. Demo uses local SRS, replayed ACMI, real local STT/TTS and actual radio packets. No runtime egress route exists on its internal network.
+1. Build and run `sh scripts/stack.sh build` then `sh scripts/stack.sh verify`. Verification selects `compose.verify.yaml`: real local SRS/STT/brain/Piper remain in the path, and a test-only wrapper records actual Piper PCM/source text. The received radio PCM must match its exact Opus round-trip and the source text must contain the expected operating facts. Output retranscription is diagnostic only. No runtime egress route exists on the internal demo network; production Compose/Helm do not enable speech tracing.
 2. Verify all `/readyz` endpoints return 200; `/healthz` alone does not establish dependencies.
 3. In DCS, tune selected coalition to 251.000 AM and say **"Overlord, Viper one one, bogey dope"**. Pilot/callsign in telemetry must match. Expected: BRAA for the nearest hostile aircraft (or clean when none), never friendly/unknown-coalition contacts as hostile.
 4. Say **"Overlord, Viper one one, request picture"** and **"Overlord, Viper one one, where is Sukhumi"**. Verify distinct tactical picture vs airfield-location responses, not merely that some audio played. With explicit wind configured, **"Anapa approach, Viper one one, inbound"** must produce runway/vector instructions for the matching pilot; otherwise an explicit negative.
