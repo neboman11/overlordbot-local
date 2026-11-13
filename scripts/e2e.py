@@ -82,7 +82,9 @@ def main():
             correct = {'bogey': ('bra' in normalized and altitude and 'group' not in normalized),
                        'picture': ('group' in normalized and altitude),
                        'airfield': ('sukhumi' in normalized and 'bearing' in normalized),
-                       'atc': ('vectors' in normalized and 'runway' in normalized)}
+                       # Check fixture operating facts, not Whisper's spelling of "vectors".
+                       'atc': (bool(re.search(r'\brunway (?:0?4|zero four)\b', normalized))
+                               and bool(re.search(r'\b(?:2000|two thousand)\b', normalized)))}
             if not correct[expected]:
                 raise RuntimeError(f'Unexpected {expected} spoken answer to {text!r}: {heard}')
             samples = array.array('h', reply)
