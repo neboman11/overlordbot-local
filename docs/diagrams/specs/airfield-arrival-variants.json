@@ -1,0 +1,469 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Airfield ATC Arrival: Straight-in, Go-around, Touch-and-go and Re-brief",
+    "locale": "en",
+    "output": "docs/diagrams/airfield-arrival-variants.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "inbound",
+      "sublabel": "no pattern, or straight in",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1724
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 926,
+          "end_line": 938,
+          "label": "re-entry"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "messagebus",
+      "label": "final",
+      "sublabel": "on final cone",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1826,
+          "end_line": 1843
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1090,
+          "end_line": 1098
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "backend",
+      "label": "airborne arrival phase",
+      "sublabel": "inbound \u2026 cleared_land",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 110,
+          "end_line": 111
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1005,
+          "end_line": 1017
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "messagebus",
+      "label": "arrival_briefing",
+      "sublabel": "new runway + altimeter readback",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1129,
+          "end_line": 1146
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "messagebus",
+      "label": "arrival_briefing",
+      "sublabel": "new runway + altimeter readback",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1129,
+          "end_line": 1146
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "messagebus",
+      "label": "inbound_standby",
+      "sublabel": "remain clear, stand by",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 527,
+          "end_line": 531
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1609,
+          "end_line": 1620
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "messagebus",
+      "label": "final, landing_clearance or cleared_land",
+      "sublabel": "approach not finished",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1114,
+          "end_line": 1116
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1858,
+          "end_line": 1865
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "security",
+      "label": "Re-entry decision",
+      "sublabel": "_reentry: runway in use?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 926,
+          "end_line": 938
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "messagebus",
+      "label": "touchdown or landed",
+      "sublabel": "then airborne again",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 840,
+          "end_line": 841
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 827,
+          "end_line": 828
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "security",
+      "label": "Re-entry decision",
+      "sublabel": "_reentry: runway in use?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 926,
+          "end_line": 938
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "security",
+      "label": "Re-entry decision",
+      "sublabel": "_reentry: runway in use?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 926,
+          "end_line": 938
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "backend",
+      "label": "inbound",
+      "sublabel": "fly runway heading, re-enter",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 935,
+          "end_line": 938
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "security",
+      "label": "Re-entry decision",
+      "sublabel": "_reentry: runway in use?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 926,
+          "end_line": 938
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "messagebus",
+      "label": "inbound_standby",
+      "sublabel": "remain clear, stand by",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 527,
+          "end_line": 531
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1609,
+          "end_line": 1620
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "straight-in",
+      "label": "pilot call + on final",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "rebrief",
+      "label": "runway or altimeter changed (go around if landing granted)",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "stale",
+      "label": "bridge stale, or runway/altimeter missing",
+      "variant": "dashed",
+      "role": "async",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "go-around",
+      "label": "go around: revoked or pilot call",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "touch-and-go",
+      "label": "airborne again: lane freed",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "re-runway",
+      "label": "runway in use",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "re-none",
+      "label": "no runway in use",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. Nodes in the 'conceptual step' legend group, or with tag 'conceptual'/'phase group', are not phase strings.",
+        "Pilot calls move a phase only after telemetry confirms the claim (_at_hold, _at_crossing, _lined_up). Take-off, landing and vacating come from the mission track alone (airfield.py 44-50)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Rules",
+      "items": [
+        "Without a published pattern, downwind and base are refused and the pilot reports final directly from inbound (1845-1856).",
+        "A runway change, or an altimeter change while in arrival_briefing, rebriefs the arrival. Any landing grant is freed and prefixed with 'go around' (1005-1017).",
+        "Landing revocation (timeout, occupied runway, tower loss) and the pilot's go-around call both free the lane and run _reentry (1114-1116, 1858-1865). A go-around during an unconfirmed touchdown is refused while the track is on the ground (1862-1863)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "inbound \u2192 final: no pattern, or straight in (1855-1856)",
+        "rebrief: rebrief (1005-1017)",
+        "arrival_briefing \u2192 inbound_standby: 599-600, 1134-1137",
+        "go around: revoked or pilot call (1114-1116, 1858-1865)",
+        "touch-and-go: touch-and-go: lane freed (840-841, 901-904); landed airborne again 827-828",
+        "re-entry outcomes: 926-938"
+      ]
+    }
+  ]
+}

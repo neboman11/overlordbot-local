@@ -1,0 +1,400 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Carrier Recovery: Bolter, Wave-off and Foul Deck",
+    "locale": "en",
+    "output": "docs/diagrams/carrier-recovery-recycle.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "messagebus",
+      "label": "touchdown, then airborne",
+      "sublabel": "bolter: telemetry, or pilot call while tracked airborne",
+      "tag": "trigger",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 638,
+          "end_line": 639
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 652,
+          "end_line": 654
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1285,
+          "end_line": 1290
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "backend",
+      "label": "downwind, final or ball",
+      "sublabel": "wave off: pilot call, or foul deck while in ball",
+      "tag": "trigger",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1280,
+          "end_line": 1283
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 702,
+          "end_line": 706
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1243,
+          "end_line": 1244
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "rejoin the pattern",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 690,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "backend",
+      "label": "platform",
+      "sublabel": "climb to 1200 ft, report ten miles",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 687,
+          "end_line": 689
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "backend",
+      "label": "marshal",
+      "sublabel": "return to marshal",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 685,
+          "end_line": 686
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "security",
+      "label": "Recycle decision",
+      "sublabel": "granted? CASE? assignment?",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 677,
+          "end_line": 691
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "messagebus",
+      "label": "checked_in",
+      "sublabel": "check in with marshal",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 682,
+          "end_line": 684
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "b-r",
+      "label": "bolter",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "w-r",
+      "label": "wave off",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "r-break",
+      "label": "granted, CASE I/II",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "r-platform",
+      "label": "granted, CASE III",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "r-marshal",
+      "label": "not granted, assignment kept",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "r-checked",
+      "label": "not granted, no assignment",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. 'established + granted' is phase 'established' with session.granted = True (carrier.py 856). Nodes tagged conceptual or 'phase group' are not phase strings.",
+        "Pilot pattern calls advance only with a radar track and range checks (_pattern 1222-1252). touchdown and on_deck come from mission telemetry, and on_deck is debounced (overlord_carrier.lua 563-576)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Rules",
+      "items": [
+        "A land contact is not a trap. Leaving the deck after contact is a bolter (carrier.py 55-56). A pilot's bolter call counts only while the track shows the aircraft airborne (1285-1293).",
+        "When an enrolled aircraft touches down or traps, every other session in 'ball' is waved off for a foul deck (702-706). Calling the ball on a foul deck waves the caller off (1243-1244).",
+        "A granted recycle keeps the lane and session.granted. Ungranted contacts go back to holding (680-686).",
+        "_foul_deck blocks new grants while any session is in touchdown or on_deck (803-805, 866)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "bolter, granted CASE I/II: airborne after contact, CASE I/II (638-639, 690-691)",
+        "bolter, granted CASE III: CASE III recycle (687-689)",
+        "bolter without lane: ungranted contact (680-686)",
+        "wave off: pilot call or foul deck (1280-1283, 702-706); CASE III CASE III recycle (1280-1283)"
+      ]
+    }
+  ]
+}

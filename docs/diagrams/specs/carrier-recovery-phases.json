@@ -1,0 +1,460 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Carrier Recovery: CASE I Normal Procedure",
+    "locale": "en",
+    "output": "docs/diagrams/carrier-recovery-phases.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "procedure",
+      "label": "Normal procedure \u2014 follow top to bottom"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "checked_in",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "checked_in",
+      "sublabel": "no assignment yet",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 396,
+          "end_line": 406
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1111,
+          "end_line": 1120
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -1080.0
+    },
+    {
+      "id": "assigned",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "assigned",
+      "sublabel": "marshal readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 752,
+          "end_line": 774
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 776,
+          "end_line": 785
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -900.0
+    },
+    {
+      "id": "marshal",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "marshal",
+      "sublabel": "proceed to holding",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1189,
+          "end_line": 1197
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -720.0
+    },
+    {
+      "id": "established",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "established",
+      "sublabel": "holding, not granted",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1199,
+          "end_line": 1220
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 733,
+          "end_line": 739,
+          "label": "rank"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -540.0
+    },
+    {
+      "id": "charlie",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "established + granted",
+      "sublabel": "lane held (Charlie)",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 849,
+          "end_line": 860
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 863,
+          "end_line": 867
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -360.0
+    },
+    {
+      "id": "commencing",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "commencing",
+      "sublabel": "\u226460 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1222,
+          "end_line": 1252
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -180.0
+    },
+    {
+      "id": "initial",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "initial",
+      "sublabel": "\u22648 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 110,
+          "end_line": 118
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0.0
+    },
+    {
+      "id": "break_",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "\u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1263,
+          "end_line": 1264
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 180.0
+    },
+    {
+      "id": "downwind",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "downwind",
+      "sublabel": "abeam, \u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1266,
+          "end_line": 1267
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 360.0
+    },
+    {
+      "id": "ball",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "ball",
+      "sublabel": "\u22642 nm, \u22641500 ft, astern",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1238,
+          "end_line": 1247
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 540.0
+    },
+    {
+      "id": "touchdown",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "touchdown",
+      "sublabel": "land event on this ship",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 623,
+          "end_line": 630
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 720.0
+    },
+    {
+      "id": "on_deck",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "on_deck",
+      "sublabel": "trap confirmed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 696,
+          "end_line": 700
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 546,
+          "end_line": 578,
+          "label": "3 s stopped on deck"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 900.0
+    },
+    {
+      "id": "recovered",
+      "lane": "procedure",
+      "col": 2,
+      "type": "external",
+      "label": "Recovery complete",
+      "sublabel": "deck clear; lane freed, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1300,
+          "end_line": 1304
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 1080.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "checked_in-to-assigned",
+      "from": "checked_in",
+      "to": "assigned",
+      "label": "assignment: facts present, angels free",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "assigned-to-marshal",
+      "from": "assigned",
+      "to": "marshal",
+      "label": "full readback, in order",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "marshal-to-established",
+      "from": "marshal",
+      "to": "established",
+      "label": "telemetry: at fix, \u00b11000 ft",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "established-to-charlie",
+      "from": "established",
+      "to": "charlie",
+      "label": "lane: no foul deck; CASE I, priority or EAT",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "charlie-to-commencing",
+      "from": "charlie",
+      "to": "commencing",
+      "label": "pilot call + range (optional in CASE I)",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "commencing-to-initial",
+      "from": "commencing",
+      "to": "initial",
+      "label": "pilot call, \u22648 nm",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "initial-to-break_",
+      "from": "initial",
+      "to": "break_",
+      "label": "pilot call, \u22645 nm",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "break_-to-downwind",
+      "from": "break_",
+      "to": "downwind",
+      "label": "abeam, \u22645 nm",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "downwind-to-ball",
+      "from": "downwind",
+      "to": "ball",
+      "label": "ball: range, height, astern, deck not foul",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "ball-to-touchdown",
+      "from": "ball",
+      "to": "touchdown",
+      "label": "telemetry: land on this ship",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "touchdown-to-on_deck",
+      "from": "touchdown",
+      "to": "on_deck",
+      "label": "telemetry: on_deck (3 s stopped)",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "on_deck-to-recovered",
+      "from": "on_deck",
+      "to": "recovered",
+      "label": "pilot: deck clear",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. 'established + granted' is phase 'established' with session.granted = True (carrier.py 856). Nodes tagged conceptual or 'phase group' are not phase strings.",
+        "Pilot pattern calls advance only with a radar track and range checks (_pattern 1222-1252). touchdown and on_deck come from mission telemetry, and on_deck is debounced (overlord_carrier.lua 563-576)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Marshal and lane",
+      "items": [
+        "CASE I holds overhead at angels 2-9. CASE II/III marshal on the reciprocal of the final bearing at angels 6-13, DME = angels + 15 (92-96, 752-774).",
+        "One deck/approach lane per ship: emergency first, then enrolment order (729-731). The grant needs no foul deck and one of CASE I, priority, or expected approach time reached (863-867).",
+        "In CASE I, 'initial' may follow established + granted directly, without commencing (PATTERN 110-118)."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Other recovery views",
+      "items": [
+        "CASE I/II/III pattern variants",
+        "Bolter, wave-off and foul deck recycle",
+        "Reassignment, stale bridge, closure and departure handover"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "assignment: facts present, angels free: facts present, free angels (752-774, 845-848)",
+        "full readback, in order: every field, in order (1189-1197, 355-372)",
+        "telemetry: at fix, \u00b11000 ft: telemetry: at fix, within 1000 ft (1205-1218)",
+        "lane: no foul deck; CASE I, priority or EAT: no foul deck; CASE I, priority or EAT (849-867)",
+        "pilot call + range (optional in CASE I): pilot call + range (1222-1252)",
+        "pilot call, \u22648 nm: CASE I/II (110-118)",
+        "pilot call, \u22645 nm: 1263-1264",
+        "abeam, \u22645 nm: 1266-1267",
+        "ball: range, height, astern, deck not foul: sector check, deck not foul (1238-1247)",
+        "telemetry: land on this ship: telemetry carrier_id matches (623-630)",
+        "telemetry: on_deck (3 s stopped): mission debounce (652-656)",
+        "pilot: deck clear: pilot call releases lane (1300-1304)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,722 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Carrier Recovery: CASE I, II and III Pattern Calls",
+    "locale": "en",
+    "output": "docs/diagrams/carrier-recovery-case-variants.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    },
+    {
+      "id": "rule-08",
+      "label": "Independent rule 08"
+    },
+    {
+      "id": "rule-09",
+      "label": "Independent rule 09"
+    },
+    {
+      "id": "rule-10",
+      "label": "Independent rule 10"
+    },
+    {
+      "id": "rule-11",
+      "label": "Independent rule 11"
+    },
+    {
+      "id": "rule-12",
+      "label": "Independent rule 12"
+    },
+    {
+      "id": "rule-13",
+      "label": "Independent rule 13"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "established + granted",
+      "sublabel": "Charlie, BRC",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 795,
+          "end_line": 801
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "backend",
+      "label": "commencing",
+      "sublabel": "optional in CASE I",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 111,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "backend",
+      "label": "commencing",
+      "sublabel": "optional in CASE I",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 111,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "backend",
+      "label": "initial",
+      "sublabel": "\u22648 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 113,
+          "end_line": 113
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "backend",
+      "label": "initial",
+      "sublabel": "\u22648 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 113,
+          "end_line": 113
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "\u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 114,
+          "end_line": 114
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "\u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 114,
+          "end_line": 114
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "backend",
+      "label": "downwind",
+      "sublabel": "abeam, \u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 115,
+          "end_line": 115
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "backend",
+      "label": "downwind",
+      "sublabel": "abeam, \u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 115,
+          "end_line": 115
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "backend",
+      "label": "ball",
+      "sublabel": "\u22642 nm, \u22641500 ft",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 117,
+          "end_line": 117
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1238,
+          "end_line": 1247
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "backend",
+      "label": "commencing",
+      "sublabel": "after established + granted",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 111,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "backend",
+      "label": "platform",
+      "sublabel": "optional in CASE II, \u226435 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 112,
+          "end_line": 112
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "backend",
+      "label": "platform",
+      "sublabel": "optional in CASE II, \u226435 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 112,
+          "end_line": 112
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "backend",
+      "label": "initial",
+      "sublabel": "\u22648 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 113,
+          "end_line": 113
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-from",
+      "lane": "rule-08",
+      "col": 0,
+      "type": "backend",
+      "label": "initial",
+      "sublabel": "\u22648 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 113,
+          "end_line": 113
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-to",
+      "lane": "rule-08",
+      "col": 3,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "\u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 114,
+          "end_line": 114
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-09-from",
+      "lane": "rule-09",
+      "col": 0,
+      "type": "backend",
+      "label": "break",
+      "sublabel": "\u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 114,
+          "end_line": 114
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-09-to",
+      "lane": "rule-09",
+      "col": 3,
+      "type": "backend",
+      "label": "downwind",
+      "sublabel": "abeam, \u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 115,
+          "end_line": 115
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-10-from",
+      "lane": "rule-10",
+      "col": 0,
+      "type": "backend",
+      "label": "downwind",
+      "sublabel": "abeam, \u22645 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 115,
+          "end_line": 115
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-10-to",
+      "lane": "rule-10",
+      "col": 3,
+      "type": "backend",
+      "label": "ball",
+      "sublabel": "\u22642 nm, \u22641500 ft",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 117,
+          "end_line": 117
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-11-from",
+      "lane": "rule-11",
+      "col": 0,
+      "type": "backend",
+      "label": "commencing",
+      "sublabel": "after established + granted",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 111,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-11-to",
+      "lane": "rule-11",
+      "col": 3,
+      "type": "backend",
+      "label": "platform",
+      "sublabel": "\u226435 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 112,
+          "end_line": 112
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-12-from",
+      "lane": "rule-12",
+      "col": 0,
+      "type": "backend",
+      "label": "platform",
+      "sublabel": "\u226435 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 112,
+          "end_line": 112
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-12-to",
+      "lane": "rule-12",
+      "col": 3,
+      "type": "backend",
+      "label": "final",
+      "sublabel": "ten miles, \u226415 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 116,
+          "end_line": 116
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-13-from",
+      "lane": "rule-13",
+      "col": 0,
+      "type": "backend",
+      "label": "final",
+      "sublabel": "ten miles, \u226415 nm",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 116,
+          "end_line": 116
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-13-to",
+      "lane": "rule-13",
+      "col": 3,
+      "type": "backend",
+      "label": "ball",
+      "sublabel": "\u22642 nm, \u22641500 ft, astern",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 117,
+          "end_line": 117
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "c1a",
+      "label": "report commencing (or skip to initial)",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c1b",
+      "label": "report initial",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c1c",
+      "label": "report break",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c1d",
+      "label": "report abeam",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c1e",
+      "label": "call the ball",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c2a",
+      "label": "report platform (or skip to initial)",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c2b",
+      "label": "report initial",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c2c",
+      "label": "report break",
+      "from": "rule-08-from",
+      "to": "rule-08-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c2d",
+      "label": "report abeam",
+      "from": "rule-09-from",
+      "to": "rule-09-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c2e",
+      "label": "call the ball",
+      "from": "rule-10-from",
+      "to": "rule-10-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c3a",
+      "label": "report platform",
+      "from": "rule-11-from",
+      "to": "rule-11-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c3b",
+      "label": "report ten miles",
+      "from": "rule-12-from",
+      "to": "rule-12-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c3c",
+      "label": "call the ball",
+      "from": "rule-13-from",
+      "to": "rule-13-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. 'established + granted' is phase 'established' with session.granted = True (carrier.py 856). Nodes tagged conceptual or 'phase group' are not phase strings.",
+        "Pilot pattern calls advance only with a radar track and range checks (_pattern 1222-1252). touchdown and on_deck come from mission telemetry, and on_deck is debounced (overlord_carrier.lua 563-576)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "PATTERN table (carrier.py 110-118)",
+      "items": [
+        "commencing: from established in every CASE, and only when granted (1229).",
+        "platform: from commencing (CASE II/III). initial: from established or commencing (CASE I), or from commencing or platform (CASE II).",
+        "break \u2192 downwind \u2192 ball for CASE I/II. CASE III: platform \u2192 final \u2192 ball.",
+        "Range limits (CALL_RANGE_NM, 101): commencing 60, platform 35, initial 8, break 5, downwind 5, final 15 nm. Ball needs \u22642 nm, \u22641500 ft, within 45\u00b0 astern of the final bearing, and no foul deck (102, 1238-1247).",
+        "The same call twice replays status. An out-of-order call is refused and the phase does not change (1226-1234)."
+      ]
+    }
+  ]
+}

@@ -13,6 +13,13 @@ Local-only voice AWACS, airfield/carrier ATC, and JTAC for DCS World over SRS 2.
 
 Python standard library keeps control/network/domain services inspectable and dependency-light; native whisper.cpp, Piper/ONNX and libopus handle compute. Independent HTTP workers need neither shared storage nor player/session affinity. Gateway/brain stay lightweight and models move away from DCS-exclusive cores.
 
+## ATC and carrier diagrams
+
+[Interactive Archify diagrams](https://neboman11.github.io/overlordbot-local/) ·
+[All procedure views and GitHub-rendered previews](docs/atc-carrier-diagrams.md)
+
+[![Native ATC and carrier radio architecture](docs/diagrams/previews/native-atc-carrier-bridge.png)](https://neboman11.github.io/overlordbot-local/diagrams/native-atc-carrier-bridge.html)
+
 ## Run the complete local stack
 
 Requirements: Linux amd64, Docker Compose or Podman + podman-compose. Internet is needed for pinned build inputs/model downloads, **not inference**. The demo uses an internal container network without published ports or runtime internet access.

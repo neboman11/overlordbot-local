@@ -1,0 +1,444 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Airfield ATC Departure: Normal Procedure",
+    "locale": "en",
+    "output": "docs/diagrams/airfield-departure-phases.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "procedure",
+      "label": "Normal procedure \u2014 follow top to bottom"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "startup_requested",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "startup_requested",
+      "sublabel": "enrolled, not seen on ground",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 527,
+          "end_line": 531
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1599,
+          "end_line": 1603
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -990.0
+    },
+    {
+      "id": "startup",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "startup",
+      "sublabel": "observed on ground here",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 881,
+          "end_line": 885
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1604,
+          "end_line": 1607
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -810.0
+    },
+    {
+      "id": "taxi_clearance",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "taxi_clearance",
+      "sublabel": "taxi readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1148,
+          "end_line": 1162
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -630.0
+    },
+    {
+      "id": "taxi",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "taxi",
+      "sublabel": "to holding point",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1724
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -450.0
+    },
+    {
+      "id": "holding_short",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "holding_short",
+      "sublabel": "queued for the lane",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1726,
+          "end_line": 1743
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 945,
+          "end_line": 952,
+          "label": "queue order"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -270.0
+    },
+    {
+      "id": "lineup_clearance",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "lineup_clearance",
+      "sublabel": "lane held, readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1060,
+          "end_line": 1071
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1079,
+          "end_line": 1084
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": -90.0
+    },
+    {
+      "id": "lineup",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "lineup",
+      "sublabel": "line up and wait",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1724
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 90.0
+    },
+    {
+      "id": "lined_up",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "lined_up",
+      "sublabel": "alignment confirmed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 888,
+          "end_line": 890
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1745,
+          "end_line": 1756
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 270.0
+    },
+    {
+      "id": "takeoff_clearance",
+      "lane": "procedure",
+      "col": 2,
+      "type": "messagebus",
+      "label": "takeoff_clearance",
+      "sublabel": "lane holder, readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1053,
+          "end_line": 1059
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 450.0
+    },
+    {
+      "id": "cleared_takeoff",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "cleared_takeoff",
+      "sublabel": "read back",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1724
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 630.0
+    },
+    {
+      "id": "airborne",
+      "lane": "procedure",
+      "col": 2,
+      "type": "backend",
+      "label": "airborne",
+      "sublabel": "takeoff observed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 906,
+          "end_line": 924
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 891,
+          "end_line": 892
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 810.0
+    },
+    {
+      "id": "handed_off",
+      "lane": "procedure",
+      "col": 2,
+      "type": "external",
+      "label": "Session released",
+      "sublabel": "handoff, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1820,
+          "end_line": 1824
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 768,
+          "end_line": 776
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 990.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "startup_requested-to-startup",
+      "from": "startup_requested",
+      "to": "startup",
+      "label": "telemetry: on ground here",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "startup-to-taxi_clearance",
+      "from": "startup",
+      "to": "taxi_clearance",
+      "label": "pilot: request taxi",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "taxi_clearance-to-taxi",
+      "from": "taxi_clearance",
+      "to": "taxi",
+      "label": "exact readback",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "taxi-to-holding_short",
+      "from": "taxi",
+      "to": "holding_short",
+      "label": "pilot call + at hold",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "holding_short-to-lineup_clearance",
+      "from": "holding_short",
+      "to": "lineup_clearance",
+      "label": "lane granted",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "lineup_clearance-to-lineup",
+      "from": "lineup_clearance",
+      "to": "lineup",
+      "label": "exact readback",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "lineup-to-lined_up",
+      "from": "lineup",
+      "to": "lined_up",
+      "label": "telemetry: aligned",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "lined_up-to-takeoff_clearance",
+      "from": "lined_up",
+      "to": "takeoff_clearance",
+      "label": "takeoff granted",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "takeoff_clearance-to-cleared_takeoff",
+      "from": "takeoff_clearance",
+      "to": "cleared_takeoff",
+      "label": "exact readback",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "cleared_takeoff-to-airborne",
+      "from": "cleared_takeoff",
+      "to": "airborne",
+      "label": "telemetry: takeoff",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "airborne-to-handed_off",
+      "from": "airborne",
+      "to": "handed_off",
+      "label": "10 nm or pilot switching",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. Nodes in the 'conceptual step' legend group, or with tag 'conceptual'/'phase group', are not phase strings.",
+        "Pilot calls move a phase only after telemetry confirms the claim (_at_hold, _at_crossing, _lined_up). Take-off, landing and vacating come from the mission track alone (airfield.py 44-50)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "One movement lane per airfield",
+      "items": [
+        "One lane covers every runway: line-up, take-off, crossing and landing. Order is emergency first, then arrivals, then departures, then call order (airfield.py 945-947).",
+        "A grant goes to the first eligible session, and only while no controlled aircraft occupies any runway, with tower service on the session's channel (1060-1076, 1086-1098).",
+        "A clearance with no readback after 60 model seconds lapses and is marked expired. It is not reissued until the pilot asks again (101, 1030-1036)."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Other departure views",
+      "items": [
+        "Runway crossing and return to parking",
+        "Clearance revocations, aborts and stale bridge",
+        "Early closure and uncleared take-off",
+        "Session safeguards (death, respawn, epoch, transfer)"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "telemetry: on ground here: telemetry: ground_airfield_id matches (881-885)",
+        "pilot: request taxi: pilot call, ground required (1588-1591)",
+        "exact readback: exact runway (1709-1718, 477-518)",
+        "pilot call + at hold: pilot call + _at_hold geometry (1739-1742)",
+        "lane granted: scheduler: free lane, clear runway, tower (1060-1071)",
+        "exact readback: jumps to lined_up if already aligned (1717-1721)",
+        "telemetry: aligned: telemetry 888-890, or pilot call confirmed (1748-1752)",
+        "takeoff granted: lane holder only, runway clear (1053-1059)",
+        "exact readback: 1717",
+        "telemetry: takeoff: in_air or takeoff event (879-880, 906-915)",
+        "10 nm or pilot switching: telemetry HANDOFF_NM (891-892), pilot handoff (1820-1824)",
+        "readback_problem checks the exact runway, the clearance term and conflicting words (airfield.py 477-518)."
+      ]
+    }
+  ]
+}

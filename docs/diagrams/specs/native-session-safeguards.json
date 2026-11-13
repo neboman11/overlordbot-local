@@ -1,0 +1,769 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Native Session Ownership and Isolation Safeguards",
+    "locale": "en",
+    "output": "docs/diagrams/native-session-safeguards.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    },
+    {
+      "id": "rule-08",
+      "label": "Independent rule 08"
+    },
+    {
+      "id": "rule-09",
+      "label": "Independent rule 09"
+    },
+    {
+      "id": "rule-10",
+      "label": "Independent rule 10"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "Transmission parsed",
+      "sublabel": "deterministic grammar",
+      "tag": "receiver words first",
+      "sources": [
+        {
+          "path": "overlord/airfield_parser.py",
+          "line": 163,
+          "end_line": 230
+        },
+        {
+          "path": "overlord/carrier_parser.py",
+          "line": 22,
+          "end_line": 49
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "security",
+      "label": "Unique human caller",
+      "sublabel": "catalog match",
+      "tag": "callsign or modex",
+      "sources": [
+        {
+          "path": "overlord/identities.py",
+          "line": 7,
+          "end_line": 28
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 204,
+          "end_line": 215,
+          "label": "human: true only"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 490,
+          "end_line": 541,
+          "label": "catalog + incarnation"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "security",
+      "label": "Unique human caller",
+      "sublabel": "catalog match",
+      "tag": "callsign or modex",
+      "sources": [
+        {
+          "path": "overlord/identities.py",
+          "line": 7,
+          "end_line": 28
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 204,
+          "end_line": 215,
+          "label": "human: true only"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 490,
+          "end_line": 541,
+          "label": "catalog + incarnation"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "backend",
+      "label": "Session created",
+      "sublabel": "unit_id + incarnation",
+      "tag": "revision, order",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1511,
+          "end_line": 1526
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1060,
+          "end_line": 1070
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "backend",
+      "label": "Session created",
+      "sublabel": "unit_id + incarnation",
+      "tag": "revision, order",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1511,
+          "end_line": 1526
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1060,
+          "end_line": 1070
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "external",
+      "label": "Session released",
+      "sublabel": "revision bumped",
+      "tag": "lane freed",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 768,
+          "end_line": 776
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 583,
+          "end_line": 591
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "backend",
+      "label": "Transmission parsed",
+      "sublabel": "deterministic grammar",
+      "tag": "receiver words first",
+      "sources": [
+        {
+          "path": "overlord/airfield_parser.py",
+          "line": 163,
+          "end_line": 230
+        },
+        {
+          "path": "overlord/carrier_parser.py",
+          "line": 22,
+          "end_line": 49
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "external",
+      "label": "No session change",
+      "sublabel": "silence or refusal notice",
+      "tag": "no state",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1385,
+          "end_line": 1433
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1011,
+          "end_line": 1030
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "security",
+      "label": "Unique human caller",
+      "sublabel": "catalog match",
+      "tag": "callsign or modex",
+      "sources": [
+        {
+          "path": "overlord/identities.py",
+          "line": 7,
+          "end_line": 28
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 204,
+          "end_line": 215,
+          "label": "human: true only"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 490,
+          "end_line": 541,
+          "label": "catalog + incarnation"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "external",
+      "label": "No session change",
+      "sublabel": "silence or refusal notice",
+      "tag": "no state",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1385,
+          "end_line": 1433
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1011,
+          "end_line": 1030
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "messagebus",
+      "label": "Bridge stale",
+      "sublabel": "grants revoked once",
+      "tag": "replies invalid",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 588,
+          "end_line": 602
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 447,
+          "end_line": 460
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-from",
+      "lane": "rule-08",
+      "col": 0,
+      "type": "messagebus",
+      "label": "Bridge stale",
+      "sublabel": "grants revoked once",
+      "tag": "replies invalid",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 588,
+          "end_line": 602
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 447,
+          "end_line": 460
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-to",
+      "lane": "rule-08",
+      "col": 3,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-09-from",
+      "lane": "rule-09",
+      "col": 0,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-09-to",
+      "lane": "rule-09",
+      "col": 3,
+      "type": "external",
+      "label": "Other native family",
+      "sublabel": "release_unit",
+      "tag": "generation bumped",
+      "sources": [
+        {
+          "path": "overlord/brain.py",
+          "line": 172,
+          "end_line": 180
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1306,
+          "end_line": 1317
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 593,
+          "end_line": 605
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-10-from",
+      "lane": "rule-10",
+      "col": 0,
+      "type": "backend",
+      "label": "Watched and tracked",
+      "sublabel": "listed in watch response",
+      "tag": "issued_seq",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 624,
+          "end_line": 630
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 589,
+          "end_line": 609,
+          "label": "applyWatch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "lease + ack"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-10-to",
+      "lane": "rule-10",
+      "col": 3,
+      "type": "external",
+      "label": "Mission epoch replaced",
+      "sublabel": "all state discarded",
+      "tag": "old epoch retired",
+      "sources": [
+        {
+          "path": "overlord/brain.py",
+          "line": 75,
+          "end_line": 91
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 606,
+          "end_line": 617
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 464,
+          "end_line": 477
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "heard-to-identified",
+      "label": "one human catalog match",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "identified-to-enrolled",
+      "label": "enrolling intent",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "enrolled-to-watched",
+      "label": "next accepted exchange",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "watched-closed-lifecycle-loss",
+      "label": "lifecycle event, absence, bad sample, or incarnation change",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "heard-to-ignored",
+      "label": "not addressed: no reply",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "identified-to-ignored",
+      "label": "no enrolment: notice only",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "watched-to-suspended",
+      "label": "bridge stale",
+      "variant": "dashed",
+      "role": "async",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "suspended-to-watched",
+      "label": "fresh snapshot",
+      "from": "rule-08-from",
+      "to": "rule-08-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "watched-to-transferred",
+      "label": "enrols in other family",
+      "from": "rule-09-from",
+      "to": "rule-09-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "watched-to-epoch_reset",
+      "label": "new mission epoch",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-10-from",
+      "to": "rule-10-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Human-only enrolment",
+      "items": [
+        "Mission Lua lists only units from coalition.getPlayers that have a non-empty player name and are airplanes or helicopters. The Python side drops any entry without human: true (overlord_carrier.lua 500-508, carrier.py 204-215).",
+        "AI and unregistered aircraft are never polled. Only units on the brain's watch list are sampled, and the list expires after the lease, 15 s by default (overlord_carrier.lua 26-32, 81, 621-626).",
+        "An SRS radio name that does not uniquely identify the spoken caller is refused (sender_identifies; airfield.py 1428-1433, carrier.py 1025-1030)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Incarnations and epochs",
+      "items": [
+        "Incarnation = unit id plus a serial. The serial advances on birth or on any player, unit-name, coalition or terminal change, and is never reset within the scripting state (overlord_carrier.lua 26-28, 514-521; overlord_airfield.lua 83).",
+        "The hook makes a new epoch at every simulation start. The services retire old epochs and reject stale seq. The brain fences retired epochs across both native roles (overlord_hook.lua 661-669, brain.py 75-91)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Replies re-validated before transmit",
+      "items": [
+        "state: needs a fresh bridge and the same session revision.",
+        "notice: needs the same radio and epoch, and the same occupant (incarnation + generation) when addressed.",
+        "facts (airfield only): needs a fresh bridge and the exact spoken facts (airfield.py 1242-1281, carrier.py 904-937).",
+        "Queued notifications expire after 10 s, replies after 15 s. The Gateway re-checks _bound and /validate-event just before TX (gateway.py 256-273)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "heard \u2192 identified (one human catalog match): coalition-filtered; ambiguity refused (identities.py 7-28)",
+        "identified \u2192 enrolled (enrolling intent): airfield startup/taxi/inbound/emergency; carrier checkIn/departure/emergency",
+        "enrolled \u2192 watched (next accepted exchange): issued_seq set, watch returned (624-630)",
+        "watched \u2192 closed (lifecycle event, absence, bad sample, or incarnation change): dead/eject/disconnect/birth, absent > 1 snapshot, invalid sample",
+        "heard \u2192 ignored (not addressed: no reply): parse None or other field's name: reply None",
+        "identified \u2192 ignored (no enrolment: notice only): notice only: 'check in first' / 'no active session'",
+        "watched \u2192 suspended (bridge stale): stale_seconds without snapshot",
+        "suspended \u2192 watched (fresh snapshot): watch re-handshake (622-629, 480-488)",
+        "watched \u2192 transferred (enrols in other family): brain releases prior family (brain.py 172-180)",
+        "watched \u2192 epoch_reset (new mission epoch): service reset; retired epoch refused",
+        "watched \u2192 closed, incarnation or coalition change: respawn, slot or coalition change (airfield.py 714-718, carrier.py 548-552)"
+      ]
+    }
+  ]
+}

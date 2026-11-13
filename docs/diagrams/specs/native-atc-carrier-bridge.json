@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Native Airfield ATC and Carrier: Radio and Mission Bridge",
+    "output": "docs/diagrams/native-atc-carrier-bridge.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "locale": "en"
+  },
+  "components": [
+    {
+      "id": "pilot",
+      "type": "external",
+      "label": "Human pilot",
+      "sublabel": "SRS radio call",
+      "pos": [
+        40,
+        260
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "frontend",
+      "label": "Gateway per radio",
+      "sublabel": "scope airfield or carrier_id",
+      "pos": [
+        250,
+        260
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/gateway.py",
+          "line": 73,
+          "end_line": 89,
+          "label": "_bound scope check"
+        },
+        {
+          "path": "overlord/gateway.py",
+          "line": 185,
+          "end_line": 210,
+          "label": "/events poll"
+        },
+        {
+          "path": "overlord/gateway.py",
+          "line": 212,
+          "end_line": 256,
+          "label": "/respond then TTS"
+        }
+      ]
+    },
+    {
+      "id": "supervisor",
+      "type": "backend",
+      "label": "RadioGateways",
+      "sublabel": "airfield or carrier role",
+      "pos": [
+        250,
+        60
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "fails closed when stale",
+      "sources": [
+        {
+          "path": "overlord/radio_gateways.py",
+          "line": 117,
+          "end_line": 175,
+          "label": "registry parse + 200 Hz clash"
+        },
+        {
+          "path": "overlord/radio_gateways.py",
+          "line": 192,
+          "end_line": 236,
+          "label": "_reconcile start/close"
+        }
+      ]
+    },
+    {
+      "id": "stt",
+      "type": "backend",
+      "label": "STT worker",
+      "sublabel": "/transcribe",
+      "pos": [
+        40,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/gateway.py",
+          "line": 233,
+          "end_line": 238,
+          "label": "PCM + vocabulary prompt"
+        }
+      ]
+    },
+    {
+      "id": "tts",
+      "type": "backend",
+      "label": "TTS worker",
+      "sublabel": "/synthesize",
+      "pos": [
+        250,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/gateway.py",
+          "line": 251,
+          "end_line": 255,
+          "label": "reply synthesis"
+        }
+      ]
+    },
+    {
+      "id": "brain",
+      "type": "backend",
+      "label": "Brain native router",
+      "sublabel": "radio_lock, epoch fence",
+      "pos": [
+        640,
+        260
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/__main__.py",
+          "line": 141,
+          "end_line": 168,
+          "label": "token-gated routes"
+        },
+        {
+          "path": "overlord/brain.py",
+          "line": 75,
+          "end_line": 91,
+          "label": "exchange_native"
+        },
+        {
+          "path": "overlord/brain.py",
+          "line": 153,
+          "end_line": 181,
+          "label": "respond native branch"
+        }
+      ]
+    },
+    {
+      "id": "hook",
+      "type": "backend",
+      "label": "Server hook",
+      "sublabel": "overlord_hook.lua",
+      "pos": [
+        640,
+        60
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "dcs/overlord_hook.lua",
+          "line": 610,
+          "end_line": 638,
+          "label": "bridge call per feature"
+        },
+        {
+          "path": "dcs/overlord_hook.lua",
+          "line": 661,
+          "end_line": 669,
+          "label": "epoch per sim start"
+        }
+      ]
+    },
+    {
+      "id": "mission",
+      "type": "external",
+      "label": "Mission companions",
+      "sublabel": "airfield + carrier Lua",
+      "pos": [
+        900,
+        60
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "dcs/overlord_airfield.lua",
+          "line": 1167,
+          "end_line": 1193,
+          "label": "airfield bridge + watch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 718,
+          "end_line": 743,
+          "label": "carrier bridge + watch"
+        },
+        {
+          "path": "dcs/overlord_carrier.lua",
+          "line": 490,
+          "end_line": 541,
+          "label": "human catalog, incarnation"
+        }
+      ]
+    },
+    {
+      "id": "airfield",
+      "type": "backend",
+      "label": "AirfieldService",
+      "sublabel": "per-airdrome sessions",
+      "pos": [
+        900,
+        260
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 606,
+          "end_line": 630,
+          "label": "exchange"
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 652,
+          "end_line": 699,
+          "label": "channel classify"
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1373,
+          "end_line": 1477,
+          "label": "respond"
+        }
+      ]
+    },
+    {
+      "id": "carrier",
+      "type": "backend",
+      "label": "CarrierService",
+      "sublabel": "per-ship sessions",
+      "pos": [
+        900,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 464,
+          "end_line": 489,
+          "label": "exchange"
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 495,
+          "end_line": 526,
+          "label": "channel classify"
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 997,
+          "end_line": 1058,
+          "label": "respond"
+        }
+      ]
+    },
+    {
+      "id": "parsers",
+      "type": "backend",
+      "label": "Deterministic grammars",
+      "sublabel": "regex intents, no model",
+      "pos": [
+        1160,
+        260
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "overlord/airfield_parser.py",
+          "line": 163,
+          "end_line": 230,
+          "label": "airfield parse"
+        },
+        {
+          "path": "overlord/carrier_parser.py",
+          "line": 22,
+          "end_line": 48,
+          "label": "carrier intents"
+        }
+      ]
+    },
+    {
+      "id": "nlp",
+      "type": "security",
+      "label": "Local LLM fallback",
+      "sublabel": "AWACS and JTAC only",
+      "pos": [
+        460,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "never native",
+      "sources": [
+        {
+          "path": "overlord/brain.py",
+          "line": 195,
+          "end_line": 231,
+          "label": "after native return"
+        },
+        {
+          "path": "overlord/nlp.py",
+          "line": 1,
+          "end_line": 15,
+          "label": "allowlisted intent only"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "DCS server",
+      "wraps": [
+        "hook",
+        "mission"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Radio gateway service",
+      "wraps": [
+        "supervisor",
+        "gateway"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Brain process",
+      "wraps": [
+        "brain",
+        "airfield",
+        "carrier",
+        "parsers"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "voice",
+      "from": "pilot",
+      "to": "gateway",
+      "label": "voice",
+      "variant": "emphasis"
+    },
+    {
+      "id": "transcribe",
+      "from": "gateway",
+      "to": "stt",
+      "label": "PCM + vocab"
+    },
+    {
+      "id": "synth",
+      "from": "gateway",
+      "to": "tts",
+      "label": "reply text"
+    },
+    {
+      "id": "gw-brain",
+      "from": "gateway",
+      "to": "brain",
+      "label": "/respond /events /validate-event",
+      "variant": "emphasis"
+    },
+    {
+      "id": "spawn",
+      "from": "supervisor",
+      "to": "gateway",
+      "label": "start/close"
+    },
+    {
+      "id": "registry",
+      "from": "supervisor",
+      "to": "brain",
+      "label": "poll /registry"
+    },
+    {
+      "id": "bridge",
+      "from": "mission",
+      "to": "hook",
+      "label": "bridge() JSON"
+    },
+    {
+      "id": "exchange",
+      "from": "hook",
+      "to": "brain",
+      "label": "POST exchange",
+      "variant": "security"
+    },
+    {
+      "id": "to-airfield",
+      "from": "brain",
+      "to": "airfield",
+      "label": "airfield: true"
+    },
+    {
+      "id": "to-carrier",
+      "from": "brain",
+      "to": "carrier",
+      "label": "carrier_id"
+    },
+    {
+      "id": "af-parse",
+      "from": "airfield",
+      "to": "parsers",
+      "label": "parse"
+    },
+    {
+      "id": "cr-parse",
+      "from": "carrier",
+      "to": "parsers",
+      "label": "parse"
+    },
+    {
+      "id": "llm",
+      "from": "brain",
+      "to": "nlp",
+      "label": "non-native only",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Native routing",
+      "items": [
+        "Brain.respond sends a request with airfield: true or carrier_id to its native service under radio_lock and returns before any LLM code (brain.py 164-181).",
+        "The local LLM fallback (brain.py 195-231) only serves AWACS and the limited JTAC path. It never interprets, authorises or validates native ATC or carrier calls.",
+        "If a call enrols the pilot in one native family, the brain releases the unit from the other family (brain.py 172-180; release_unit airfield.py 1306-1317, carrier.py 593-605)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Frequency and coalition collisions",
+      "items": [
+        "Every radio uses the canonical channel coalition:frequency_hz:modulation. Two radios conflict when their frequencies are less than FREQUENCY_GUARD_HZ = 200 Hz apart (carrier.py 79).",
+        "Airfield: a radio within 200 Hz of a reserved channel is disabled, whatever its coalition. Reserved channels are AWACS/JTAC plus the enabled carrier radios (__main__.py 83-100, brain.py 64-73, airfield.py 652-673).",
+        "Airfield: a different channel of the same coalition within 200 Hz is disabled. Airdromes publishing exactly the same channel share one registry radio, and the caller must name the airfield (airfield.py 675-681, 1482-1509).",
+        "Carrier: any other live carrier within 200 Hz disables the radio, whatever its coalition or modulation (carrier.py 512-517).",
+        "RadioGateways checks the 200 Hz rule again. Airfield ids must be canonical channels, and every clashing entry is removed (radio_gateways.py 155-174)."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Gateway topology",
+      "items": [
+        "Airfield: one Gateway per canonical channel, scoped airfield: true. The field and session are resolved inside AirfieldService (radio_gateways.py 1-8, 212).",
+        "Carrier: one Gateway per carrier id, scoped carrier_id (radio_gateways.py 212-215).",
+        "A changed spec (epoch, id, coalition, Hz, modulation, name, password) closes the old radio. If one radio fails to start, the others keep running (radio_gateways.py 201-219)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Reply gating",
+      "items": [
+        "Before transmitting, the Gateway checks the reply's scope (_bound), then POSTs /validate-event. A native reply without validation is dropped (gateway.py 256-273).",
+        "Bridge snapshots require X-DCS-Token. Retired mission epochs are refused across both native roles (__main__.py 141-158, brain.py 75-91)."
+      ]
+    }
+  ]
+}

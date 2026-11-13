@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OverlordBot ATC and Carrier Diagrams</title>
+<style>
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { max-width: 72rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+img { max-width: 100%; height: auto; }
+a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+<h1>ATC and carrier diagrams</h1>
+<p>Interactive Archify views of OverlordBot's native DCS radio controllers. These explain implementation behavior, not real-world aviation procedures.</p>
+<p><a href="https://github.com/neboman11/overlordbot-local/blob/main/docs/atc-carrier-diagrams.md">Source guide and GitHub previews</a> · <a href="https://github.com/neboman11/overlordbot-local">Repository</a></p>
+<p>Start with the architecture, then follow the normal departure, arrival and recovery views. Exception views contain independent guarded-transition rows; repeated labels refer to the same underlying state.</p>
+<a href="diagrams/native-atc-carrier-bridge.html"><img src="diagrams/previews/native-atc-carrier-bridge.png" alt="ATC and carrier radio routing, mission bridge, controller ownership and local speech workers" width="1380" height="612"></a>
+<h2>Interactive views</h2>
+<ul>
+<li><a href="diagrams/native-atc-carrier-bridge.html">Native Airfield ATC and Carrier: Radio and Mission Bridge</a> · <a href="diagrams/previews/native-atc-carrier-bridge.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-departure-phases.html">Airfield ATC Departure: Normal Procedure</a> · <a href="diagrams/previews/airfield-departure-phases.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-departure-crossing-parking.html">Airfield ATC Departure: Runway Crossing and Return to Parking</a> · <a href="diagrams/previews/airfield-departure-crossing-parking.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-departure-revocations.html">Airfield ATC Departure: Clearance Revocations and Aborts</a> · <a href="diagrams/previews/airfield-departure-revocations.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-departure-closure.html">Airfield ATC Departure: Early Closure and Uncleared Take-off</a> · <a href="diagrams/previews/airfield-departure-closure.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-arrival-phases.html">Airfield ATC Arrival: Normal Procedure (published pattern)</a> · <a href="diagrams/previews/airfield-arrival-phases.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-arrival-variants.html">Airfield ATC Arrival: Straight-in, Go-around, Touch-and-go and Re-brief</a> · <a href="diagrams/previews/airfield-arrival-variants.png">PNG preview</a></li>
+<li><a href="diagrams/airfield-arrival-exceptions.html">Airfield ATC Arrival: Grounded Samples, Landing Elsewhere, Cancellation and Handover</a> · <a href="diagrams/previews/airfield-arrival-exceptions.png">PNG preview</a></li>
+<li><a href="diagrams/carrier-recovery-phases.html">Carrier Recovery: CASE I Normal Procedure</a> · <a href="diagrams/previews/carrier-recovery-phases.png">PNG preview</a></li>
+<li><a href="diagrams/carrier-recovery-case-variants.html">Carrier Recovery: CASE I, II and III Pattern Calls</a> · <a href="diagrams/previews/carrier-recovery-case-variants.png">PNG preview</a></li>
+<li><a href="diagrams/carrier-recovery-recycle.html">Carrier Recovery: Bolter, Wave-off and Foul Deck</a> · <a href="diagrams/previews/carrier-recovery-recycle.png">PNG preview</a></li>
+<li><a href="diagrams/carrier-recovery-exceptions.html">Carrier Recovery: Reassignment, Stale Bridge and Closure</a> · <a href="diagrams/previews/carrier-recovery-exceptions.png">PNG preview</a></li>
+<li><a href="diagrams/carrier-departure-phases.html">Carrier Departure Phases (session.phase)</a> · <a href="diagrams/previews/carrier-departure-phases.png">PNG preview</a></li>
+<li><a href="diagrams/native-session-safeguards.html">Native Session Ownership and Isolation Safeguards</a> · <a href="diagrams/previews/native-session-safeguards.png">PNG preview</a></li>
+</ul>
+<p>Every view includes source links pinned to <a href="https://github.com/neboman11/overlordbot-local/tree/b3f9a76641f17078055d84624f3dbb66f2b3cc3a">v0.1.0 implementation revision b3f9a76</a>. Native ATC and carrier clearances use deterministic grammars and controllers, not LLM inference.</p>
+</main>
+</body>
+</html>

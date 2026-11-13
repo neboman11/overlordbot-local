@@ -1,0 +1,249 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Carrier Departure Phases (session.phase)",
+    "locale": "en",
+    "output": "docs/diagrams/carrier-departure-phases.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "deck",
+      "label": "On deck (pre-launch)"
+    },
+    {
+      "id": "air",
+      "label": "Airborne"
+    },
+    {
+      "id": "end",
+      "label": "Release",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "startup",
+      "lane": "deck",
+      "col": 0,
+      "type": "backend",
+      "label": "startup",
+      "sublabel": "request startup",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1122,
+          "end_line": 1141
+        }
+      ]
+    },
+    {
+      "id": "queued",
+      "lane": "deck",
+      "col": 1,
+      "type": "messagebus",
+      "label": "queued",
+      "sublabel": "ready, waiting for the lane",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1124,
+          "end_line": 1127
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 733,
+          "end_line": 739,
+          "label": "rank"
+        }
+      ]
+    },
+    {
+      "id": "released",
+      "lane": "deck",
+      "col": 2,
+      "type": "backend",
+      "label": "released",
+      "sublabel": "cleared for launch, lane held",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 849,
+          "end_line": 859
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 863,
+          "end_line": 869
+        }
+      ]
+    },
+    {
+      "id": "airborne",
+      "lane": "air",
+      "col": 3,
+      "type": "backend",
+      "label": "airborne",
+      "sublabel": "launch observed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 708,
+          "end_line": 716
+        }
+      ]
+    },
+    {
+      "id": "departed",
+      "lane": "air",
+      "col": 4,
+      "type": "external",
+      "label": "Departure complete",
+      "sublabel": "released (no phase)",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 673,
+          "end_line": 675
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 1313,
+          "end_line": 1317
+        }
+      ]
+    },
+    {
+      "id": "closed",
+      "lane": "end",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released (no phase)",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 643,
+          "end_line": 647
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 665,
+          "end_line": 672
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "startup-to-queued",
+      "from": "startup",
+      "to": "queued",
+      "label": "pilot: ready for launch"
+    },
+    {
+      "id": "queued-to-released",
+      "from": "queued",
+      "to": "released",
+      "label": "lane: ready, deck_seen, on deck, CASE/altimeter/BRC",
+      "variant": "emphasis"
+    },
+    {
+      "id": "released-to-airborne",
+      "from": "released",
+      "to": "airborne",
+      "label": "telemetry: launch from this deck"
+    },
+    {
+      "id": "airborne-to-departed",
+      "from": "airborne",
+      "to": "departed",
+      "label": "10 nm or departure complete"
+    },
+    {
+      "id": "released-to-queued",
+      "from": "released",
+      "to": "queued",
+      "label": "bridge stale: lane freed",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "queued-to-airborne",
+      "from": "queued",
+      "to": "airborne",
+      "label": "uncleared launch seen",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "queued-to-closed",
+      "from": "queued",
+      "to": "closed",
+      "label": "no deck_seen or foreign takeoff",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "airborne-to-closed",
+      "from": "airborne",
+      "to": "closed",
+      "label": "land event"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Enrolment",
+      "items": [
+        "A 'request departure/launch' without the startup wording enrols straight into queued with ready = True (1123, 1136-1137).",
+        "deck_seen comes from on_deck true and in_air false in telemetry (666-667), or is carried over from an on_deck recovery session (1138-1140).",
+        "The departure lane is held from 'released' until launch is observed (_launch frees it at 710)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "startup \u2192 queued (pilot: ready for launch): pilot call (1124-1127)",
+        "queued \u2192 released (lane: ready, deck_seen, on deck, CASE/altimeter/BRC): ready, deck_seen, on deck, CASE/altimeter/BRC (863-869)",
+        "released \u2192 airborne (telemetry: launch from this deck): in_air with deck_seen, or takeoff event (643-647, 666-670)",
+        "airborne \u2192 departed (10 nm or departure complete): telemetry HANDOFF_NM (673-675), pilot handoff (1313-1317)",
+        "released \u2192 queued (bridge stale: lane freed): _refresh frees lane (453-455)",
+        "queued \u2192 airborne (uncleared launch seen): warning notice (709-716)",
+        "queued \u2192 closed (no deck_seen or foreign takeoff): no deck_seen or foreign takeoff (643-646, 671-672)",
+        "airborne \u2192 closed (land event): 631-633"
+      ]
+    }
+  ]
+}

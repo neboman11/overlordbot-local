@@ -1,0 +1,7 @@
+*.delivery.json
+*.delivery-pending.json
+*.finalize.json
+*.finalize-summary.json
+*.browser-check.json
+.archify-*
+review-*/

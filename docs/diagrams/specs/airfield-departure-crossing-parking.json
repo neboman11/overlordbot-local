@@ -1,0 +1,520 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Airfield ATC Departure: Runway Crossing and Return to Parking",
+    "locale": "en",
+    "output": "docs/diagrams/airfield-departure-crossing-parking.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    },
+    {
+      "id": "rule-08",
+      "label": "Independent rule 08"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "taxi or holding_short",
+      "sublabel": "either phase may request",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1758,
+          "end_line": 1770
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "messagebus",
+      "label": "crossing_requested",
+      "sublabel": "holding short of that runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1758,
+          "end_line": 1770
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "messagebus",
+      "label": "crossing_requested",
+      "sublabel": "holding short of that runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1758,
+          "end_line": 1770
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "messagebus",
+      "label": "crossing_clearance",
+      "sublabel": "lane held, readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1072,
+          "end_line": 1075
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "messagebus",
+      "label": "crossing_clearance",
+      "sublabel": "lane held, readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1072,
+          "end_line": 1075
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "backend",
+      "label": "crossing",
+      "sublabel": "entered flag tracked",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 864,
+          "end_line": 869
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1772,
+          "end_line": 1787
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "backend",
+      "label": "crossing",
+      "sublabel": "entered flag tracked",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 864,
+          "end_line": 869
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1772,
+          "end_line": 1787
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "external",
+      "label": "Resume interrupted taxi",
+      "sublabel": "session.resume: taxi or taxi_in",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1772,
+          "end_line": 1780
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 864,
+          "end_line": 869
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "backend",
+      "label": "taxi_in",
+      "sublabel": "returning to parking",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1718
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1583,
+          "end_line": 1587
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "messagebus",
+      "label": "crossing_requested",
+      "sublabel": "holding short of that runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1758,
+          "end_line": 1770
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "backend",
+      "label": "pre-runway departure phase",
+      "sublabel": "startup, taxi_clearance, taxi, holding_short, crossing_requested",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1807,
+          "end_line": 1810
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "messagebus",
+      "label": "taxi_in_clearance",
+      "sublabel": "taxi-to-parking readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1622,
+          "end_line": 1634
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1807,
+          "end_line": 1813
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "messagebus",
+      "label": "taxi_in_clearance",
+      "sublabel": "taxi-to-parking readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1622,
+          "end_line": 1634
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1807,
+          "end_line": 1813
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "backend",
+      "label": "taxi_in",
+      "sublabel": "returning to parking",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1718
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1583,
+          "end_line": 1587
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-from",
+      "lane": "rule-08",
+      "col": 0,
+      "type": "backend",
+      "label": "taxi_in",
+      "sublabel": "returning to parking",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1709,
+          "end_line": 1718
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1583,
+          "end_line": 1587
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-to",
+      "lane": "rule-08",
+      "col": 3,
+      "type": "backend",
+      "label": "startup",
+      "sublabel": "departing again",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1583,
+          "end_line": 1587
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "hold-to-req",
+      "label": "pilot call + at crossing",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "req-to-clr",
+      "label": "lane granted",
+      "variant": "emphasis",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "clr-to-crossing",
+      "label": "exact readback",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "crossing-to-resume",
+      "label": "telemetry: entered, then off all runways",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "taxiin-to-req",
+      "label": "pilot call + at crossing",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "pre-to-tic",
+      "label": "pilot: taxi to parking, on ground",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "tic-to-taxiin",
+      "label": "exact readback",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "taxiin-to-startup",
+      "label": "request startup: on ground, no lane, off runway",
+      "from": "rule-08-from",
+      "to": "rule-08-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. Nodes in the 'conceptual step' legend group, or with tag 'conceptual'/'phase group', are not phase strings.",
+        "Pilot calls move a phase only after telemetry confirms the claim (_at_hold, _at_crossing, _lined_up). Take-off, landing and vacating come from the mission track alone (airfield.py 44-50)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Crossing rules",
+      "items": [
+        "A crossing request needs a runway designator that exists and an observed position holding short of it (airfield.py 1758-1765). Allowed from taxi, holding_short, crossing_requested or taxi_in (1759).",
+        "The crossing uses the airfield's single movement lane, under the same grant rules as line-up and landing (1072-1074).",
+        "The phase returns to session.resume (taxi or taxi_in) once telemetry shows the aircraft entered the runway and then cleared all runways (864-869), or when the pilot reports vacated and telemetry agrees (1782-1787).",
+        "The lane is freed when the crossing is complete (1774). Revoked crossings appear in the revocations view."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "taxi/holding_short \u2192 crossing_requested: pilot call + _at_crossing (1758-1770)",
+        "crossing_requested \u2192 crossing_clearance: scheduler (1072-1074)",
+        "crossing_clearance \u2192 crossing: readback 1717",
+        "crossing \u2192 resume: entered, then clear of runways; resumes taxi (864-869, 1772-1780); resume = taxi_in (1775-1778)",
+        "taxi_in \u2192 crossing_requested: allowed by 1759",
+        "pre-runway phase \u2192 taxi_in_clearance: pilot call, ground here (1807-1810, 1622-1634); phase list 1808-1809",
+        "taxi_in \u2192 startup: ground, no lane, off runway (1583-1587)"
+      ]
+    }
+  ]
+}

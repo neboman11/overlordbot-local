@@ -1,0 +1,467 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Airfield ATC Arrival: Grounded Samples, Landing Elsewhere, Cancellation and Handover",
+    "locale": "en",
+    "output": "docs/diagrams/airfield-arrival-exceptions.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "airborne arrival phase",
+      "sublabel": "inbound_standby \u2026 cleared_land",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 110,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "security",
+      "label": "Grounded sample",
+      "sublabel": "telemetry: not in air",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 846,
+          "end_line": 863
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "security",
+      "label": "Grounded sample",
+      "sublabel": "telemetry: not in air",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 846,
+          "end_line": 863
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "backend",
+      "label": "landed",
+      "sublabel": "vacate the runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 839,
+          "end_line": 845
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 857,
+          "end_line": 860
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "security",
+      "label": "Grounded sample",
+      "sublabel": "telemetry: not in air",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 846,
+          "end_line": 863
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 768,
+          "end_line": 776
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 811,
+          "end_line": 816
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "backend",
+      "label": "airborne arrival phase",
+      "sublabel": "inbound_standby \u2026 cleared_land",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 110,
+          "end_line": 111
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 768,
+          "end_line": 776
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 811,
+          "end_line": 816
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "messagebus",
+      "label": "touchdown or landed",
+      "sublabel": "on a runway",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1540,
+          "end_line": 1543
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "messagebus",
+      "label": "cancelled",
+      "sublabel": "vacating",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1540,
+          "end_line": 1543
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1800,
+          "end_line": 1805
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "messagebus",
+      "label": "cancelled",
+      "sublabel": "vacating",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1540,
+          "end_line": 1543
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1800,
+          "end_line": 1805
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 768,
+          "end_line": 776
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 811,
+          "end_line": 816
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "backend",
+      "label": "vacated, taxi_in_clearance or taxi_in",
+      "sublabel": "observed on ground here",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1596,
+          "end_line": 1597
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "external",
+      "label": "New departure session",
+      "sublabel": "replaces the arrival",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1593,
+          "end_line": 1607
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1511,
+          "end_line": 1526
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "air-grounded",
+      "label": "not in air",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "grounded-landed",
+      "label": "ground here: seen airborne, or priority emergency",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "grounded-closed",
+      "label": "never airborne (no priority), or ground elsewhere",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "air-elsewhere",
+      "label": "land event at another place",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "cancel-runway",
+      "label": "pilot cancel",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "cancel-closed",
+      "label": "vacated observed or reported",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "handover",
+      "label": "request startup or taxi",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. Nodes in the 'conceptual step' legend group, or with tag 'conceptual'/'phase group', are not phase strings.",
+        "Pilot calls move a phase only after telemetry confirms the claim (_at_hold, _at_crossing, _lined_up). Take-off, landing and vacating come from the mission track alone (airfield.py 44-50)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Rules",
+      "items": [
+        "Not in the air during an airborne arrival phase, never seen airborne, with priority and on the ground here: 'emergency on the ground', phase landed. Without priority the session closes as 'not airborne' (846-856).",
+        "Seen airborne and on the ground here: touchdown, then landed. On the ground at another airfield: 'landing not observed', session closed (857-863).",
+        "A land event naming another place closes the session (811-816).",
+        "A cancel while occupying a runway sets phase cancelled with vacating. The session closes once vacating is observed or reported (1540-1543, 1800-1805).",
+        "A departure request from an arrival needs vacated, taxi_in_clearance or taxi_in, on the ground here. Otherwise it is refused (1596-1599)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "grounded \u2192 landed: priority + parked here (849-853); grounded sample here (857-860)",
+        "grounded \u2192 closed: parked at enrolment (854-855); 861-862",
+        "land elsewhere: 814-816, 861-862",
+        "cancel: vacating = True (1540-1543); observed or reported (1800-1805)",
+        "handover: ground here (1596-1599)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,373 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Airfield ATC Departure: Clearance Revocations and Aborts",
+    "locale": "en",
+    "output": "docs/diagrams/airfield-departure-revocations.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "messagebus",
+      "label": "taxi_clearance",
+      "sublabel": "taxi readback due",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1148,
+          "end_line": 1162
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "backend",
+      "label": "startup",
+      "sublabel": "vacating flag set when on runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1018,
+          "end_line": 1026
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1575,
+          "end_line": 1578
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 597,
+          "end_line": 598
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "messagebus",
+      "label": "crossing_clearance or crossing",
+      "sublabel": "off runway",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1117,
+          "end_line": 1121
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "messagebus",
+      "label": "crossing_requested",
+      "sublabel": "hold short, ask again",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1758,
+          "end_line": 1770
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "messagebus",
+      "label": "lineup_clearance or lineup",
+      "sublabel": "off runway",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1122,
+          "end_line": 1126
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "messagebus",
+      "label": "holding_short",
+      "sublabel": "hold short",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1726,
+          "end_line": 1743
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 945,
+          "end_line": 952,
+          "label": "queue order"
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "messagebus",
+      "label": "takeoff_clearance or cleared_takeoff",
+      "sublabel": "on runway, not rolling",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1108,
+          "end_line": 1112
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "messagebus",
+      "label": "lined_up",
+      "sublabel": "hold position",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 888,
+          "end_line": 890
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1745,
+          "end_line": 1756
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "messagebus",
+      "label": "lined_up",
+      "sublabel": "hold position",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 888,
+          "end_line": 890
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1745,
+          "end_line": 1756
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "backend",
+      "label": "startup",
+      "sublabel": "vacating flag set when on runway",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/airfield.py",
+          "line": 1018,
+          "end_line": 1026
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 1575,
+          "end_line": 1578
+        },
+        {
+          "path": "overlord/airfield.py",
+          "line": 597,
+          "end_line": 598
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "tc-stale",
+      "label": "bridge stale",
+      "variant": "dashed",
+      "role": "async",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "cross-revoke",
+      "label": "revoked: timeout, occupied, no tower",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "lineup-revoke",
+      "label": "revoked: timeout, occupied, no tower",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "takeoff-cancel",
+      "label": "takeoff cancelled",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "abort",
+      "label": "emergency abort or runway change on runway",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. Nodes in the 'conceptual step' legend group, or with tag 'conceptual'/'phase group', are not phase strings.",
+        "Pilot calls move a phase only after telemetry confirms the claim (_at_hold, _at_crossing, _lined_up). Take-off, landing and vacating come from the mission track alone (airfield.py 44-50)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "_revoke_unstarted (airfield.py 1100-1127)",
+      "items": [
+        "Only the current lane holder is affected. An aircraft standing on a runway keeps the lane, except that a take-off clearance not yet rolling (15 m/s) is cancelled back to lined_up.",
+        "Off the runway, a crossing returns to crossing_requested and any line-up or take-off phase returns to holding_short. In both cases the lane is freed.",
+        "Triggers: no readback for 60 model seconds (sets expired, 1030-1036), tower role missing on the channel (1038-1046), another aircraft occupying a runway (1047-1052).",
+        "On a runway change, a departure on a runway goes to startup with vacating = True. One off the runway gets a new taxi clearance (1018-1026)."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "taxi_clearance \u2192 startup: _refresh (597-598); arrival_briefing likewise to inbound_standby (599-600)",
+        "crossing \u2192 crossing_requested: not on runway (1117-1121)",
+        "line-up \u2192 holding_short: timeout, occupied, tower loss (1030-1052, 1122-1126)",
+        "take-off \u2192 lined_up: on runway, not rolling (1108-1112)",
+        "lined_up \u2192 startup: on runway: vacating = True (1018-1023, 1575-1578); emergency abort applies to lineup, lined_up or take-off phases on the runway (1575)"
+      ]
+    }
+  ]
+}

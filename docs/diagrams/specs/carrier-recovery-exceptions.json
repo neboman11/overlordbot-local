@@ -1,0 +1,501 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Carrier Recovery: Reassignment, Stale Bridge and Closure",
+    "locale": "en",
+    "output": "docs/diagrams/carrier-recovery-exceptions.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neboman11/overlordbot-local",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b3f9a76641f17078055d84624f3dbb66f2b3cc3a"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Phase: moving or active"
+        },
+        "messagebus": {
+          "label": "Phase: awaiting readback, lane grant or telemetry confirmation"
+        },
+        "security": {
+          "label": "Gate or decision point"
+        },
+        "external": {
+          "label": "Conceptual step: session released or handed over (no phase string)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "rule-01",
+      "label": "Independent rule 01"
+    },
+    {
+      "id": "rule-02",
+      "label": "Independent rule 02"
+    },
+    {
+      "id": "rule-03",
+      "label": "Independent rule 03"
+    },
+    {
+      "id": "rule-04",
+      "label": "Independent rule 04"
+    },
+    {
+      "id": "rule-05",
+      "label": "Independent rule 05"
+    },
+    {
+      "id": "rule-06",
+      "label": "Independent rule 06"
+    },
+    {
+      "id": "rule-07",
+      "label": "Independent rule 07"
+    },
+    {
+      "id": "rule-08",
+      "label": "Independent rule 08"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule-01-from",
+      "lane": "rule-01",
+      "col": 0,
+      "type": "backend",
+      "label": "assigned \u2026 ball (with assignment)",
+      "sublabel": "holding or approach",
+      "tag": "phase group",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 828,
+          "end_line": 829
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-01-to",
+      "lane": "rule-01",
+      "col": 3,
+      "type": "security",
+      "label": "CASE or course changed?",
+      "sublabel": "course moved \u2265 1\u00b0 (REASSIGN_DEG)",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 807,
+          "end_line": 813
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 97,
+          "end_line": 97
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-from",
+      "lane": "rule-02",
+      "col": 0,
+      "type": "security",
+      "label": "CASE or course changed?",
+      "sublabel": "course moved \u2265 1\u00b0 (REASSIGN_DEG)",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 807,
+          "end_line": 813
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 97,
+          "end_line": 97
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-02-to",
+      "lane": "rule-02",
+      "col": 3,
+      "type": "messagebus",
+      "label": "assigned",
+      "sublabel": "new instructions; wave off if in approach",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 830,
+          "end_line": 838
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-from",
+      "lane": "rule-03",
+      "col": 0,
+      "type": "security",
+      "label": "CASE or course changed?",
+      "sublabel": "course moved \u2265 1\u00b0 (REASSIGN_DEG)",
+      "tag": "decision",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 807,
+          "end_line": 813
+        },
+        {
+          "path": "overlord/carrier.py",
+          "line": 97,
+          "end_line": 97
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-03-to",
+      "lane": "rule-03",
+      "col": 3,
+      "type": "messagebus",
+      "label": "checked_in",
+      "sublabel": "hold present position, stand by",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 839,
+          "end_line": 844
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-from",
+      "lane": "rule-04",
+      "col": 0,
+      "type": "backend",
+      "label": "established + granted",
+      "sublabel": "lane held",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 856,
+          "end_line": 856
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-04-to",
+      "lane": "rule-04",
+      "col": 3,
+      "type": "messagebus",
+      "label": "established",
+      "sublabel": "grant revoked, lane freed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 447,
+          "end_line": 460
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-from",
+      "lane": "rule-05",
+      "col": 0,
+      "type": "messagebus",
+      "label": "airborne recovery phase, on the ground",
+      "sublabel": "never seen airborne",
+      "tag": "trigger",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 657,
+          "end_line": 662
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-05-to",
+      "lane": "rule-05",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 583,
+          "end_line": 591
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-from",
+      "lane": "rule-06",
+      "col": 0,
+      "type": "backend",
+      "label": "airborne recovery phase",
+      "sublabel": "land event names another place",
+      "tag": "trigger",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 623,
+          "end_line": 627
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-06-to",
+      "lane": "rule-06",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 583,
+          "end_line": 591
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-from",
+      "lane": "rule-07",
+      "col": 0,
+      "type": "backend",
+      "label": "on_deck",
+      "sublabel": "trap confirmed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 696,
+          "end_line": 700
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-07-to",
+      "lane": "rule-07",
+      "col": 3,
+      "type": "external",
+      "label": "Session closed",
+      "sublabel": "released, no phase",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 583,
+          "end_line": 591
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-from",
+      "lane": "rule-08",
+      "col": 0,
+      "type": "backend",
+      "label": "on_deck",
+      "sublabel": "trap confirmed",
+      "tag": "phase",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 696,
+          "end_line": 700
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    },
+    {
+      "id": "rule-08-to",
+      "lane": "rule-08",
+      "col": 3,
+      "type": "external",
+      "label": "Departure session",
+      "sublabel": "deck_seen carried over",
+      "tag": "conceptual",
+      "sources": [
+        {
+          "path": "overlord/carrier.py",
+          "line": 1129,
+          "end_line": 1141
+        }
+      ],
+      "width": 350,
+      "height": 80,
+      "yOffset": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "f1",
+      "label": "facts compared each schedule",
+      "from": "rule-01-from",
+      "to": "rule-01-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "f2",
+      "label": "changed and reassignable",
+      "from": "rule-02-from",
+      "to": "rule-02-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "f3",
+      "label": "CASE missing or stack full",
+      "variant": "dashed",
+      "role": "async",
+      "from": "rule-03-from",
+      "to": "rule-03-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "s1",
+      "label": "bridge stale",
+      "variant": "dashed",
+      "role": "async",
+      "from": "rule-04-from",
+      "to": "rule-04-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "x1",
+      "label": "not airborne",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-05-from",
+      "to": "rule-05-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "x2",
+      "label": "landing not on this deck",
+      "variant": "security",
+      "role": "error",
+      "from": "rule-06-from",
+      "to": "rule-06-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "x3",
+      "label": "airborne from deck",
+      "from": "rule-07-from",
+      "to": "rule-07-to",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "x4",
+      "label": "request departure",
+      "from": "rule-08-from",
+      "to": "rule-08-to",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this view",
+      "items": [
+        "Each row is an independent guarded transition, not a chronological sequence across rows. Repeated phase labels name the same underlying phase; aliases prevent unrelated rules from sharing ambiguous drawing corridors. The normal-procedure view supplies the connected happy path."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Reading this view",
+      "items": [
+        "snake_case labels are real session.phase strings. 'established + granted' is phase 'established' with session.granted = True (carrier.py 856). Nodes tagged conceptual or 'phase group' are not phase strings.",
+        "Pilot pattern calls advance only with a radar track and range checks (_pattern 1222-1252). touchdown and on_deck come from mission telemetry, and on_deck is debounced (overlord_carrier.lua 563-576)."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Rules",
+      "items": [
+        "_schedule frees the lane and clears the grant and assignment when CASE or the spoken course (BRC for CASE I, final bearing otherwise) changes by \u22651\u00b0, then reassigns or falls back to checked_in (815-844).",
+        "On a stale bridge, a granted 'established' loses its grant and the lane. A 'released' departure goes back to queued. Reply validation fails until a fresh snapshot arrives (447-460).",
+        "Absence after the watch handshake, an invalid sample, death, ejection, disconnect, birth, or a changed incarnation or coalition also close the session (548-570, 620-622). See the session safeguards view."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Transition evidence (file lines)",
+      "items": [
+        "facts changed: CASE or course moved >= 1 deg (828-838); wave off and reassign (833-838)",
+        "no reassignment: CASE missing or stack full (839-844)",
+        "stale: stale bridge (456-458)",
+        "not airborne: grounded at enrolment (657-662)",
+        "landing elsewhere: land event names another place (624-627)",
+        "airborne from deck: 640-642",
+        "departure handover: deck_seen carried over (1132-1140)"
+      ]
+    }
+  ]
+}
