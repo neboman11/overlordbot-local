@@ -10,6 +10,16 @@ The current-client SRS gate passed: EAM blue authentication, 251 MHz AM UDP Opus
 
 Images are built for `linux/amd64` by `.github/workflows/images.yml`. Action references are pinned to full commit SHAs. Runtime commands are shared-image subcommands, not four duplicate images.
 
+Releases use **`vMAJOR.MINOR.PATCH`** image tags, starting with `v0.1.0`.
+Push an annotated Git tag on the desired source commit, for example
+`git tag -a v0.1.0 -m "Release v0.1.0"` followed by `git push origin v0.1.0`.
+The workflow validates stable semantic versions, runs unit and real SRS speech
+checks, then promotes the exact verified runtime, speech and demo SRS digests
+to that version. Run-specific `build-*` tags identify CI candidates.
+GitOps references use `:v0.1.0@sha256:...`: readable release identity with an
+immutable digest pin. Obtain digests from the release run's `image-*` artifacts;
+do not move an existing release tag to another source commit.
+
 Published source: `3a3e881f22e8a58845cb745544f0855459eef051`. [Release workflow 43077999368](https://github.com/neboman11/overlordbot-local/actions/runs/43077999368) passed all 103 tests, published all images, then anonymously pulled those public packages on a fresh runner and passed four actual SRS speech calls. Machine-readable references: `benchmarks/images.json`. Pin digests, not mutable local `:dev` tags.
 
 | Components | Full image reference (tag + digest) |
