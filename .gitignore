@@ -4,3 +4,4 @@ __pycache__/
 .env
 artifacts/
 spike/evidence/*.wav
+.research/

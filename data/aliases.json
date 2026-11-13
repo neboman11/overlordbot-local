@@ -61,5 +61,31 @@
   "transport": [
    "cargo"
   ]
+ },
+ "aircraft": {
+  "Ka-50": ["hokum"],
+  "Mi-28": ["havoc"]
+ },
+ "aircraft_variants": {
+  "flanker b": ["Su-27"],
+  "flanker c": ["Su-30"],
+  "flanker d": ["Su-33"],
+  "flanker l": ["J-11A"],
+  "fulcrum a": ["MiG-29A", "MiG-29G"],
+  "fulcrum c": ["MiG-29S"],
+  "fulcrum d": ["MiG-29K"],
+  "fencer d": ["Su-24M"],
+  "flogger k": ["MiG-23MLD"],
+  "flogger j2": ["MiG-27K"],
+  "flogger j 2": ["MiG-27K"],
+  "foxbat e": ["MiG-25PD"],
+  "bear h": ["Tu-95MS"],
+  "bear f": ["Tu-142"],
+  "backfire c": ["Tu-22M3"],
+  "fitter k": ["Su-17M4"],
+  "hip h": ["Mi-8MT", "Mi-8MTV2"],
+  "hind e": ["Mi-24V"],
+  "hind f": ["Mi-24P"],
+  "havoc b": ["Mi-28N"]
  }
 }

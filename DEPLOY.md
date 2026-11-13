@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Local-only SRS 2.4.1.0 AWACS/ATC rewrite. Deployment is separate: **no Kubernetes API calls, objects, services, or argocd-definitions files were touched**. Physical Xeon benchmarks used existing SSH access to leafman, an isolated unprivileged user/mount/PID namespace, and temporary files removed afterward; no host packages or daemons were installed.
+Local-only SRS 2.4.1.0 AWACS/ATC/JTAC/carrier rewrite. Deployment is separate: **no Kubernetes API calls, objects, services, or argocd-definitions files were touched**. Physical Xeon benchmarks used existing SSH access to leafman, an isolated unprivileged user/mount/PID namespace, and temporary files removed afterward; no host packages or daemons were installed.
 
 The current-client SRS gate passed: EAM blue authentication, 251 MHz AM UDP Opus reception into a 16 kHz WAV, then WAV playback over SRS to a second client. Evidence: `spike/evidence/audio-roundtrip.json`. Historical old-client JSON casing mismatch is not a rewrite blocker.
 
@@ -18,6 +18,10 @@ Published source: `3a3e881f22e8a58845cb745544f0855459eef051`. [Release workflow 
 | stt-worker, tts-worker | `ghcr.io/neboman11/overlordbot-local-speech:3a3e881f22e8a58845cb745544f0855459eef051@sha256:57572acd93079c414f21ad2f20527f70bb753675d9473de9c9c7bfce9c414a12` |
 | demo SRS 2.4.1.0 | `ghcr.io/neboman11/overlordbot-local-srs:3a3e881f22e8a58845cb745544f0855459eef051@sha256:b2cfb9fa8dafcef895cba2bfaee6df7f07cae5572f40875e4c36cad36d065451` |
 
+These published images describe the historical baseline. **Build the current source
+for local NLP, AWACS extensions, and the DCS JTAC/carrier/airfield companions**; those additions are
+not present in the release digests above.
+
 - Runtime image: gateway, brain and local Tacview replay. Python/libopus; no AVX2 baseline.
 - Speech image: both workers; baked whisper tiny.en and Piper LJSpeech voice. whisper.cpp explicitly enables AVX, F16C and SSE4.2 and disables AVX2, FMA, BMI2, AVX-512, AMX, native tuning, GPU backends, BLAS and dynamic CPU variants. Static binary instruction audit runs during the build. Host libraries and ONNX Runtime use runtime dispatch.
 - SRS image: unmodified official 2.4.1.0 Linux release, SHA256 verified. Only needed for local verification, not alongside the already deployed SRS server. GPL source offer and license are included in the image.
@@ -27,6 +31,8 @@ Published source: `3a3e881f22e8a58845cb745544f0855459eef051`. [Release workflow 
 | Component | Command | Listening ports | Outbound connections | Near SRS? |
 |---|---|---|---|---|
 | radio-gateway | `python -m overlord radio-gateway` | HTTP TCP 8080 | SRS TCP+UDP 5002; STT HTTP 8082; brain HTTP 8081; TTS HTTP 8083 | Yes, latency-sensitive |
+| carrier-gateways | `python -m overlord carrier-gateways` | HTTP TCP 8084 | One SRS TCP+UDP client per enabled carrier; shared STT, brain and TTS HTTP | Yes |
+| airfield-gateways | `python -m overlord airfield-gateways` | HTTP TCP 8085 | One SRS client per native coalition/frequency/modulation channel; shared speech and brain HTTP | Yes |
 | brain | `python -m overlord brain` | HTTP TCP 8081 | Tacview RT TCP 42674 | Preferred, lightweight |
 | stt-worker | `python -m overlord stt-worker` | HTTP TCP 8082; internal whisper loopback TCP 18080 | None during inference | No; another LAN machine/node is supported |
 | tts-worker | `python -m overlord tts-worker` | HTTP TCP 8083 | None during inference | No; another LAN machine/node is supported |
@@ -41,14 +47,14 @@ Environment variables are read at process startup. Paths are image-internal unle
 
 | Key | Default | Meaning | Secret? |
 |---|---|---|---|
-| `HTTP_HOST` | `0.0.0.0` | Bind address, all four services | No |
-| `HTTP_PORT` | gateway 8080; brain 8081; STT 8082; TTS 8083 | HTTP listen port; set explicitly if overriding image healthcheck default | No |
-| `API_TOKEN` | empty | Common Bearer token for POST authentication; empty disables auth, suitable only for isolated demo | **Yes** |
+| `HTTP_HOST` | `0.0.0.0` | Bind address, all services | No |
+| `HTTP_PORT` | gateway 8080; carrier supervisor 8084; airfield supervisor 8085; brain 8081; STT 8082; TTS 8083 | HTTP listen port; set explicitly if overriding image healthcheck default | No |
+| `API_TOKEN` | empty | Common Bearer token for POST authentication; mandatory for native carrier or airfield control | **Yes** |
 | `SRS_HOST` | `srs` | Existing SRS hostname/address | No |
 | `SRS_PORT` | `5002` | SRS TCP and UDP port | No |
 | `SRS_EAM_PASSWORD` | empty | Password for selected SRS coalition; required for successful EAM | **Yes** |
 | `COALITION` | `2` | 1 red, 2 blue | No |
-| `SRS_FREQUENCY_HZ` | `251000000` | Single radio frequency, Hz | No |
+| `SRS_FREQUENCY_HZ` | `251000000` | AWACS/legacy ATC frequency, Hz; never overrides native carrier or airfield radios | No |
 | `SRS_MODULATION` | `0` | 0 AM, 1 FM | No |
 | `BOT_CALLSIGN` | `Overlord` | Gateway display name and brain parser receiver | No |
 | `EOT_SECONDS` | `0.2` | Silence between UDP packets declaring end of transmission, accepted range 0.08–2 | No |
@@ -60,9 +66,25 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `TACVIEW_PORT` | `42674` | Telemetry TCP port | No |
 | `TACVIEW_PASSWORD` | empty | Tacview password, encoded CRC-64/WE over UTF-16LE for handshake | **Yes** |
 | `TACVIEW_STALE_SECONDS` | `30` | Readiness cutoff since telemetry activity; disconnected state is reset | No |
-| `BRAIN_ROLES` | `awacs,atc` | Comma-separated enabled controller roles | No |
-| `ATC_WIND_FROM_DEG` | empty | Explicit wind-from degrees 0–359, or JSON airfield-name-to-degrees map; absent wind refuses active-runway selection. Demo explicitly sets 0. | No |
+| `BRAIN_ROLES` | `awacs,atc` | Enabled roles: `awacs`, `atc`, `jtac`, `carrier`, `airfield`; native `airfield` supersedes legacy `atc` when both are listed | No |
+| `ATC_WIND_FROM_DEG` | empty | Legacy ATC only: explicit wind-from degrees or airfield JSON map. Native airfield ATC uses DCS weather instead. | No |
 | `AWACS_PILOT` | empty | Optional live AWACS pilot/name prefix required for AWACS station availability | No |
+| `LLM_URL` | empty/disabled | Local OpenAI-compatible endpoint; bare host URL uses `/v1/chat/completions`, or provide the complete route | No |
+| `LLM_MODEL` | empty | Installed local model name; required when `LLM_URL` is set | No |
+| `LLM_TIMEOUT_SECONDS` | `3` | Local inference timeout, positive and at most 60 seconds | No |
+| `AWACS_BULLSEYE` | empty | JSON `[latitude, longitude]` fallback when no live coalition bullseye exists | No |
+| `AWACS_HOME_AIRFIELD` | empty | Explicit canonical known field for `vector home`; not inferred from nearest base | No |
+| `JTAC_CALLSIGN` | `Axeman` | Separate JTAC controller callsign and gateway display name | No |
+| `JTAC_SRS_FREQUENCY_HZ` | `252000000` | JTAC radio frequency; must differ from AWACS `SRS_FREQUENCY_HZ` | No |
+| `JTAC_SRS_MODULATION` | `0` | JTAC modulation, 0 AM or 1 FM | No |
+| `DCS_BRIDGE_TOKEN` | empty | Required server-hook secret for JTAC, carrier or airfield; sent in `X-DCS-Token` | **Yes** |
+| `DCS_STALE_SECONDS` | `10` | Maximum mission snapshot age before native live procedures are refused | No |
+| `SRS_EAM_PASSWORDS` | empty | Native radio supervisors' server-only JSON map `{"1":"red password","2":"blue password"}`; legacy password applies only to `COALITION` | **Yes** |
+| `CARRIER_GATEWAY_POLL_SECONDS` | `1` | Carrier registry reconciliation interval | No |
+| `CARRIER_GATEWAY_STALE_SECONDS` | `15` | Registry failure grace before carrier SRS clients close; live clearances still require fresh DCS state | No |
+| `AIRFIELD_GATEWAY_POLL_SECONDS` | `1` | Native airfield registry reconciliation interval | No |
+| `AIRFIELD_GATEWAY_STALE_SECONDS` | `15` | Registry failure grace before airfield clients close; live clearances still require fresh mission state | No |
+| `BRAIN_BIND_ADDRESS` | `127.0.0.1` | Host bind address for optional `compose.local-ai.yaml`; change to a private LAN/VPN address for a remote DCS host | No |
 | `WHISPER_MODEL` | `/models/ggml-tiny.en.bin` | STT model file, baked by default | No |
 | `WHISPER_SERVER` | `/usr/local/bin/whisper-server` | Persistent local native server binary | No |
 | `WHISPER_THREADS` | `4` | STT CPU threads | No |
@@ -74,7 +96,7 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `PIPER_VOICE` | `en_US-ljspeech-medium` | Sole allowed voice identifier per worker | No |
 | `PIPER_THREADS` | `0` | ONNX intra-op threads; 0 is engine default. **Set 4 on Xeon**; demo uses 4. | No |
 
-No Discord token is used or supported; DCSServerBot remains its owner. No LLM credentials, Azure credentials, DCS-gRPC endpoint or cloud fallback exists.
+No Discord token is used or supported; DCSServerBot remains its owner. Local LLM inference is optional and uses no cloud credentials or fallback. DCS JTAC/carrier control uses the bundled companion protocol, not DCS-gRPC.
 
 Auxiliary configuration:
 
@@ -85,6 +107,410 @@ Auxiliary configuration:
 - `scripts/measure_stack.py`: `--runtime podman|docker`, `--output artifacts/resources.json`, then actual load command after `--`.
 - `scripts/record_corpus.py`: no arguments; run inside speech image with `/output` mounted to `fixtures/radio`. Uses baked LJSpeech model and zero synthesis noise, writes 16 kHz mono WAVs plus SHA256/text manifest. These are fixed synthetic functional inputs, not human accuracy measurements.
 - Dockerfile build inputs: pinned `PYTHON_IMAGE`; speech `WHISPER_CPP_REPOSITORY` and `WHISPER_CPP_COMMIT` from `models.lock.json`. `WHISPER_CPP_COMMIT` in speech runtime is provenance, not an inference selector. `PYTHONUNBUFFERED=1`, `PYTHONDONTWRITEBYTECODE=1`, `PYTHONPATH=/app` are fixed image settings. SRS image fixes `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` and writable `DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet`.
+
+## Optional local intent interpretation
+
+Run a local OpenAI-compatible server with a model you have already installed. For
+example, with Ollama running on the same host as a native brain process:
+
+```sh
+export LLM_URL=http://127.0.0.1:11434
+export LLM_MODEL=gemma4:e2b
+python -m overlord brain
+```
+
+This model name is an example, not an automatic download or a requirement. The
+classifier was smoke-tested against an installed Ollama model of this name.
+Optional LLM weights remain operator-managed and are not baked into the speech
+image or added to `models.lock.json`. Check their license and resource needs.
+
+`LLM_URL` accepts only loopback/private/link-local destinations; DNS addresses
+are checked before connection. Public destinations, URL credentials, redirects,
+ambient proxies, oversized replies and extra model-output fields are rejected.
+Use a bare server URL or the full `/v1/chat/completions` path, **not** `/v1` alone.
+Standard grammar never calls inference. Only explicit controller/caller requests
+with a uniquely identified live friendly caller qualify. JTAC fallback is restricted
+to brief/status/BDA queries; procedure facts, numerical slots, task selection, and
+marking/laser actions require deterministic grammar. Negated procedure statements
+never enter inference. Unsupported/ambiguous output produces a fixed clarification.
+
+The default Compose network is deliberately isolated. For an existing LLM on the
+host/LAN, add `compose.local-ai.yaml`; use a reachable private address in `LLM_URL`.
+Inside a container `127.0.0.1` means that container, not the host. The override
+provides `host.docker.internal`, but the inference server must listen on a reachable
+interface. Firewall it to trusted callers; do not expose Ollama publicly.
+
+## Separate JTAC radio and private bridge
+
+Configure `.env` (ignored) with `BRAIN_ROLES=awacs,atc,jtac`, a freshly generated
+`DCS_BRIDGE_TOKEN`, and optionally a common `API_TOKEN`. Keep
+`SRS_FREQUENCY_HZ=251000000` and `JTAC_SRS_FREQUENCY_HZ=252000000`, or choose two
+different frequencies. Modulation differences alone do not count as separation.
+Both gateways use the selected coalition and its EAM password.
+
+```sh
+docker compose -f compose.yaml -f compose.local-ai.yaml --profile jtac up -d --build
+```
+
+AWACS/ATC stays on the original gateway; Axeman gets its own SRS EAM client, receive
+queue, speech pipeline and radio transmitter. Both use the same brain and can share
+STT/TTS workers. The brain routes by coalition/frequency/modulation; JTAC calls on
+AWACS frequency and AWACS calls on JTAC frequency are ignored. Live JTAC still needs
+Tacview caller identity, the configured mission companion and fresh mission state.
+
+`compose.local-ai.yaml` publishes brain TCP 8081 to loopback by default. For a DCS
+server on another machine, set `BRAIN_BIND_ADDRESS` to a specific private LAN/VPN
+address and restrict the firewall to that machine. Do not publish it on an
+untrusted interface. `/dcs/exchange` requires `X-DCS-Token`; when `API_TOKEN` is set
+the hook must also send `Authorization: Bearer ...`. Plain HTTP requires a trusted
+LAN/VPN or a TLS tunnel. Never put these secrets in a downloadable mission.
+
+JTAC replies are fixed templates from mission-authored facts. Missing brief fields,
+bad readbacks, missing contact/restriction prerequisites and stale/dead targets
+block clearance. Mark/laser requests remain pending until DCS confirms execution.
+Abort invalidates pending work and replies already undergoing speech synthesis.
+Laser lifecycle cleanup also runs inside the mission, including lease expiry.
+No autonomous attack planning, ordnance selection, or real-world JTAC certification
+is provided.
+
+### Install the DCS companion
+
+1. Copy `dcs/overlord_hook.lua` to the DCS server's
+   `Saved Games/DCS/Scripts/Hooks/overlord_hook.lua` (use the actual instance
+   directory, e.g. `DCS.server`). Restart that server instance.
+2. Create server-only `Saved Games/DCS/Config/overlord-hook.lua`:
+
+   ```lua
+   return {
+     host = "127.0.0.1", -- numeric private IPv4 for a remote brain
+     port = 8081,
+     bridgeToken = "<same value as DCS_BRIDGE_TOKEN>",
+     -- apiToken = "<same value as API_TOKEN>", -- include when configured
+     interval = 1,
+     timeout = 3,
+     state = "mission",
+   }
+   ```
+
+   Only canonical loopback/RFC1918 IPv4 literals are accepted: no DNS names or
+   public destinations. Network I/O is nonblocking with an exchange deadline.
+3. Adapt `dcs/jtac-config.example.lua` to the mission. Match controller and target
+   unit/group/static names exactly. Add MISSION START / DO SCRIPT FILE actions:
+   configuration first, then `dcs/overlord_jtac.lua`. Mission configuration ships
+   inside the downloadable `.miz`: **never put tokens or passwords in it**.
+4. Keep the mission sandbox intact. The companion needs no files, `os`, or sockets.
+   The hook calls fixed mission entry points through `net.dostring_in`.
+   If the DCS build restricts this bridge, use its official permission setting;
+   do not blanket-desanitize `MissionScripting.lua`. The hook's state setting
+   remains configurable for version-specific environments.
+5. Tune JTAC frequency. Start with `Axeman, Viper one one, checking in`,
+   `request task`, and `ready brief`; include controller and caller on every call.
+   Read back requested critical fields with labels and exact numerical values.
+   Then `contact`, `request laser`, `request mark`, `laser off`,
+   `in heading two seven zero`, `off target`, `request BDA`, `say status`, and
+   `abort` drive the authored procedure. The example requires a heading of
+   240–300 degrees and readback of elevation, location, and remarks.
+
+Control-type labels select **simplified simulation phraseology**, not certified
+Type 1 visual acquisition or a complete doctrinal control model. Restrictions
+come from the author. `brief.location` is a fixed authored briefing reference/area,
+not an automatically recomputed live target grid. For moving targets, author an
+appropriate fixed-area reference; do not describe it as a tracked coordinate.
+The laser spot itself follows the live target.
+
+Responses bind to the latest issued snapshot sequence and epoch. Old responses
+cannot execute commands or renew authorization. Loss of valid brain responses
+expires the mission-side spot lease even if the hook keeps polling. Restarting
+the brain loses pilot sessions and requires fresh procedure steps.
+
+On the target DCS build, verify both frequencies, wrong/partial readback refusal,
+marking acknowledgements, prerequisites before clearance, pending-command abort,
+target/controller death, brain transport loss/lease expiry, mission restart, and
+suppression of revoked replies during TTS. `luajit tests/jtac_harness.lua` exercises
+offline API doubles; it does not replace in-game/radio acceptance.
+
+
+## Independent carrier operations
+
+Build the current source. Add `carrier` to `BRAIN_ROLES`, set fresh nonempty
+`API_TOKEN` and `DCS_BRIDGE_TOKEN`, and enable the `carrier` Compose profile:
+
+```sh
+docker compose -f compose.yaml -f compose.local-ai.yaml --profile jtac --profile carrier up -d --build
+```
+
+Omit `--profile jtac` and the `jtac` role when not using JTAC. The carrier
+supervisor starts one independent SRS EAM client, receive/speech queue and
+transmitter per enabled carrier. Speech workers remain shared. Carrier-only
+native operation uses `BRAIN_ROLES=carrier` and needs no Tacview connection;
+the Compose demo still includes its replay service.
+
+### Mission radios and credentials
+
+The mission is authoritative: the companion reads each declared carrier ship
+unit's `frequency` in **Hz** and its `modulation` (native AM default). This
+includes Supercarriers. Group/aircraft MHz settings are not used or converted.
+There is no carrier frequency environment variable, override or allocator.
+Missing/invalid radios disable that carrier with a diagnostic. Any radios
+less than 200 Hz apart conflict, even across coalition/modulation; affected
+carriers are disabled, never remapped. Enabled AWACS/ATC and JTAC radios are
+reserved too. Change conflicting radios in the mission.
+
+For multiple coalitions, configure the existing SRS server's red and blue EAM
+passwords and supply the matching server-only `SRS_EAM_PASSWORDS` JSON map.
+With no map, `SRS_EAM_PASSWORD` applies only to `COALITION`; another coalition
+never borrows it. The bundled demo SRS configures blue EAM only. Do not put
+passwords, API tokens or bridge tokens inside the mission.
+
+### Install alongside or without JTAC
+
+1. Install the shared `dcs/overlord_hook.lua` as described above. In the private
+   `Config/overlord-hook.lua`, include both secrets and enable the features:
+
+   ```lua
+   return {
+     host = "127.0.0.1",
+     port = 8081,
+     bridgeToken = "<same value as DCS_BRIDGE_TOKEN>",
+     apiToken = "<same value as API_TOKEN>",
+     features = {"jtac", "carriers"}, -- or {"carriers"} alone
+     interval = 1,
+     timeout = 3,
+     state = "mission",
+   }
+   ```
+
+   Omitting `features` preserves the original JTAC-only behavior. Each feature
+   has its own exchange sequence, timeout and error state; one cannot starve
+   the other. Private numeric IPv4 and sandbox restrictions are unchanged.
+2. Add MISSION START / DO SCRIPT FILE for `dcs/overlord_carrier.lua`. Optionally
+   load an adapted `dcs/carrier-config.example.lua` first. Its keys are exact
+   carrier **unit names** already in the mission. It cannot add carriers or
+   change their frequency/modulation.
+3. Supply `recoveryCase` and, as appropriate, `ceilingFt`, `visibilityNm` and
+   `altimeterInHg`. CASE/weather are never guessed. Without a QNH override,
+   the script uses live sea-level pressure; an unavailable value blocks
+   dependent procedures. The mission must provide its real calendar date.
+   An optional known `profile` supplies deck geometry for an unsupported
+   ship type; see the example's allowed keys/profile names.
+4. Use the human aircraft's unique DCS callsign or modex in radio calls.
+   Set its SRS display name to the DCS player name or aircraft callsign;
+   blank/generic/contradictory SRS names cannot control carrier sessions.
+   This correlates identities, not cryptographic player authentication:
+   coalition radio users and holders of the shared API token must be trusted.
+5. Tune the selected carrier's mission frequency. Check in separately on that
+   carrier. Switching carriers releases the previous session and invalidates
+   its pending calls; no queue or lane is shared between ships.
+
+### Calls and aircraft lifecycle
+
+Start with **“Marshal, Viper one one, checking in”**. Repeat the assigned
+labelled readback values exactly: CASE I angels/altimeter; CASE II/III
+radial/DME/angels/expected approach time/altimeter. Partial, negated, reordered
+or inconsistent values do not advance the procedure. Fly the assigned hold
+before reporting **“established”**, wait for Charlie/commence, then report
+**“commencing”**.
+
+- CASE I: `initial` → `break` → `abeam` → `ball`.
+- CASE II: `platform`, then the visual CASE I pattern.
+- CASE III: `platform` → `ten miles` → `ball`.
+- `clara`, `waveoff`, `bolter`, `emergency`, `say status`, `say again`,
+  `checking out` and `cancel` follow fixed grammar. Position/state gates still
+  apply: a radio assertion alone does not prove a trap or takeoff.
+- Departures start with **“Tower, Viper one one, request startup”** or
+  **“ready for launch”**. The aircraft must be observed on that carrier's
+  deck; launch approval requires its lane free. Observed takeoff advances
+  departure; distance or `departure complete` ends the session.
+
+Only checked-in humans receive movement subscriptions. Before check-in the
+companion reads minimal human identities, not positions; it never samples AI.
+Touchdown is not a trap until the aircraft is stopped relative to its own
+ship. A touch-and-go/bolter invalidates the old ball call. After recovery,
+report `deck clear` to release the lane. Landing elsewhere, death, ejection,
+disconnect, respawn, incarnation changes and missing watched state end or
+invalidate the session. Unstarted grants are revoked when the bridge goes
+stale. Mission epoch/radio changes invalidate old speech, including speech
+already being synthesized.
+
+The policy is deliberately conservative: one approach/departure lane per
+carrier, explicit deck-clear reports, no AI deck-occupancy model, no automatic
+LSO grading or autopilot. Runtime-spawned carriers absent from `env.mission`
+are not discovered. Starting the companion after an aircraft has already
+landed away from its mission spawn can lack reliable deck history; install
+it at mission start.
+
+### Diagnostics and acceptance
+
+Authenticated `POST /carrier/registry` on the brain and `POST /status` on the
+supervisor accept `{}` and show per-carrier radios/errors/connections without
+secrets. Check these even when health is green: a disabled carrier is reported
+individually. Carrier readiness uses its fresh registry, independently of
+Tacview; mixed-role brain `/readyz` retains AWACS/JTAC telemetry semantics.
+
+Run `python3 -m unittest tests.test_carrier tests.test_carrier_integration
+tests.test_carrier_gateways tests.test_gateway` and
+`luajit tests/carrier_harness.lua && luajit tests/jtac_harness.lua`.
+The Lua harnesses use offline API doubles. On the actual DCS build, verify
+two moving carriers with different native radios, concurrent human check-ins,
+CASE readback/hold gates, bolter/trap/launch transitions, slot changes,
+disconnects, stale-link cancellation, mission restart, and silence for AI
+and aircraft that never called. Offline checks do not establish in-game
+DCS acceptance or human speech-recognition accuracy.
+
+## Independent airfield ATC
+
+Build the current runtime source. Add `airfield` to `BRAIN_ROLES`, set both
+`API_TOKEN` and `DCS_BRIDGE_TOKEN`, and enable the Compose `airfield` profile.
+The `airfield-gateways` command uses port 8085 by default and shares the
+existing STT, TTS and brain services. It does not need Tacview. If `atc` is
+also listed, native airfield control replaces the old shared-radio ATC role.
+AWACS, JTAC and carrier control remain independently selectable.
+
+### Native radio and mission installation
+
+Use the updated `dcs/overlord_hook.lua` as the single shared server hook;
+do not install separate copies for each controller family. In its private
+server-only configuration, enable the required features and, where necessary,
+give the exact installed terrain radio-data path:
+
+```lua
+features = { "jtac", "carriers", "airfields" },
+airfieldRadioFiles = {
+  Caucasus = [[C:/Program Files/Eagle Dynamics/DCS World Server/Mods/terrains/Caucasus/Radio.lua]],
+},
+```
+
+Keep the existing host, port, API token and bridge-token settings described
+above. `airfieldRadioFiles` keys are native theatre names. Without an explicit
+entry the hook tries `Mods/terrains/<theatre>/Radio.lua` under the DCS working
+directory; configure a path when the installed folder name differs. The hook
+reads the native file privately in a bounded environment and sends only
+validated radio data into the mission. Do not copy `Radio.lua`, downloaded
+reference documents, passwords or tokens into the repository or `.miz`.
+No mission desanitization or MOOSE installation is required.
+
+For server-managed installation, keep the hook in `Scripts/Hooks/` and place
+the three mission companions under `Scripts/Overlord/`. Set `autoLoad = true`
+in the private hook configuration. The hook waits one
+exchange for mission start triggers, then loads only a missing fixed
+companion, once per feature per mission epoch. An existing mission-defined
+module is never replaced. With this option, no companion trigger or `.miz`
+rewrite is required; mission-specific JTAC tasks and optional airfield facts
+still come from the mission's own configuration.
+
+The `argocd-definitions` charts install these assets from the pinned runtime
+image using a memory-backed init volume and read-only file overlays. The
+private config uses `dcs-server-secret/OVERLORD_API_TOKEN` and the separate
+`overlordbot-bridge/DCS_BRIDGE_TOKEN` Secret. Keep that bridge credential out
+of Git; do not add it by patching a Vault-managed destination Secret.
+The nightly server backup excludes the mounted credential/config assets.
+
+When upgrading the original brain Deployment to `Recreate`, Kubernetes
+server-side apply can retain its old default `rollingUpdate` field. Remove
+that default once before Argo sync; this changes rollout policy, not the
+running pod template:
+
+```sh
+kubectl patch deployment overlordbot-brain -n dcs --type=merge \
+  -p '{"spec":{"strategy":{"type":"Recreate","rollingUpdate":null}}}'
+```
+
+The chart retains `Recreate` for subsequent releases so authoritative
+controllers never overlap. DCS itself restarts to install the hook overlays;
+the installation PVC is preserved.
+
+For manual installation with `autoLoad` disabled, add a MISSION START **DO SCRIPT FILE** trigger loading
+`dcs/overlord_airfield.lua`. Optionally load an adapted
+`dcs/airfield-config.example.lua` immediately before it. That optional mission
+configuration contains operating facts only:
+
+```lua
+OverlordAirfieldConfig = {
+  leaseSeconds = 15,
+  airfields = {
+    ["Exact native airfield name"] = {
+      pattern = "left",
+      -- Set only when verified against this field's actual native geometry:
+      -- runwayNames = { ["native:1"] = "09L", ["native:2"] = "09R" },
+      -- closedRunways = { "09L" },
+      -- activeRunway = "09R",
+    },
+  },
+}
+```
+
+Runway-name corrections use a native label or `native:<getRunways index>`.
+Index corrections take precedence and allow ambiguous parallel strips to be
+identified without inventing geometry. Invalid/unlabelled strips remain
+occupancy obstacles but cannot be selected for a clearance. Do not copy
+example labels into a real mission without checking them. Configuration
+cannot add frequencies, fields or runway geometry.
+
+Only native airdromes are airfield controllers; carriers use their separate
+family and FARPs are not treated as airports. Wind, altimeter, ownership,
+geometry and human lifecycle come from live DCS data. Missing facts produce
+an explicit unavailable/negative response, not an LLM substitute.
+
+### Radio and aircraft lifecycle
+
+Each airfield owns its own sessions and conservative runway movement lane.
+Native ground/tower/approach frequencies and modulation drive the registry,
+not a static environment frequency list. Every distinct coalition/channel
+gets its own SRS client and speech queue. Fields publishing the same channel
+share one serialized transport; their controller state stays separate and
+first contacts must name the field. Tower authority requires a published
+tower role on the current channel; real handoffs use published frequencies.
+Reserved AWACS/JTAC and current carrier channels disable conflicting airfield
+radios instead of creating competing transmitters. Keep SRS coalition
+security enabled and configure per-coalition EAM passwords server-side.
+
+Start with, for example, “Batumi ground, Viper one one, request startup.”
+Supported requests include taxi, holding short, crossing, line-up, takeoff,
+inbound, pattern/final, landing, go-around, vacated, taxi-in and parking.
+Use the explicit word **readback**, the clearance terms and the assigned
+runway; arrival briefing readbacks also require the received altimeter.
+Unanswered clearances expire, and a fresh pilot request is required before
+they can be reissued. Status queries and late readbacks do not renew them.
+Emergency traffic has priority only when physically eligible.
+
+Only checked-in humans are position-polled. Registration, incarnation,
+field/channel binding, measured runway movement, disconnect/death/ejection,
+capture, bridge staleness and mission epoch fence old speech and authority.
+Read-only wind/altimeter/runway queries do not enrol or transfer aircraft;
+their replies are revalidated against fresh facts immediately before audio.
+An accepted carrier/airfield control transfer revokes the previous family's
+authority. Parking/check-out releases the session; do not check out while
+still obstructing a runway.
+
+AI and aircraft that never called in are deliberately excluded. Consequently
+the controller cannot guarantee separation from all mission traffic.
+Taxi is at pilot discretion with runway hold-short protection when no named
+route is available. Approach support is visual/pattern procedural control,
+not fabricated IFR vectors, approach plates or terrain clearance. Built-in
+DCS ATC and human controllers are not automatically silenced; coordinate
+which controller owns each frequency.
+
+### Diagnostics and acceptance
+
+Use authenticated `POST /airfield/registry` on the brain and `POST /status`
+on the airfield supervisor, each with `{}`. They show channel and field
+availability without exposing credentials. Supervisor readiness follows
+its native registry; a mixed AWACS/JTAC brain can remain unready for missing
+Tacview while native airfield radio is operational.
+
+Offline checks:
+
+```sh
+python3 -m unittest tests.test_airfield tests.test_airfield_integration tests.test_airfield_gateways
+luajit tests/airfield_harness.lua
+```
+
+Before mission use, verify native radio discovery on the actual DCS/theatre
+version, two separate fields and shared-frequency fields, correct runway
+labels/weather, strict readbacks, crossing/landing/takeoff occupancy, taxi-in,
+handoffs, capture, disconnect, restart, stale-link cancellation and silence
+for AI/unregistered aircraft. Offline API doubles and local SRS transport
+checks do not establish in-game DCS acceptance or human STT accuracy.
 
 ## Models, licenses and storage
 
@@ -116,7 +542,7 @@ Pinned download URLs and SHA256:
 - Voice model card: https://huggingface.co/rhasspy/piper-voices/resolve/cf910fb59f1d79ab3b625a63993a108751c6c25d/en/en_US/ljspeech/medium/MODEL_CARD
   - `fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d`
 
-No PVC, database or shared worker storage is needed. Models are baked read-only; worker processes need writable temporary space. Gateway buffers at most 32 active speakers, 15 seconds per segment, and four queued transmissions. Domain/game state is ephemeral and rebuilt from Tacview. Restart loses transient state. Demo artifacts and optional benchmark model downloads are local verification files, not required deployment volumes.
+No PVC, database or shared worker storage is needed. Models are baked read-only; worker processes need writable temporary space. Each gateway buffers at most 32 active speakers, 15 seconds per segment, and four queued transmissions. Domain/game state is ephemeral and rebuilt from Tacview or the mission companion. Restart loses transient state and carrier pilots must check in again. Demo artifacts and optional benchmark model downloads are local verification files, not required deployment volumes.
 
 Source is AGPL-3.0-or-later with original Jeffrey Jones attribution and ported asset provenance. whisper.cpp/Whisper weights are MIT; Piper engine is GPL-3.0-or-later; selected LJSpeech voice/dataset are public domain. See `speech/NOTICE.md`, `data/PROVENANCE.md`, `LICENSE`, and SRS image's included source offer. The research-restricted Lessac voice is not shipped.
 
@@ -170,7 +596,7 @@ Short sampling rounds idle values to zero and averages sub-second inference burs
 1. Keep existing SRS 2.4.1.0 server on TCP+UDP 5002. Enable External AWACS Mode and set separate non-empty coalition passwords through the existing sidecar's `SRS_EAM_BLUE_PASSWORD` / `SRS_EAM_RED_PASSWORD` settings. Supply matching selected password as gateway `SRS_EAM_PASSWORD`. Do not put actual passwords in this document.
 2. Enable coalition audio security; gateway additionally checks sender coalition metadata and rejects unknown/wrong-coalition packets. Select mission frequency/modulation (default 251.000 AM blue). Run another gateway for another coalition/frequency set.
 3. Tacview RT exporter must expose TCP 42674 while a mission is running unpaused. Set a password if reachable beyond trusted network; match `TACVIEW_PASSWORD`. Preserve aircraft pilot/callsign and coalition/color properties. No live telemetry recording was taken from the cluster.
-4. No DCS-gRPC installation is required for implemented telemetry-driven behavior. Richer DCS event/assignment APIs are not silently invented from ACMI.
+4. No DCS-gRPC installation is required. Live JTAC/carrier control requires the bundled mission script and server hook; ACMI alone does not provide mission task state, carrier procedures or execute marking/laser actions.
 5. Place speech workers on leafman/stickman or desktop with direct LAN HTTP connectivity, not on sunman's DCS cores. Do not expose the whisper-native loopback port; expose only the stateless worker API.
 
 ## Health and metrics
@@ -178,7 +604,7 @@ Short sampling rounds idle values to zero and averages sub-second inference burs
 Every service exposes `GET /healthz` for process liveness, `GET /readyz` for dependencies/model/state, and `GET /metrics` in Prometheus text format.
 
 - Gateway ready: connected to SRS and at least one ready endpoint for STT, TTS and brain. It reconnects after DNS/connection failure.
-- Brain ready: telemetry has positioned units and remains fresh. Disconnect/reconnect clears world state; stale telemetry is refused.
+- Brain ready: enabled AWACS/ATC/JTAC roles retain fresh positioned Tacview requirements; carrier-only mode requires a fresh mission bridge. Carrier gateways check their own enabled registry entry independently. Disconnect/reconnect clears world state; stale telemetry is refused.
 - STT ready: own persistent native process alive and its model-loaded `/health` succeeds.
 - TTS ready: model loaded and warm-up produced real audio.
 - Test SRS: TCP 5002 connect check; complete capability check is EAM + UDP audio, not TCP alone.
@@ -204,7 +630,8 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 - Proper nouns remain a weakness: fresh synthetic calls have produced “and Afra/and our for” for Anapa and occasional ignored calls. Fixed recordings make functional regression repeatable; they do not hide or solve general acoustic accuracy. Reply retranscription can also alter numbers/names. Validate human SRS recordings and operational phraseology before relying on ATC instructions.
 - One frequency and modulation per gateway. Reply path is half-duplex; receive audio during own transmission is discarded. No radio encryption/decryption, terrain line-of-sight model or concurrent overlapping-voice separation is implemented.
 - End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Segments are capped at 15 seconds; overload drops rather than retaining unbounded audio.
-- Whisper confidence is model token probability summary when present, not calibrated command correctness. Deterministic grammar deliberately ignores unrecognized/unaddressed calls rather than consulting a cloud/LLM fallback.
-- Tacview positions/metadata cannot prove DCS runway occupancy, clearance authority or arbitrary mission-task assignment. Those limitations must remain visible in responses and operator acceptance.
+- Whisper confidence is a model token probability summary when present, not calibrated command correctness. Optional local NLP classifies only verified, explicitly addressed requests; it is not a substitute for acoustic accuracy or deterministic readback checks. No cloud fallback exists.
+- Tacview positions/metadata cannot prove DCS runway occupancy, clearance authority or arbitrary mission-task assignment. JTAC acts only on explicitly mission-authored tasks and live companion data; the bridge is not an unrestricted mission-command API.
+- Companion Lua/API harness checks do not establish actual in-game DCS acceptance. Validate mission installation, hook permissions, line-of-sight/marking behavior, abort cleanup, and every configured SRS frequency on the target DCS build. Carrier procedures are simplified; full LSO automation is not included.
 - Native SRS/Tacview traffic is plaintext. Keep it on trusted network/VPN. Demo SRS attempts upstream checks/telemetry; its internal network blocks them. Official SRS shutdown may emit `ObjectDisposedException` after successful exchanges.
 - apt packages follow the pinned base image's distribution repositories; Python packages, models, speech source, image base and GitHub actions are pinned explicitly.

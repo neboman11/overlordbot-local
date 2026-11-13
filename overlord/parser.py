@@ -15,7 +15,10 @@ data/PROVENANCE.md.
     One of ``None`` (string), ``radioCheck``, ``bogeyDope``, ``locationOfEntity``,
     ``setWarningRadius``, ``cancelWarningRadius``, ``readyToTaxi``,
     ``inboundToAirfield``, ``abortInbound``, ``picture``, ``declare``,
-    ``missionAssignment``, ``missionJoin``.
+    ``missionAssignment``, ``missionJoin`` and the AWACS extensions
+    ``friendlyPicture``, ``bullseyePicture``, ``tanker``, ``vectorHome``,
+    ``divert`` and ``sayAgain`` (canonical phrases: friendly picture, bullseye
+    picture, nearest tanker, vector home, nearest divert, say again).
 ``receiver``
     ``None`` (unknown) or ``{"kind": "awacs", "callsign"}``,
     ``{"kind": "commander", "callsign"}`` or
@@ -112,12 +115,30 @@ CONTROLLERS = {norm(c) for c in _PHRASES["airfieldControllerNames"]}
 TWO_WORD_GROUPS = {norm(c) for c in _PHRASES["callsignGroupNames"] if " " in c}
 
 
+def _aircraft_aliases() -> dict:
+    """Spoken NATO reporting name -> DCS type codes, from the ``aircraft`` and
+    ``aircraft_variants`` sections of data/aliases.json.  An alias only names a type;
+    it never carries a coalition."""
+    by_code = {e["code"]: e for e in _AIRCRAFT}
+    table: dict = {}
+    for code, names in _ALIASES["aircraft"].items():
+        for name in names:
+            table[norm(name)] = list(by_code[code]["dcs_codes"])
+    for name, codes in _ALIASES["aircraft_variants"].items():
+        table[norm(name)] = list(codes)
+    return table
+
+
+AIRCRAFT_ALIAS_CODES = _aircraft_aliases()
+
+
 def _identifier_vocab() -> set:
     vocab = {norm(x) for x in _PHRASES["aircraftIdentifiers"]}
     for entry in _AIRCRAFT:
         vocab.add(norm(entry["name"]))
         vocab.add(norm(entry["code"]))
         vocab.update(norm(c) for c in entry["dcs_codes"])
+    vocab.update(AIRCRAFT_ALIAS_CODES)
     return vocab
 
 
@@ -151,7 +172,8 @@ _TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fourty": 40, "fifty": 50, "si
 
 INTENTS = ("radioCheck", "bogeyDope", "locationOfEntity", "setWarningRadius", "readyToTaxi",
            "inboundToAirfield", "cancelWarningRadius", "picture", "declare", "abortInbound",
-           "missionAssignment", "missionJoin")
+           "missionAssignment", "missionJoin", "friendlyPicture", "bullseyePicture", "tanker",
+           "vectorHome", "divert", "sayAgain")
 
 
 class Tok:
@@ -290,6 +312,26 @@ def _match(toks: list[Tok], start: int, table, maxlen: int = 4, plural: bool = F
 # Earliest match wins; on equal start the order below breaks the tie.
 _MISSION_WORDS = "|".join(sorted({re.escape(k) for k in MISSION_TYPES}, key=len, reverse=True))
 COMMANDS: list[tuple[str, re.Pattern]] = [
+    # AWACS extensions.  They precede the original phrases so that "friendly picture" is not a
+    # plain picture and "vector home" is not a location request when both start at the same word.
+    ("sayAgain", re.compile(
+        r"\bsay (?:that |your last |last )?again\b|\brepeat (?:that|your last|last)(?: transmission)?\b"
+        r"|\bcome again\b")),
+    ("friendlyPicture", re.compile(
+        r"\bfriendl(?:y|ies) (?:aircraft |air |fighters )?picture\b|\bpicture (?:of |on )?(?:the )?friendl(?:y|ies)\b")),
+    ("bullseyePicture", re.compile(
+        r"\bbull(?:s ?eye|s) picture\b|\bpicture (?:from |on |at |off |relative to )?(?:the )?bull(?:s ?eye|s)\b")),
+    ("vectorHome", re.compile(
+        r"\b(?:request(?:ing)?|need|vectors?|directions?|headings?|bearings?|steer|bring|take|direct)"
+        r"(?: a)?(?: vectors?)?(?: me| us)?(?: back)?(?: to| for)?(?: my| our| the)? "
+        r"(?:home(?: plate| base| field| airfield)?|rtb)\b|\b(?:rtb|return to base)\b")),
+    ("divert", re.compile(
+        r"\b(?:(?:nearest|closest|request(?:ing)?) )?divert(?: (?:field|airfield|airport|base))?\b"
+        r"|\balternate (?:field|airfield|airport|base)\b")),
+    ("tanker", re.compile(
+        r"\b(?:(?:nearest|closest|nearby|friendly) )+tankers?\b"
+        r"|\b(?:request(?:ing)?|need|find|looking for) (?:a |the )?(?:(?:nearest|closest) )?tankers?\b"
+        r"|\btanker (?:info|information|vectors?|position)\b")),
     ("abortInbound", re.compile(
         r"\b(?:abort(?:ing)?|cancel(?:l?ing|led)?) (?:inbound|approach)\b|\bwav(?:e|ing) ?off\b|\bgo(?:ing)? around\b")),
     ("cancelWarningRadius", re.compile(
@@ -411,14 +453,21 @@ _SOUND_COMMANDS = [(intent, phonetic(phrase)) for intent, name in (
 
 
 def _find_command(joined: str, offsets: list[int], start_char: int = 0):
-    best = None
+    best, repeat = None, None
     for rank, (intent, pattern) in enumerate(COMMANDS):
         m = pattern.search(joined, start_char)
         if not m:
             continue
         cand = (m.start(), rank, intent, m.end())
+        if intent == "sayAgain":
+            repeat = cand
+            continue
         if best is None or cand[:2] < best[:2]:
             best = cand
+    # "Say again bogey dope" repeats that explicit request, not an unrelated
+    # cached reply. Bare "say again" remains a caller-scoped replay.
+    if best is None:
+        best = repeat
     if best is None:
         return None
     start_tok = _tok_index(offsets, best[0])
@@ -706,6 +755,21 @@ def _bogey_where(after: list[Tok]) -> bool:
     return False
 
 
+def _identifier_tokens(after: list[Tok]) -> set:
+    """Indexes of tokens spoken as part of an aircraft identifier ("flogger j two"), so that
+    a digit that belongs to a reporting-name variant is not taken for a callsign number."""
+    covered: set = set()
+    i = 0
+    while i < len(after):
+        length, _ = _match(after, i, IDENTIFIERS, maxlen=3, plural=True)
+        if length:
+            covered.update(range(i, i + length))
+            i += length
+        else:
+            i += 1
+    return covered
+
+
 def _chatter(before: list[Tok]) -> bool:
     """Without a receiver, a request follows its callsign directly; talk in between
     ("apollo 1 1, if you are on this net, when you do the warning radius") is chatter."""
@@ -730,7 +794,9 @@ def parse(text: str, bot_callsign: Optional[str] = "overlord",
         offsets.append(pos)
         pos += len(t.w) + 1
     joined = " ".join(t.w for t in toks)
-    command = _find_command(joined, offsets) or _sound_command(toks)
+    command = _find_command(joined, offsets)
+    if command is None or command[0] == "sayAgain":
+        command = _sound_command(toks) or command
     if command is None:
         return result
     bot_key = phonetic(bot_callsign) if bot_callsign else None
@@ -766,8 +832,14 @@ def parse(text: str, bot_callsign: Optional[str] = "overlord",
     after = toks[c_end:]
     if intent == "locationOfEntity" and toks[c_start].w == "where" and _bogey_where(after) \
             and not any(_match(after, i, AIRFIELD_ALIASES)[0] for i in range(len(after))) \
-            and not any(_is_callsign_number(t) for t in after):
+            and not any(_is_callsign_number(t) for i, t in enumerate(after)
+                        if i not in _identifier_tokens(after)):
         intent = "bogeyDope"
+        c_start = c_end
+    elif intent == "locationOfEntity" and any(t.w in ("tanker", "tankers") for t in after) \
+            and (_subject(after, groups, bot_key) or {}).get("kind") != "tanker":
+        # "vector to the nearest tanker": the generic word, not a named tanker callsign
+        intent = "tanker"
         c_start = c_end
     result["intent"] = intent
     result["receiver"] = receiver[2] if receiver else None

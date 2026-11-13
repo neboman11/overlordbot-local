@@ -18,6 +18,11 @@ The YAML files were converted to JSON with PyYAML. Values, order and spelling ar
 | `aliases.json` | `OverlordBot.Cognitive/Data/Aliases/{Airfields,Callsigns,UnitAttributes}.yaml` |
 | `vocabulary.json` `airfield_names`, `mission_types`, `phraselists` | list entities `airfieldName` and `missionTypes` and all `@ phraselist` lines of `OverlordBot.Core/Documentation/OverlordBot.lu` |
 
+The `aircraft` and `aircraft_variants` sections of `aliases.json` are additions by
+overlordbot-local, not part of the upstream alias conversion. Original aircraft
+labels remain in `aircraft.json`; added reporting-name aliases do not encode
+coalition or identification status. External reference documents are not bundled.
+
 `vocabulary.json` `parser_extensions` is **not** from OverlordBot. overlordbot-local added it:
 
 - `nearest_airfield` adds the synonyms "nearest", "closest", "nearest base" and "closest base" for

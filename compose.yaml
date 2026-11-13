@@ -28,6 +28,21 @@ services:
       HTTP_PORT: '8081'
       # Demo wind is explicitly configured, never fabricated from Tacview.
       ATC_WIND_FROM_DEG: ${ATC_WIND_FROM_DEG:-0}
+      BRAIN_ROLES: ${BRAIN_ROLES:-awacs,atc}
+      BOT_CALLSIGN: ${BOT_CALLSIGN:-Overlord}
+      COALITION: ${COALITION:-2}
+      SRS_FREQUENCY_HZ: ${SRS_FREQUENCY_HZ:-251000000}
+      SRS_MODULATION: ${SRS_MODULATION:-0}
+      JTAC_CALLSIGN: ${JTAC_CALLSIGN:-Axeman}
+      JTAC_SRS_FREQUENCY_HZ: ${JTAC_SRS_FREQUENCY_HZ:-252000000}
+      JTAC_SRS_MODULATION: ${JTAC_SRS_MODULATION:-0}
+      DCS_BRIDGE_TOKEN: ${DCS_BRIDGE_TOKEN:-}
+      DCS_STALE_SECONDS: ${DCS_STALE_SECONDS:-10}
+      LLM_URL: ${LLM_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-3}
+      AWACS_BULLSEYE: ${AWACS_BULLSEYE:-}
+      AWACS_HOME_AIRFIELD: ${AWACS_HOME_AIRFIELD:-}
     depends_on: [tacview]
     networks: [radio]
   stt-worker:
@@ -55,13 +70,70 @@ services:
     environment:
       SRS_HOST: srs
       SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
-      COALITION: '2'
-      SRS_FREQUENCY_HZ: '251000000'
+      COALITION: ${COALITION:-2}
+      SRS_FREQUENCY_HZ: ${SRS_FREQUENCY_HZ:-251000000}
+      SRS_MODULATION: ${SRS_MODULATION:-0}
+      BOT_CALLSIGN: ${BOT_CALLSIGN:-Overlord}
       STT_URLS: ${STT_URLS:-http://stt-worker:8082}
       TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
       BRAIN_URL: http://brain:8081
       API_TOKEN: ${API_TOKEN:-}
       HTTP_PORT: '8080'
+    depends_on: [srs, brain, stt-worker, tts-worker]
+    networks: [radio]
+  jtac-gateway:
+    profiles: [jtac]
+    image: localhost/overlordbot-local-runtime:dev
+    command: ["radio-gateway"]
+    environment:
+      SRS_HOST: srs
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
+      COALITION: ${COALITION:-2}
+      SRS_FREQUENCY_HZ: ${JTAC_SRS_FREQUENCY_HZ:-252000000}
+      SRS_MODULATION: ${JTAC_SRS_MODULATION:-0}
+      BOT_CALLSIGN: ${JTAC_CALLSIGN:-Axeman}
+      STT_PROMPT: "Axeman, Viper one one, check in, nine line, readback, contact, mark, laser on, laser off, abort."
+      STT_URLS: ${STT_URLS:-http://stt-worker:8082}
+      TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
+      BRAIN_URL: http://brain:8081
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8080'
+    depends_on: [srs, brain, stt-worker, tts-worker]
+    networks: [radio]
+  carrier-gateways:
+    profiles: [carrier]
+    image: localhost/overlordbot-local-runtime:dev
+    command: ["carrier-gateways"]
+    environment:
+      SRS_HOST: srs
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
+      SRS_EAM_PASSWORDS: ${SRS_EAM_PASSWORDS:-}
+      COALITION: ${COALITION:-2}
+      STT_URLS: ${STT_URLS:-http://stt-worker:8082}
+      TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
+      BRAIN_URL: http://brain:8081
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8084'
+      CARRIER_GATEWAY_POLL_SECONDS: ${CARRIER_GATEWAY_POLL_SECONDS:-1}
+      CARRIER_GATEWAY_STALE_SECONDS: ${CARRIER_GATEWAY_STALE_SECONDS:-15}
+    depends_on: [srs, brain, stt-worker, tts-worker]
+    networks: [radio]
+  airfield-gateways:
+    profiles: [airfield]
+    image: localhost/overlordbot-local-runtime:dev
+    command: ["airfield-gateways"]
+    environment:
+      SRS_HOST: srs
+      SRS_EAM_PASSWORD: ${SRS_EAM_PASSWORD:?Set SRS_EAM_PASSWORD}
+      SRS_EAM_PASSWORDS: ${SRS_EAM_PASSWORDS:-}
+      COALITION: ${COALITION:-2}
+      STT_URLS: ${STT_URLS:-http://stt-worker:8082}
+      TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
+      BRAIN_URL: http://brain:8081
+      API_TOKEN: ${API_TOKEN:-}
+      HTTP_PORT: '8085'
+      AIRFIELD_GATEWAY_POLL_SECONDS: ${AIRFIELD_GATEWAY_POLL_SECONDS:-1}
+      AIRFIELD_GATEWAY_STALE_SECONDS: ${AIRFIELD_GATEWAY_STALE_SECONDS:-15}
     depends_on: [srs, brain, stt-worker, tts-worker]
     networks: [radio]
   verify:

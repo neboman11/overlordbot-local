@@ -47,7 +47,8 @@ NO_MONITOR_MESSAGE = "unable, warning radius monitoring is not available"
 MISSION_UNAVAILABLE_MESSAGE = "unable to forward request"
 BULLSEYE_UNAVAILABLE_MESSAGE = "unable, bullseye reference unavailable"
 
-AWACS_INTENTS = {"bogeyDope", "locationOfEntity", "setWarningRadius", "declare", "picture"}
+AWACS_INTENTS = {"bogeyDope", "locationOfEntity", "setWarningRadius", "declare", "picture",
+                 "friendlyPicture", "bullseyePicture", "tanker", "vectorHome", "divert", "sayAgain"}
 VALID_CONTROLLER_NAMES = ("ground", "tower", "approach", "center")
 AIR_CATEGORIES = {"Airplane", "Helicopter", "Air"}
 AWACS_TYPES = {"A-50", "E-2C", "E-2D", "E-3A", "KJ-2000"}   # GrpcDatastore.UnitRepository
@@ -78,6 +79,10 @@ def _load(name: str):
 AIRCRAFT = _load("aircraft.json")
 MILSTD = _load("milstd2525d.json")
 AIR_DCS_CODES = {code for entry in MILSTD["air"] for code in entry["dcs_codes"]}
+# Friendly tanker selection is grounded on type: the data's tanker entries plus the DCS
+# tanker type names that data/aircraft.json does not list.
+TANKER_TYPES = {code for entry in AIRCRAFT if "tanker" in entry["attributes"] for code in entry["dcs_codes"]} | {
+    "KC135MPRS", "KC130", "IL-78M"}
 
 
 def _load_airfields() -> list:
@@ -464,6 +469,8 @@ def codes_by_identifier(identifier: str) -> Optional[list]:
         if not ident:
             continue
         key = _parser.norm(ident)
+        if key in _parser.AIRCRAFT_ALIAS_CODES:
+            return list(_parser.AIRCRAFT_ALIAS_CODES[key])
         for e in AIRCRAFT:
             if key in (_parser.norm(e["name"]), _parser.norm(e["code"])) or any(
                     key == _parser.norm(c) for c in e["dcs_codes"]):
@@ -678,11 +685,14 @@ def find_airfield(units, name: str):
     return None
 
 
-def nearest_airfield(units, source):
-    """AirfieldRepository.FindByClosest (land airfields, any coalition)."""
-    options = [{"name": u.get("name") or u.get("type"), "lat": u["lat"], "lon": u["lon"],
-                "coalition": u.get("coalition")} for u in units if u.get("category") == "Airfield"]
-    seen = {_airfield_key(o["name"]) for o in options}
+def nearest_airfield(units, source, exclude_coalition: Optional[int] = None):
+    """AirfieldRepository.FindByClosest (land airfields, any coalition).
+
+    ``exclude_coalition`` (1 or 2) skips airfields explicitly owned by that coalition."""
+    listed = [{"name": u.get("name") or u.get("type"), "lat": u["lat"], "lon": u["lon"],
+               "coalition": u.get("coalition")} for u in units if u.get("category") == "Airfield"]
+    seen = {_airfield_key(o["name"]) for o in listed}
+    options = [o for o in listed if exclude_coalition not in (1, 2) or o["coalition"] != exclude_coalition]
     options += [{"name": a.name, "lat": a.lat, "lon": a.lon, "coalition": None}
                 for a in AIRFIELDS if _airfield_key(a.name) not in seen]
     return min(options, key=lambda o: distance_m(*_pos(source), *_pos(o)))
@@ -1184,7 +1194,8 @@ def _determine_transmitter(t: dict, reply: _Reply, units, coalition):
     return unit
 
 
-def _awacs(t: dict, units, coalition, bot_callsign, when, monitor, awacs_pilot) -> _Reply:
+def _awacs(t: dict, units, coalition, bot_callsign, when, monitor, awacs_pilot,
+           bullseye=None, home_airfield=None) -> _Reply:
     reply = _Reply()
     receiver = t["receiver"]["callsign"]
     callsign = _parser.norm(bot_callsign).replace(" ", "") if bot_callsign else None
@@ -1259,7 +1270,20 @@ def _awacs(t: dict, units, coalition, bot_callsign, when, monitor, awacs_pilot) 
     elif intent == "picture":
         reply.message = _picture(unit, units, when)
     elif intent == "declare":
-        reply.message = _declare(t, unit, units, when)
+        reply.message = _declare(t, unit, units, when, bullseye)
+    elif intent == "friendlyPicture":
+        reply.message = _friendly_picture(unit, units, when)
+    elif intent == "bullseyePicture":
+        reply.message = _bullseye_picture(unit, units, when, bullseye)
+    elif intent == "tanker":
+        reply.message = _nearest_tanker(unit, units, when)
+    elif intent == "vectorHome":
+        reply.message = _vector_home(unit, units, when, home_airfield)
+    elif intent == "divert":
+        reply.message = _divert(unit, units, when)
+    elif intent == "sayAgain":
+        reply.message = "unable, no previous transmission to repeat"
+        reply.notes = "say again is answered from the per-caller cache by the brain; none exists here"
     else:
         reply.notes = f"Unsupported intent {intent} on AWACS"
     return reply
@@ -1290,9 +1314,9 @@ def _location_of_entity(t, unit, units, when) -> str:
     return _location_of_unit(unit, target, when)
 
 
-def picture_groups(source, units) -> list[list]:
-    """Hostile airborne contacts clustered with the bogey-dope group rules, nearest first."""
-    remaining = hostile_aircraft(units, source)
+def _cluster(source, contacts) -> list[list]:
+    """Cluster contacts with the bogey-dope group rules, groups nearest to ``source`` first."""
+    remaining = sorted(contacts, key=lambda u: distance_m(*_pos(source), *_pos(u)))
     groups = []
     while remaining:
         group = _group_of(source, remaining[0], remaining)
@@ -1300,6 +1324,11 @@ def picture_groups(source, units) -> list[list]:
         remaining = [c for c in remaining if id(c) not in ids]
         groups.append(sorted(group, key=lambda c: dist_nm(source, c)))
     return groups
+
+
+def picture_groups(source, units) -> list[list]:
+    """Hostile airborne contacts clustered with the bogey-dope group rules, nearest first."""
+    return _cluster(source, hostile_aircraft(units, source))
 
 
 def _picture(unit, units, when) -> str:
@@ -1323,13 +1352,13 @@ def find_bullseye(units, coalition):
                  and "Bullseye" in str(u.get("tacview_type") or "").split("+")), None)
 
 
-def _declare(t, unit, units, when) -> str:
+def _declare(t, unit, units, when, bullseye=None) -> str:
     bearing, rng = t.get("bearing"), t.get("range")
     if bearing is None or not rng:
         return "unable to declare, say bearing and range"
     origin = unit
     if t.get("reference") == "bullseye":
-        origin = find_bullseye(units, unit.get("coalition"))
+        origin = bullseye_reference(units, unit.get("coalition"), bullseye)
         if origin is None:
             return BULLSEYE_UNAVAILABLE_MESSAGE
     metres = rng * (1000.0 if is_metric(unit) else METRES_PER_NM)
@@ -1351,6 +1380,124 @@ def _declare(t, unit, units, when) -> str:
     if unknown:
         return "bogey"
     return "clean"
+
+
+def _valid_point(point) -> Optional[dict]:
+    try:
+        lat, lon = float(point[0]), float(point[1])
+    except (TypeError, ValueError, IndexError, KeyError):
+        return None
+    if not (math.isfinite(lat) and math.isfinite(lon)) or abs(lat) > 90 or abs(lon) > 180:
+        return None
+    return {"lat": lat, "lon": lon}
+
+
+def bullseye_reference(units, coalition, configured=None) -> Optional[dict]:
+    """Bullseye position for ``coalition``: its live Tacview object, else the configured
+    ``(lat, lon)``, else ``None`` (the callers answer with an explicit "unable")."""
+    live = find_bullseye(units, coalition)
+    if live is not None:
+        return live
+    return _valid_point(configured) if configured is not None else None
+
+
+def _track(heading: float) -> str:
+    return f"track {CARDINAL_POINTS[int(round((heading % 360) / 45))].lower()}"
+
+
+def _group_headline(groups: list) -> str:
+    return "single group" if len(groups) == 1 else f"{len(groups)} groups"
+
+
+def friendly_aircraft(units, source) -> list:
+    """Airborne aircraft of the caller's own coalition, nearest first, without the caller."""
+    own = source.get("coalition")
+    if own not in (1, 2):
+        return []
+    found = [u for u in units if u.get("coalition") == own and u is not source
+             and (u.get("id") is None or u.get("id") != source.get("id"))
+             and is_air(u) and is_airborne(u)]
+    return sorted(found, key=lambda u: distance_m(*_pos(source), *_pos(u)))
+
+
+def friendly_tankers(units, source) -> list:
+    """Airborne friendly aircraft of a known tanker type, nearest first.  Nothing else
+    (callsign, radio, TACAN, fuel) is known from telemetry."""
+    return [u for u in friendly_aircraft(units, source) if u.get("type") in TANKER_TYPES]
+
+
+def _friendly_picture(unit, units, when) -> str:
+    if unit.get("coalition") not in (1, 2):
+        return "unable, your coalition is unknown"
+    groups = _cluster(unit, friendly_aircraft(units, unit))
+    if not groups:
+        return "no friendly aircraft on scope"
+    sections = ["friendly", _group_headline(groups)]
+    for group in groups[:PICTURE_MAX_GROUPS]:
+        details, _ = bra_sections(unit, group, when)
+        sections += ["bra", *details]
+    return _speech(*sections)
+
+
+def _bullseye_picture(unit, units, when, bullseye) -> str:
+    if opposing(unit.get("coalition")) is None:
+        return "unable, your coalition is unknown"
+    origin = bullseye_reference(units, unit.get("coalition"), bullseye)
+    if origin is None:
+        return BULLSEYE_UNAVAILABLE_MESSAGE
+    source = {"lat": origin["lat"], "lon": origin["lon"], "coalition": unit.get("coalition")}
+    groups = _cluster(source, hostile_aircraft(units, source))
+    if not groups:
+        return "clean"
+    metric = is_metric(unit)
+    sections = [_group_headline(groups)]
+    for group in groups[:PICTURE_MAX_GROUPS]:
+        closest = group[0]
+        bearing = int(true_to_magnetic(source["lat"], source["lon"], true_bearing(source, closest), when))
+        sections += ["bullseye", bearing_to_words(bearing), range_to_words(int(dist_km(source, closest)), metric),
+                     altitude_to_words(closest["altitude"], metric), _track(closest["heading"]),
+                     *comments_to_words(closest["altitude"], closest.get("speed")),
+                     *unit_counts_to_words(group)]
+    return _speech(*sections)
+
+
+_TANKER_CALLSIGN = re.compile(r"(?<![a-z])(" + "|".join(sorted(re.escape(c) for c in _parser.TANKERS)) + r") ?(\d)-?(\d)(?!\d)")
+
+
+def _tanker_callsign(tanker) -> Optional[str]:
+    for key in ("callsign", "pilot", "name"):
+        m = _TANKER_CALLSIGN.search(str(tanker.get(key) or "").lower())
+        if m:
+            return f"{m.group(1)} {m.group(2)} {m.group(3)}"
+    return None
+
+
+def _nearest_tanker(unit, units, when) -> str:
+    if unit.get("coalition") not in (1, 2):
+        return "unable, your coalition is unknown"
+    tankers = friendly_tankers(units, unit)
+    if not tankers:
+        return "unable, no friendly tanker on scope"
+    tanker = tankers[0]
+    return _speech("nearest tanker", _tanker_callsign(tanker) or aircraft_name(tanker["type"]),
+                   _location_of_unit(unit, tanker, when))
+
+
+def _vector_home(unit, units, when, home_airfield) -> str:
+    if not home_airfield or not str(home_airfield).strip():
+        return "unable, home airfield is not configured"
+    airfield = find_airfield(units, str(home_airfield))
+    if airfield is None:
+        return "unable, home airfield is not known"
+    own = unit.get("coalition")
+    if own in (1, 2) and airfield.get("coalition") == opposing(own):
+        return "unable, home airfield is not friendly"
+    return _speech("vector home", _location_of_airfield(unit, airfield, when))
+
+
+def _divert(unit, units, when) -> str:
+    airfield = nearest_airfield(units, unit, exclude_coalition=opposing(unit.get("coalition")))
+    return _speech("nearest divert", _location_of_airfield(unit, airfield, when))
 
 
 def _wind_for(wind, airfield: Airfield) -> Optional[float]:
@@ -1450,7 +1597,9 @@ def handle(text: str, coalition: int, units: list, bot_callsign: Optional[str] =
            roles: Iterable[str] = ("awacs", "atc"), monitor: Optional[WarningMonitor] = None,
            wind: Union[None, float, Mapping[str, float]] = None,
            awacs_pilot: Optional[str] = None, when: Optional[_dt.datetime] = None,
-           atc_monitor: Optional[AtcMonitor] = None) -> dict:
+           atc_monitor: Optional[AtcMonitor] = None,
+           bullseye: Optional[tuple[float, float]] = None,
+           home_airfield: Optional[str] = None) -> dict:
     """Parse ``text`` and build the spoken reply.
 
     ``coalition`` is the coalition of the SRS client the call arrived on; the
@@ -1463,6 +1612,10 @@ def handle(text: str, coalition: int, units: list, bot_callsign: Optional[str] =
     magnetic model date.  ``atc_monitor`` starts follow-up control (hold short,
     line up, take-off, base/final/short-final) for successful taxi and inbound
     calls and ends it on "abort inbound"; poll it with ``AtcMonitor.check``.
+    ``bullseye`` is a configured ``(lat, lon)`` used for bullseye references when the
+    coalition's own Tacview bullseye object is not in the telemetry; without either the
+    reply is an explicit "unable".  ``home_airfield`` is the configured name of the field
+    "vector home" refers to; it must be a known airfield, never a guess.
 
     Returns ``{"reply": str | None, "parsed": dict | None, "notes": str | None}``.
     """
@@ -1477,7 +1630,8 @@ def handle(text: str, coalition: int, units: list, bot_callsign: Optional[str] =
     if receiver is None:
         return {"reply": None, "parsed": parsed, "notes": "Could not determine the receiver"}
     if receiver["kind"] == "awacs" and "awacs" in roles:
-        reply = _awacs(parsed, units, coalition, bot_callsign, when, monitor, awacs_pilot)
+        reply = _awacs(parsed, units, coalition, bot_callsign, when, monitor, awacs_pilot,
+                       bullseye=bullseye, home_airfield=home_airfield)
     elif receiver["kind"] == "airfield" and "atc" in roles:
         reply = _atc(parsed, units, coalition, when, wind, atc_monitor)
     else:

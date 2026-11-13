@@ -6,11 +6,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends libopus0 ca-cer
 WORKDIR /app
 COPY overlord/ ./overlord/
 COPY data/ ./data/
+COPY dcs/ ./dcs/
 COPY fixtures/ ./fixtures/
 COPY scripts/replay_tacview.py ./scripts/replay_tacview.py
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app
 USER 10001
-EXPOSE 8080 8081 42674
+EXPOSE 8080 8081 8084 8085 42674
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('HTTP_PORT','8081')+'/readyz',timeout=2)"
 ENTRYPOINT ["python", "-m", "overlord"]
 CMD ["brain"]

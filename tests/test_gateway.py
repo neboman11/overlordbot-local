@@ -1,4 +1,6 @@
 import socket
+import json
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -29,9 +31,35 @@ class GatewayRecoveryTests(unittest.TestCase):
         client.receive.side_effect = receive
         times = [i / 1000 for i in range(32)] + [1.0]
         with patch('overlord.gateway.SRSClient', return_value=client), \
-             patch('overlord.gateway.time.monotonic', side_effect=times):
+             patch('overlord.gateway.time', SimpleNamespace(monotonic=Mock(side_effect=times))):
             gateway._receive()
         self.assertEqual(gateway.jobs.qsize(), 4, 'expired transmissions must reach bounded processor queue even when speaker cap is full')
+
+    def test_revoked_jtac_reply_is_not_transmitted_after_synthesis(self):
+        gateway = Gateway()
+        client = Mock(connected=True)
+        client.clients = {'pilot': {'Name': 'Viper 1-1'}}
+        gateway.client = client
+        gateway.stt = Mock()
+        gateway.stt.post.return_value = b'{"text":"Axeman Viper one one in hot"}'
+        validation = {'role': 'jtac', 'channel': gateway.channel, 'coalition': gateway.coalition}
+        gateway.brain = Mock()
+        gateway.brain.post.side_effect = [
+            json.dumps({'reply': 'cleared hot', 'validation': validation}).encode(),
+            b'{"valid":false}',
+        ]
+        gateway.tts = Mock()
+        def synthesize(*args):
+            # Simulate abort/revocation while speech synthesis is in progress.
+            gateway.stop.set()
+            return b'\0\0' * 1600
+        gateway.tts.post.side_effect = synthesize
+        gateway.jobs.put((client, 'pilot', {'packets': {1: (1, b'opus')}, 'last': time.monotonic()}))
+        codec = Mock()
+        codec.decode.return_value = b'\0\0' * 1600
+        with patch('overlord.gateway.Opus', return_value=codec):
+            gateway._process()
+        client.transmit.assert_not_called()
 
 
 if __name__ == '__main__':

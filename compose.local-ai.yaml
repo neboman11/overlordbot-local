@@ -1,0 +1,12 @@
+# Optional private-LAN access for an existing local LLM and the DCS server hook.
+# The default compose.yaml retains its isolated, unpublished demo network.
+services:
+  brain:
+    ports:
+      - "${BRAIN_BIND_ADDRESS:-127.0.0.1}:8081:8081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [radio, control]
+networks:
+  control:
+    driver: bridge
