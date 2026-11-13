@@ -188,7 +188,7 @@ is provided.
      -- apiToken = "<same value as API_TOKEN>", -- include when configured
      interval = 1,
      timeout = 3,
-     state = "mission",
+     state = "server",
    }
    ```
 
@@ -201,8 +201,9 @@ is provided.
 4. Keep the mission sandbox intact. The companion needs no files, `os`, or sockets.
    The hook calls fixed mission entry points through `net.dostring_in`.
    If the DCS build restricts this bridge, use its official permission setting;
-   do not blanket-desanitize `MissionScripting.lua`. The hook's state setting
-   remains configurable for version-specific environments.
+   do not blanket-desanitize `MissionScripting.lua`. The hook always targets the
+   `server` Lua state, where mission scripts run; `state = "mission"` (the mission
+   description, without `world`) is refused.
 5. Tune JTAC frequency. Start with `Axeman, Viper one one, checking in`,
    `request task`, and `ready brief`; include controller and caller on every call.
    Read back requested critical fields with labels and exact numerical values.
@@ -276,7 +277,7 @@ passwords, API tokens or bridge tokens inside the mission.
      features = {"jtac", "carriers"}, -- or {"carriers"} alone
      interval = 1,
      timeout = 3,
-     state = "mission",
+     state = "server",
    }
    ```
 

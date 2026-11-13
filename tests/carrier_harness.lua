@@ -759,7 +759,7 @@ local function newHook(W, features)
   os.execute('mkdir -p "' .. dir .. '/Config/"')
   local f = assert(io.open(dir .. '/Config/overlord-hook.lua', 'w'))
   f:write('return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
-    .. ' interval = 1, timeout = 3, state = "mission", features = ' .. features .. ' }')
+    .. ' interval = 1, timeout = 3, state = "server", features = ' .. features .. ' }')
   f:close()
 
   local function respond(conn)
@@ -856,7 +856,7 @@ check('hook runs JTAC and carrier features on fixed routes with shared tokens an
   eq(count(carriers[1].body.aircraft), 0)
   eq(find(carriers[2].body.aircraft, 'unit_id', '301').carrier_id, '101', 'carrier watch round trip')
   for _, call in ipairs(H.calls) do
-    eq(call.state, 'mission')
+    eq(call.state, 'server')
     assert(call.code:match('^return OverlordJTAC and OverlordJTAC%.bridge%(".-",".*"%)$')
       or call.code:match('^return OverlordCarrier and OverlordCarrier%.bridge%(".-",".*"%)$'), 'fixed entry point')
   end

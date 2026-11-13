@@ -990,11 +990,12 @@ radio =
 local function newHook(W, opts)
   opts = opts or {}
   local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {}, opens = 0,
-              paths = {} }
+              paths = {}, reads = {} }
   local dir = tempDir()
   H.dir = dir
   local config = 'return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
-    .. ' interval = 1, timeout = 3, state = "mission", features = ' .. (opts.features or '{ "airfields" }')
+    .. ' interval = 1, timeout = 3, state = ' .. string.format('%q', opts.state or 'server') .. ', features = '
+    .. (opts.features or '{ "airfields" }')
     .. (opts.extra and (', ' .. opts.extra) or '') .. ' }'
   writeFile(dir .. '/Config/overlord-hook.lua', config)
   for name, content in pairs(opts.companions or {}) do writeFile(dir .. '/Scripts/Overlord/' .. name, content) end
@@ -1044,20 +1045,35 @@ local function newHook(W, opts)
       getCurrentMission = function() return { mission = { theatre = opts.theatre or W.mission.theatre } } end,
     },
     net = {
+      -- DCS keeps mission scripts in the "server" Lua state; the "mission" state is the mission
+      -- description, where world (and every companion module) is nil.
       dostring_in = function(state, code)
         H.calls[#H.calls + 1] = { state = state, code = code }
-        local ok, result = pcall(compile(code, '=dostring', W.env))
+        local target = state == 'server' and W.env
+          or state == 'mission' and setmetatable({ type = type, pcall = pcall, loadstring = loadstring }, {})
+        if not target then return '', false end
+        local ok, result = pcall(compile(code, '=dostring', target))
         return tostring(result), ok
       end,
       lua2json = encode,
     },
     debug = opts.debug,   -- nil: the real debug library (through _G)
     pcall = opts.pcall,   -- nil: the real pcall (through _G)
+    -- The hook's io file objects have read/close but no seek.
     io = { open = function(path, mode)
       H.opens = H.opens + 1
       H.opened = path
       H.paths[#H.paths + 1] = path
-      return io.open(path, mode)
+      local file = io.open(path, mode)
+      if not file then return nil end
+      return {
+        read = function(_, what)
+          H.reads[#H.reads + 1] = what
+          if type(what) == 'number' and opts.noNumericRead then error('bad argument #1 to read') end
+          return file:read(what)
+        end,
+        close = function() file:close() end,
+      }
     end },
     log = { write = function(_, _, m) H.logs[#H.logs + 1] = m end, ERROR = 1, WARNING = 2, INFO = 3 },
     lfs = { writedir = function() return dir .. '/' end,
@@ -1065,6 +1081,7 @@ local function newHook(W, opts)
     package = { path = '', cpath = '' },
     require = function(name) assert(name == 'socket', 'unexpected module ' .. name); return socket end,
   }, { __index = _G })
+  H.env = env
   compile(readFile(ROOT .. 'dcs/overlord_hook.lua'), '@overlord_hook.lua', env)()
   function H.run(seconds)
     local steps = math.floor(seconds / 0.0625 + 0.5)
@@ -1552,6 +1569,66 @@ check('autoLoad must be a boolean', function()
   H.run(2)
   eq(#H.calls, 0, 'hook disabled')
   assert(logged(H, 'autoLoad must be true or false'))
+  H.cleanup()
+end)
+
+check('files are read without seek and unsupported bounded reads fail closed', function()
+  local W = newMission({ bare = true, config = false })
+  local H = newHook(W, { features = '{ "jtac", "airfields" }', extra = 'autoLoad = true', companions = realCompanions() })
+  writeFile(H.dir .. '/dcs/Mods/terrains/Caucasus/Radio.lua', RADIO_FILE)
+  H.callbacks.onSimulationStart()
+  H.run(3)
+  eq(table.concat(H.reads, ','), '4194305,1048577,1048577', 'Radio.lua then both companions, limit + 1 bytes each')
+  eq(count(field(H.on('/airfield/exchange')[1].body, '21').radios), 4, 'native radios through the seekless object')
+  eq(#H.on('/dcs/exchange'), 2, 'auto-loaded jtac through the seekless object')
+  H.cleanup()
+  local companions = realCompanions()
+  companions['overlord_jtac.lua'] = ('-'):rep(1048587)
+  H = newHook(newMission({ bare = true, config = false }), { features = '{ "jtac" }', extra = 'autoLoad = true',
+                                                             companions = companions })
+  H.callbacks.onSimulationStart()
+  H.run(2)
+  eq(table.concat(H.reads, ','), '1048577', 'oversized file: one bounded read, never a whole-file read')
+  assert(logged(H, 'overlord_jtac.lua too large'))
+  H.cleanup()
+  H = newHook(newMission({ mutate = quiet, config = false }), { noNumericRead = true })
+  writeFile(H.dir .. '/dcs/Mods/terrains/Caucasus/Radio.lua', RADIO_FILE)
+  H.callbacks.onSimulationStart()
+  H.run(1)
+  eq(table.concat(H.reads, ','), '4194305', 'never fall back to an unbounded whole-file read')
+  eq(count(field(H.on('/airfield/exchange')[1].body, '21').radios), 0, 'unsupported reads cannot publish radios')
+  H.cleanup()
+end)
+
+check('mission scripts live in the server state: state = "mission" is refused, every call targets server', function()
+  local W = newMission({ bare = true, config = false })
+  local H = newHook(W, { state = 'mission', extra = 'autoLoad = true', companions = realCompanions() })
+  H.callbacks.onSimulationStart()
+  H.run(2)
+  eq(#H.calls, 0, 'hook disabled')
+  assert(logged(H, 'state must be "server"'))
+  eq(H.env.net.dostring_in('mission', 'return type(world)'), 'nil', 'mission state has no world')
+  eq(H.env.net.dostring_in('server', 'return type(world)'), 'table', 'server state runs mission scripts')
+  H.cleanup()
+  H = newHook(W, { features = ALL, extra = 'autoLoad = true', companions = realCompanions() })
+  H.callbacks.onSimulationStart()
+  H.run(3)
+  eq(#loaderCalls(H), 3, 'every companion auto-loaded')
+  for _, call in ipairs(H.calls) do eq(call.state, 'server', 'exchange and loader target the server state') end
+  eq(#H.on('/dcs/exchange'), 2)
+  H.cleanup()
+end)
+
+check('an internal hook error is logged by kind only, never with values', function()
+  local W = newMission({ others = true })
+  local H = newHook(W, { features = '{ "jtac", "carriers" }' })
+  H.callbacks.onSimulationStart()
+  H.run(1)
+  H.env.net.dostring_in = nil
+  H.run(2)
+  assert(logged(H, "[jtac]: internal error: attempt to call field 'dostring_in' (a nil value)"), 'classified')
+  assert(logged(H, "[carriers]: internal error: attempt to call field 'dostring_in' (a nil value)"), 'per feature')
+  for _, line in ipairs(H.logs) do assert(not line:find('secret'), 'token logged') end
   H.cleanup()
 end)
 

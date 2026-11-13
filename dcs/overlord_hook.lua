@@ -13,7 +13,7 @@ mission and therefore never downloaded by clients:
     apiToken = "<API_TOKEN>",    -- only when the brain has API_TOKEN set (Authorization: Bearer)
     interval = 1,                -- seconds between exchanges (0.5-10)
     timeout = 3,                 -- absolute seconds per exchange (1-10)
-    state = "mission",           -- documented mission scripting state
+    state = "server",            -- optional; the only accepted value (see below)
     features = { "jtac" },       -- optional; any of "jtac", "carriers", "airfields" (default { "jtac" })
     autoLoad = false,            -- optional; true loads the fixed static companions (see below)
     airfieldRadioFiles = {       -- optional, airfields only: theatre -> installed native Radio.lua
@@ -29,7 +29,9 @@ Each feature is a fixed pair of mission entry point and brain route:
                                                                      -> POST /airfield/exchange
 
 Every interval the hook calls each enabled feature's entry point through
-net.dostring_in with every argument passed as a %q-escaped string literal, so no
+net.dostring_in("server", ...) - the Lua state that runs mission scripts (the
+"mission" state only holds the mission description; world is nil there and the
+hook refuses state = "mission") - with every argument passed as a %q-escaped string literal, so no
 brain or mission data is ever executed as code, then POSTs the returned
 snapshot to that feature's route.  Features share the configuration, tokens,
 epoch and transport code, but each has its own pending response, in-flight
@@ -95,7 +97,9 @@ local socket = require('socket')
 local MAX_SNAPSHOT, MAX_RESPONSE = 262144, 65536
 local MAX_RADIO_FILE, MAX_RADIO_RECORDS, MAX_RADIO_ALIASES, RADIO_INSTRUCTIONS = 4194304, 4096, 8, 20000000
 local MAX_COMPANION_FILE = 1048576
-local STATES = { server = true, mission = true }
+-- net.dostring_in Lua state holding the mission scripting API (world, coalition, ...).  The state
+-- named "mission" is the mission description (world is nil there), so it is refused.
+local SCRIPTING_STATE = 'server'
 -- Fixed feature table: configuration selects entries, it never supplies code or paths.
 local FEATURES = {
   jtac = { module = 'OverlordJTAC', path = '/dcs/exchange', file = 'overlord_jtac.lua' },
@@ -191,8 +195,10 @@ local function loadConfig(path)
       or type(timeout) ~= 'number' or timeout < 1 or timeout > 10 then
     return nil, 'invalid interval or timeout'
   end
-  local state = cfg.state or 'mission'
-  if not STATES[state] then return nil, 'state must be mission or server' end
+  if cfg.state ~= nil and cfg.state ~= SCRIPTING_STATE then
+    return nil, 'state must be "server" (the "mission" state has no mission scripting API)'
+  end
+  local state = SCRIPTING_STATE
   local features = featureList(cfg.features)
   if not features then return nil, 'features must be a list of distinct "jtac"/"carriers"/"airfields" entries' end
   local files = radioFiles(cfg.airfieldRadioFiles)
@@ -331,18 +337,14 @@ local function normalizeRadios(radio)
 end
 
 -- Whole local file, non-empty and at most `limit` bytes, or nil and a reason naming `label`.
+-- The hook's io file objects have read/close but no seek: read at most limit + 1 bytes.
 local function readBounded(path, limit, label)
   local file = io.open(path, 'rb')
   if not file then return nil, label .. ' not readable' end
-  local size = file:seek('end')
-  if not size or size > limit then
-    file:close()
-    return nil, label .. ' too large'
-  end
-  file:seek('set', 0)
-  local source = file:read('*a')
-  file:close()
-  if type(source) ~= 'string' or #source ~= size or size == 0 then return nil, label .. ' read failed' end
+  local ok, source = pcall(function() return file:read(limit + 1) end)
+  pcall(function() file:close() end)
+  if not ok or type(source) ~= 'string' or source == '' then return nil, label .. ' read failed' end
+  if #source > limit then return nil, label .. ' too large' end
   return source
 end
 
@@ -584,12 +586,18 @@ function callbacks.onSimulationStop()
   hook.epoch = nil
 end
 
+-- Lua runtime errors name identifiers, never values: keep only that phrase, bounded.
+local function internalError(err)
+  local what = type(err) == 'string' and err:match("attempt to [%w _'%(%)]+")
+  return 'internal error' .. (what and (': ' .. what:sub(1, 120)) or '')
+end
+
 function callbacks.onSimulationFrame()
   if not hook.cfg or not hook.epoch or not DCS.isServer() then return end
   local now = DCS.getRealTime()
   for _, feature in ipairs(hook.features) do
-    local ok = pcall(step, feature, now)
-    if not ok then close(feature, 'internal error') end
+    local ok, err = pcall(step, feature, now)
+    if not ok then close(feature, internalError(err)) end
   end
 end
 
