@@ -8,7 +8,8 @@ Load order in the mission editor (MISSION START triggers, "DO SCRIPT FILE"):
 Runs inside the normal sanitized mission environment: no sockets, files or
 secrets.  The server hook (Scripts/Hooks/overlord_hook.lua) calls exactly one
 entry point, OverlordJTAC.bridge(epoch, inbound_json), about once a second and
-relays the returned JSON snapshot to the Overlord brain.  Commands from the brain
+relays the returned JSON snapshot to the Overlord brain; JSON goes through
+OverlordJSON.encode/decode, the engine codec the hook installs first.  Commands from the brain
 are limited to laser_on, laser_off and mark for tasks authored in the config;
 each is executed through the DCS API (Spot.createLaser, Spot:setPoint,
 Spot:destroy, Spot.createInfraRed, trigger.action.smoke,
@@ -410,7 +411,7 @@ OverlordJTAC = (function()
     end
     local report = {}
     if state.seq > 0 and type(inbound) == 'string' and #inbound > 0 and #inbound <= MAX_INBOUND then
-      local ok, message = pcall(net.json2lua, inbound)
+      local ok, message = pcall(OverlordJSON.decode, inbound)
       if ok and type(message) == 'table' and message.version == 1 and message.accepted == true
           and message.epoch == state.epoch and message.seq == state.seq then
         state.last = timer.getTime()
@@ -418,7 +419,7 @@ OverlordJTAC = (function()
       end
     end
     state.seq = state.seq + 1
-    return net.lua2json(snapshot(report))
+    return OverlordJSON.encode(snapshot(report))
   end
 
   function M.stop()

@@ -148,6 +148,18 @@ local function compile(source, name, env)
   return assert(load(source, name, 't', env))
 end
 
+-- Stand-in for the engine's installed Scripts/JSON.lua, which returns a codec object with
+-- :encode/:decode.  Its engine is this harness's own JSON section above: no DCS source is copied.
+local function nativeJsonFixture()
+  local section = readFile(ROOT .. 'tests/airfield_harness.lua'):match('\n(%-%- JSON %(enough.-)\n%-%- Helpers')
+  assert(section, 'harness JSON section')
+  return section .. '\nlocal OBJDEF = {}\n'
+    .. 'function OBJDEF:encode(value) return encode(value) end\n'
+    .. 'function OBJDEF:decode(text) return decode(text) end\n'
+    .. 'function OBJDEF:new() return setmetatable({}, { __index = OBJDEF }) end\n'
+    .. 'return OBJDEF:new()\n'
+end
+
 local function check(name, fn)
   local ok, err = pcall(fn)
   if ok then
@@ -382,8 +394,16 @@ local function newMission(opts)
     },
     world = { event = EVENT, addEventHandler = function(h) W.handlers[#W.handlers + 1] = h end,
               getAirbases = function() return W.bases end },
-    net = { lua2json = encode, json2lua = decode },
+    -- No net here: the server state only gets JSON as OverlordJSON from the hook (newHook removes
+    -- this stand-in so the hook must install it from the native JSON.lua fixture).
+    OverlordJSON = { encode = encode, decode = decode },
+    -- The scripting state keeps loadstring; chunks bind to the mission globals.
+    loadstring = function(source, name)
+      local ok, chunk = pcall(compile, source, name, W.env)
+      return ok and chunk or nil
+    end,
   }
+  allowedNil.OverlordJSON = true   -- until the hook installs it
   W.env = setmetatable(base, { __index = function(_, k)
     if allowedNil[k] then return nil end
     W.forbidden[#W.forbidden + 1] = k
@@ -394,9 +414,10 @@ local function newMission(opts)
   if opts.bare then
     -- A mission without companion triggers: the sanitized mission environment keeps loadstring,
     -- which binds compiled chunks to the mission globals.
-    W.loads = {}
+    W.loads, W.codecLoads = {}, {}
     rawset(W.env, 'loadstring', function(source, name)
-      W.loads[#W.loads + 1] = { source = source, name = name }
+      local loads = name == '=Scripts/JSON.lua' and W.codecLoads or W.loads
+      loads[#loads + 1] = { source = source, name = name }
       local ok, chunk = pcall(compile, source, name, W.env)
       return ok and chunk or nil
     end)
@@ -990,7 +1011,7 @@ radio =
 local function newHook(W, opts)
   opts = opts or {}
   local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {}, opens = 0,
-              paths = {}, reads = {} }
+              paths = {}, reads = {}, codecCalls = {} }
   local dir = tempDir()
   H.dir = dir
   local config = 'return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
@@ -999,6 +1020,10 @@ local function newHook(W, opts)
     .. (opts.extra and (', ' .. opts.extra) or '') .. ' }'
   writeFile(dir .. '/Config/overlord-hook.lua', config)
   for name, content in pairs(opts.companions or {}) do writeFile(dir .. '/Scripts/Overlord/' .. name, content) end
+  -- Native engine JSON.lua under the install dir; the scripting state starts without OverlordJSON.
+  H.codecPath = (opts.installDir or (dir .. '/dcs')) .. '/Scripts/JSON.lua'
+  if opts.codec ~= false then writeFile(H.codecPath, opts.codec or nativeJsonFixture()) end
+  rawset(W.env, 'OverlordJSON', nil)
 
   local function respond(conn)
     local split = conn.data:find('\r\n\r\n', 1, true)
@@ -1048,7 +1073,9 @@ local function newHook(W, opts)
       -- DCS keeps mission scripts in the "server" Lua state; the "mission" state is the mission
       -- description, where world (and every companion module) is nil.
       dostring_in = function(state, code)
-        H.calls[#H.calls + 1] = { state = state, code = code }
+        -- JSON codec installs are recorded apart from bridge/auto-load calls.
+        local calls = code:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
+        calls[#calls + 1] = { state = state, code = code }
         local target = state == 'server' and W.env
           or state == 'mission' and setmetatable({ type = type, pcall = pcall, loadstring = loadstring }, {})
         if not target then return '', false end
@@ -1069,7 +1096,9 @@ local function newHook(W, opts)
       return {
         read = function(_, what)
           H.reads[#H.reads + 1] = what
-          if type(what) == 'number' and opts.noNumericRead then error('bad argument #1 to read') end
+          if type(what) == 'number' and opts.noNumericRead and path:find(opts.noNumericRead, 1, true) then
+            error('bad argument #1 to read')
+          end
           return file:read(what)
         end,
         close = function() file:close() end,
@@ -1097,6 +1126,12 @@ local function newHook(W, opts)
   end
   function H.cleanup() os.execute('rm -rf "' .. dir .. '"') end
   return H
+end
+
+local function radioOpens(H)
+  local n = 0
+  for _, path in ipairs(H.paths) do if path:find('Radio%.lua$') then n = n + 1 end end
+  return n
 end
 
 local function radioFileConfig(path) return 'airfieldRadioFiles = { Caucasus = ' .. string.format('%q', path) .. ' }' end
@@ -1134,11 +1169,11 @@ check('hook reads the configured native Radio.lua privately and joins radios by 
     assert(request.headers:find('\r\nAuthorization: Bearer api%-secret'), 'api token')
   end
   for _, line in ipairs(H.logs) do assert(not line:find('secret'), 'token logged') end
-  eq(H.opens, 1, 'native file read once per epoch')
+  eq(radioOpens(H), 1, 'native file read once per epoch')
   H.callbacks.onSimulationStop()
   H.callbacks.onSimulationStart()
   H.run(1)
-  eq(H.opens, 2, 're-read for the next mission')
+  eq(radioOpens(H), 2, 're-read for the next mission')
   eq(#W.forbidden, 0)
   H.cleanup()
   os.execute('rm -rf "' .. dir .. '"')
@@ -1170,7 +1205,7 @@ check('missing native file or unknown theatre gives explicit radio-less fields, 
   H.run(1)
   body = H.on('/airfield/exchange')[1].body
   has(body.error, 'mission theatre unavailable')
-  eq(H.opens, 0, 'unsafe theatre name never becomes a path')
+  eq(radioOpens(H), 0, 'unsafe theatre name never becomes a path')
   H.cleanup()
 end)
 
@@ -1522,8 +1557,8 @@ check('companion bytes reach the mission only as one quoted literal, never match
   assert(logged(H, '[jtac]: auto-load: companion did not define its module'))
   eq(#H.on('/dcs/exchange'), 0)
   for _, path in ipairs(H.paths) do
-    assert(path == H.dir .. '/Scripts/Overlord/overlord_carrier.lua' or path == H.dir .. '/Scripts/Overlord/overlord_jtac.lua',
-      'only fixed companion paths opened: ' .. path)
+    assert(path == H.dir .. '/Scripts/Overlord/overlord_carrier.lua' or path == H.dir .. '/Scripts/Overlord/overlord_jtac.lua'
+      or path == H.codecPath, 'only fixed companion and codec paths opened: ' .. path)
   end
   eq(rawget(W.env, 'HACKED'), nil, 'unlisted file never loaded')
   eq(rawget(_G, 'HACKED'), nil, 'nothing ran in the hook')
@@ -1578,7 +1613,8 @@ check('files are read without seek and unsupported bounded reads fail closed', f
   writeFile(H.dir .. '/dcs/Mods/terrains/Caucasus/Radio.lua', RADIO_FILE)
   H.callbacks.onSimulationStart()
   H.run(3)
-  eq(table.concat(H.reads, ','), '4194305,1048577,1048577', 'Radio.lua then both companions, limit + 1 bytes each')
+  eq(table.concat(H.reads, ','), '262145,4194305,1048577,1048577',
+    'JSON.lua, Radio.lua, then both companions, limit + 1 bytes each')
   eq(count(field(H.on('/airfield/exchange')[1].body, '21').radios), 4, 'native radios through the seekless object')
   eq(#H.on('/dcs/exchange'), 2, 'auto-loaded jtac through the seekless object')
   H.cleanup()
@@ -1588,14 +1624,14 @@ check('files are read without seek and unsupported bounded reads fail closed', f
                                                              companions = companions })
   H.callbacks.onSimulationStart()
   H.run(2)
-  eq(table.concat(H.reads, ','), '1048577', 'oversized file: one bounded read, never a whole-file read')
+  eq(table.concat(H.reads, ','), '262145,1048577', 'oversized file: one bounded read, never a whole-file read')
   assert(logged(H, 'overlord_jtac.lua too large'))
   H.cleanup()
-  H = newHook(newMission({ mutate = quiet, config = false }), { noNumericRead = true })
+  H = newHook(newMission({ mutate = quiet, config = false }), { noNumericRead = 'Radio.lua' })
   writeFile(H.dir .. '/dcs/Mods/terrains/Caucasus/Radio.lua', RADIO_FILE)
   H.callbacks.onSimulationStart()
   H.run(1)
-  eq(table.concat(H.reads, ','), '4194305', 'never fall back to an unbounded whole-file read')
+  eq(table.concat(H.reads, ','), '262145,4194305', 'never fall back to an unbounded whole-file read')
   eq(count(field(H.on('/airfield/exchange')[1].body, '21').radios), 0, 'unsupported reads cannot publish radios')
   H.cleanup()
 end)
@@ -1629,6 +1665,110 @@ check('an internal hook error is logged by kind only, never with values', functi
   assert(logged(H, "[jtac]: internal error: attempt to call field 'dostring_in' (a nil value)"), 'classified')
   assert(logged(H, "[carriers]: internal error: attempt to call field 'dostring_in' (a nil value)"), 'per feature')
   for _, line in ipairs(H.logs) do assert(not line:find('secret'), 'token logged') end
+  H.cleanup()
+end)
+
+-- Native JSON codec --------------------------------------------------------------------
+
+check('the hook installs the native JSON codec into a net-less scripting state; all three companions bridge', function()
+  local W = newMission({ others = true })
+  eq(rawget(W.env, 'net'), nil, 'no net in the scripting state')
+  local H = newHook(W, { features = ALL })
+  eq(rawget(W.env, 'OverlordJSON'), nil, 'scripting state starts without a codec')
+  H.callbacks.onSimulationStart()
+  H.run(3)
+  eq(#H.on('/dcs/exchange'), 3, 'jtac bridges')
+  eq(#H.on('/carrier/exchange'), 3, 'carriers bridge')
+  eq(#H.on('/airfield/exchange'), 3, 'airfields bridge')
+  eq(#H.codecCalls, 1, 'one install per epoch')
+  eq(H.codecCalls[1].state, 'server')
+  local code = H.codecCalls[1].code
+  assert(code:find('loadstring(' .. string.format('%q', nativeJsonFixture()) .. ', "=Scripts/JSON.lua")', 1, true),
+    'native source passed as one quoted literal')
+  assert(not code:find(H.dir, 1, true), 'no path in the installer')
+  assert(not code:find('bridge-secret', 1, true) and not code:find('api-secret', 1, true), 'no token in the installer')
+  local json = rawget(W.env, 'OverlordJSON')
+  eq(type(json), 'table', 'OverlordJSON installed')
+  eq(json.decode(json.encode({ probe = { ok = true } })).probe.ok, true, 'closures round-trip through the native codec')
+  assert(logged(H, 'native JSON codec installed as OverlordJSON'))
+  local codecOpens = 0
+  for _, path in ipairs(H.paths) do if path == H.codecPath then codecOpens = codecOpens + 1 end end
+  eq(codecOpens, 1, 'native JSON.lua read once per epoch')
+  for _, line in ipairs(H.logs) do assert(not line:find('secret'), 'token logged') end
+  -- Next mission: a fresh scripting state gets a fresh install.
+  H.callbacks.onSimulationStop()
+  rawset(W.env, 'OverlordJSON', nil)
+  H.callbacks.onSimulationStart()
+  H.run(1)
+  eq(#H.codecCalls, 2, 're-installed for the next mission')
+  eq(type(rawget(W.env, 'OverlordJSON')), 'table')
+  eq(#W.forbidden, 0)
+  H.cleanup()
+end)
+
+check('a missing, unreadable, oversized or invalid native JSON.lua leaves every feature unbridged', function()
+  local cases = {
+    { false, 'native Scripts/JSON.lua not readable', 0 },
+    { '', 'native Scripts/JSON.lua read failed', 0 },
+    { ('-'):rep(262145), 'native Scripts/JSON.lua too large', 0 },
+    { string.dump(function() return {} end), 'precompiled chunk refused', 0 },
+    { 'return {', 'native Scripts/JSON.lua does not compile', 3 },
+    { 'return 42', 'native Scripts/JSON.lua returned no codec with encode/decode', 3 },
+    { 'error("engine failure")', 'native Scripts/JSON.lua returned no codec with encode/decode', 3 },
+  }
+  for _, case in ipairs(cases) do
+    local W = newMission({ others = true })
+    local H = newHook(W, { features = ALL, codec = case[1] })
+    H.callbacks.onSimulationStart()
+    H.run(6)
+    local what = case[2]
+    eq(#H.requests, 0, 'no bridge: ' .. what)
+    eq(#H.calls, 0, 'no entry point or auto-load call: ' .. what)
+    eq(#H.codecCalls, case[3], 'bounded install attempts: ' .. what)
+    eq(rawget(W.env, 'OverlordJSON'), nil, 'no codec installed: ' .. what)
+    for _, name in ipairs({ 'jtac', 'carriers', 'airfields' }) do
+      assert(logged(H, '[' .. name .. ']: JSON codec unavailable: ') and logged(H, what), name .. ' reports ' .. what)
+    end
+    local codecOpens = 0
+    for _, path in ipairs(H.paths) do if path == H.codecPath then codecOpens = codecOpens + 1 end end
+    eq(codecOpens, 1, 'read once per epoch: ' .. what)
+    eq(#W.forbidden, 0)
+    H.cleanup()
+  end
+end)
+
+check('a rejected codec install is retried within its bound, then bridging starts', function()
+  local W = newMission({ others = true })
+  local H = newHook(W, { features = '{ "jtac", "carriers" }' })
+  local real, rejected = H.env.net.dostring_in, 0
+  H.env.net.dostring_in = function(state, code)
+    if code:find('^if type%(OverlordJSON%)') and rejected < 2 then
+      rejected = rejected + 1
+      H.codecCalls[#H.codecCalls + 1] = { state = state, code = code }
+      return '', false
+    end
+    return real(state, code)
+  end
+  H.callbacks.onSimulationStart()
+  H.run(2)
+  eq(#H.requests, 0, 'nothing bridged while the codec is missing')
+  assert(logged(H, '[jtac]: JSON codec unavailable: JSON codec loader rejected'))
+  H.run(2)
+  eq(#H.codecCalls, 3, 'third attempt installs')
+  assert(#H.on('/dcs/exchange') > 0 and #H.on('/carrier/exchange') > 0, 'both features bridge once installed')
+  H.cleanup()
+end)
+
+check('an OverlordJSON the scripting state already has is kept, not replaced', function()
+  local W = newMission({ others = true })
+  local H = newHook(W, { features = '{ "jtac" }' })
+  local own = { encode = function(value) return encode(value) end, decode = function(text) return decode(text) end }
+  W.env.OverlordJSON = own
+  H.callbacks.onSimulationStart()
+  H.run(2)
+  assert(rawget(W.env, 'OverlordJSON') == own, 'existing codec kept')
+  assert(logged(H, 'OverlordJSON already present'))
+  eq(#H.on('/dcs/exchange'), 2)
   H.cleanup()
 end)
 

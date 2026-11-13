@@ -44,7 +44,7 @@ getCoalition/isExist/getPoint/getRunways/getParking, coalition.getPlayers, Unit
 methods getID/getName/getPlayerName/getCallsign/getDesc/isExist/getLife/
 getPoint/getVelocity/getPosition/inAir (watched humans only), coord.LOtoLL,
 atmosphere.getWind/getTemperatureAndPressure, timer.getTime/getAbsTime,
-world.addEventHandler, net.lua2json/json2lua.
+world.addEventHandler, OverlordJSON.encode/decode (the engine JSON codec the server hook installs).
 ]]
 
 if OverlordAirfield and OverlordAirfield.stop then
@@ -643,7 +643,7 @@ OverlordAirfield = (function()
       problem('native radio context too large')
       return
     end
-    local ok, data = pcall(net.json2lua, raw)
+    local ok, data = pcall(OverlordJSON.decode, raw)
     if not ok or type(data) ~= 'table' then
       problem('native radio context malformed')
       return
@@ -1150,12 +1150,12 @@ OverlordAirfield = (function()
       if entry.terminal and not actors[id] and not entry.terminalSent then ended[#ended + 1] = entry end
     end
     out.error = diagnostics(transient)
-    local encoded = net.lua2json(out)
+    local encoded = OverlordJSON.encode(out)
     if #encoded > MAX_SNAPSHOT then
       -- Envelope limit: withhold everything atomically and keep events/identities for later.
       for _, event in ipairs(marked) do event.sent = nil end
       transient[#transient + 1] = 'snapshot over ' .. MAX_SNAPSHOT .. ' bytes; airfield data withheld'
-      return net.lua2json({ version = 1, epoch = state.epoch, seq = state.seq, time = now, abs_time = abs, date = date,
+      return OverlordJSON.encode({ version = 1, epoch = state.epoch, seq = state.seq, time = now, abs_time = abs, date = date,
                             airfields = {}, players = {}, aircraft = {}, error = diagnostics(transient) })
     end
     for _, entry in ipairs(ended) do entry.terminalSent = true end
@@ -1180,7 +1180,7 @@ OverlordAirfield = (function()
     refreshPlayers(transient)
     if state.seq > 0 and state.consumed < state.seq and type(inbound) == 'string' and #inbound > 0
         and #inbound <= MAX_INBOUND then
-      local ok, message = pcall(net.json2lua, inbound)
+      local ok, message = pcall(OverlordJSON.decode, inbound)
       if ok and type(message) == 'table' and message.version == 1 and message.accepted == true
           and message.epoch == state.epoch and message.seq == state.seq and type(message.watch) == 'table' then
         state.consumed, state.last = state.seq, now

@@ -204,6 +204,12 @@ is provided.
    do not blanket-desanitize `MissionScripting.lua`. The hook always targets the
    `server` Lua state, where mission scripts run; `state = "mission"` (the mission
    description, without `world`) is refused.
+   That state has no `net.lua2json`/`json2lua`: before any exchange or auto-load,
+   the hook reads the engine's own `<DCS install>/Scripts/JSON.lua` (fixed path,
+   bounded, once per mission) and installs it there as `OverlordJSON`, which all
+   companions use. This also applies to companions loaded by mission triggers
+   with `autoLoad` disabled. If that file is missing or invalid, no feature
+   bridges and each logs `JSON codec unavailable`. Nothing is vendored or copied.
 5. Tune JTAC frequency. Start with `Axeman, Viper one one, checking in`,
    `request task`, and `ready brief`; include controller and caller on every call.
    Read back requested critical fields with labels and exact numerical values.

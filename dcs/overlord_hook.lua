@@ -28,6 +28,17 @@ Each feature is a fixed pair of mission entry point and brain route:
   airfields  OverlordAirfield.bridge(<epoch>, <last brain response>, <native radio context>)
                                                                      -> POST /airfield/exchange
 
+JSON codec: the mission scripting state has no net.lua2json/json2lua, so before
+any exchange or auto-load in an epoch (also with autoLoad = false, for companions
+the mission loads itself) the hook reads the engine's own JSON library from the
+fixed path <DCS install>/Scripts/JSON.lua (bounded, read once per epoch) and
+installs it there as OverlordJSON = { encode, decode }, closures over the codec
+object the file returns; the source travels as one %q literal, never with a
+token or path, and an OverlordJSON already present is kept.  The companions use
+only OverlordJSON.  While it is unavailable (missing, unreadable, oversized or
+invalid file: up to 3 install attempts per epoch, one per interval) no feature
+bridges, and each feature logs the reason.
+
 Every interval the hook calls each enabled feature's entry point through
 net.dostring_in("server", ...) - the Lua state that runs mission scripts (the
 "mission" state only holds the mission description; world is nil there and the
@@ -97,6 +108,10 @@ local socket = require('socket')
 local MAX_SNAPSHOT, MAX_RESPONSE = 262144, 65536
 local MAX_RADIO_FILE, MAX_RADIO_RECORDS, MAX_RADIO_ALIASES, RADIO_INSTRUCTIONS = 4194304, 4096, 8, 20000000
 local MAX_COMPANION_FILE = 1048576
+-- The installed engine JSON library (<DCS install>/Scripts/JSON.lua, returns a codec object with
+-- :encode/:decode).  The mission scripting state has no net.lua2json/json2lua, so every bridge
+-- depends on the hook installing it there as OverlordJSON.
+local CODEC_FILE, MAX_CODEC_FILE, CODEC_ATTEMPTS = 'Scripts/JSON.lua', 262144, 3
 -- net.dostring_in Lua state holding the mission scripting API (world, coalition, ...).  The state
 -- named "mission" is the mission description (world is nil there), so it is refused.
 local SCRIPTING_STATE = 'server'
@@ -108,7 +123,7 @@ local FEATURES = {
                 radioContext = true },
 }
 local RADIO_ROLES = { 'ground', 'tower', 'approach' }
-local hook = { cfg = nil, epoch = nil, features = {}, radioContext = nil }
+local hook = { cfg = nil, epoch = nil, features = {}, radioContext = nil, codec = { attempts = 0, nextAt = 0 } }
 
 local function logError(feature, message)
   if message ~= feature.lastError then
@@ -531,7 +546,73 @@ local function autoload(feature)
   end
 end
 
-local function exchange(feature)
+-- Native JSON codec ----------------------------------------------------------------------
+
+local CODEC_RESULTS = {
+  unavailable = 'scripting state has no loadstring',
+  syntax = 'native ' .. CODEC_FILE .. ' does not compile',
+  invalid = 'native ' .. CODEC_FILE .. ' returned no codec with encode/decode',
+}
+
+-- Installed JSON.lua source, read at most once per epoch; a read failure is final for the epoch.
+local function codecSource()
+  local codec = hook.codec
+  if codec.source or codec.readError then return codec.source, codec.readError end
+  local okDir, dir = pcall(lfs.currentdir)
+  if not okDir or type(dir) ~= 'string' or dir == '' then
+    codec.readError = 'DCS install directory unknown'
+    return nil, codec.readError
+  end
+  if not dir:find('[\\/]$') then dir = dir .. '/' end
+  local label = 'native ' .. CODEC_FILE
+  local source, err = readBounded(dir .. CODEC_FILE, MAX_CODEC_FILE, label)
+  if source and source:byte(1) == 27 then source, err = nil, label .. ': precompiled chunk refused' end
+  codec.source, codec.readError = source, err
+  return source, err
+end
+
+-- Makes OverlordJSON = { encode, decode } (closures over the native codec object) available in the
+-- scripting state before any bridge or auto-load.  At most CODEC_ATTEMPTS installs per epoch, one
+-- per interval.  Returns true, or false and a reason; tokens and paths never enter the code.
+local function ensureCodec(now)
+  local codec = hook.codec
+  if codec.ready then return true end
+  if codec.error and (codec.attempts >= CODEC_ATTEMPTS or now < codec.nextAt) then return false, codec.error end
+  local source, err = codecSource()
+  if not source then
+    codec.error, codec.attempts = err, CODEC_ATTEMPTS
+    return false, err
+  end
+  codec.attempts, codec.nextAt = codec.attempts + 1, now + hook.cfg.interval
+  local code = 'if type(OverlordJSON) == "table" and type(OverlordJSON.encode) == "function"'
+    .. ' and type(OverlordJSON.decode) == "function" then return "present" end'
+    .. ' if type(loadstring) ~= "function" then return "unavailable" end'
+    .. ' local chunk = loadstring(' .. string.format('%q', source) .. ', ' .. string.format('%q', '=' .. CODEC_FILE) .. ')'
+    .. ' if not chunk then return "syntax" end'
+    .. ' local ok, codec = pcall(chunk)'
+    .. ' if not ok or type(codec) ~= "table" or type(codec.encode) ~= "function"'
+    .. ' or type(codec.decode) ~= "function" then return "invalid" end'
+    .. ' OverlordJSON = { encode = function(value) return codec:encode(value) end,'
+    .. ' decode = function(text) return codec:decode(text) end }'
+    .. ' return "ready"'
+  local result, ok = net.dostring_in(SCRIPTING_STATE, code)
+  if ok ~= false and (result == 'ready' or result == 'present') then
+    codec.ready, codec.error = true, nil
+    log.write('OVERLORD', log.INFO, 'Overlord bridge: ' .. (result == 'ready'
+      and 'native JSON codec installed as OverlordJSON' or 'OverlordJSON already present'))
+    return true
+  end
+  codec.error = ok == false and 'JSON codec loader rejected'
+    or (CODEC_RESULTS[result] or 'unexpected JSON codec loader result')
+  return false, codec.error
+end
+
+local function exchange(feature, now)
+  local ready, codecError = ensureCodec(now)
+  if not ready then
+    logError(feature, 'JSON codec unavailable: ' .. codecError)
+    return
+  end
   if feature.loadDue then
     feature.loadDue, feature.loadTried = false, true
     autoload(feature)
@@ -562,7 +643,7 @@ local function step(feature, now)
     pump(feature, now)
   elseif now >= feature.nextAt then
     feature.nextAt = now + hook.cfg.interval
-    exchange(feature)
+    exchange(feature, now)
   end
 end
 
@@ -572,6 +653,7 @@ local function resetFeatures()
     feature.inbound, feature.nextAt, feature.loadDue, feature.loadTried = '', 0, false, false
   end
   hook.radioContext = nil   -- re-read per mission/theatre
+  hook.codec = { attempts = 0, nextAt = 0 }   -- a new mission has a new scripting state
 end
 
 local callbacks = {}

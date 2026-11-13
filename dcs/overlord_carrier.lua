@@ -35,7 +35,7 @@ DCS APIs used: env.mission, Unit.getByName, coalition.getPlayers, Unit methods
 getID/getName/getPlayerName/getCallsign/getDesc/isExist/isActive/getLife/
 getPoint/getVelocity/getPosition/inAir/hasAttribute, Airbase getName/getUnit
 (event.place), coord.LOtoLL, atmosphere.getTemperatureAndPressure, timer,
-world.addEventHandler, net.lua2json/json2lua.
+world.addEventHandler, OverlordJSON.encode/decode (the engine JSON codec the server hook installs).
 ]]
 
 if OverlordCarrier and OverlordCarrier.stop then
@@ -730,7 +730,7 @@ OverlordCarrier = (function()
     refreshPlayers(transient)
     if state.seq > 0 and state.consumed < state.seq and type(inbound) == 'string' and #inbound > 0
         and #inbound <= MAX_INBOUND then
-      local ok, message = pcall(net.json2lua, inbound)
+      local ok, message = pcall(OverlordJSON.decode, inbound)
       if ok and type(message) == 'table' and message.version == 1 and message.accepted == true
           and message.epoch == state.epoch and message.seq == state.seq and type(message.watch) == 'table' then
         state.consumed, state.last = state.seq, now
@@ -739,7 +739,7 @@ OverlordCarrier = (function()
       end
     end
     state.seq = state.seq + 1
-    return net.lua2json(snapshot(transient))
+    return OverlordJSON.encode(snapshot(transient))
   end
 
   function M.stop()

@@ -120,6 +120,13 @@ local function readFile(path)
   return s
 end
 
+local function writeFile(path, content)
+  os.execute('mkdir -p "' .. path:gsub('[^/]*$', '') .. '"')
+  local f = assert(io.open(path, 'wb'))
+  f:write(content)
+  f:close()
+end
+
 local function compile(source, name, env)
   if setfenv then
     local chunk = assert(loadstring(source, name))
@@ -127,6 +134,18 @@ local function compile(source, name, env)
     return chunk
   end
   return assert(load(source, name, 't', env))
+end
+
+-- Stand-in for the engine's installed Scripts/JSON.lua, which returns a codec object with
+-- :encode/:decode.  Its engine is this harness's own JSON section above: no DCS source is copied.
+local function nativeJsonFixture()
+  local section = readFile(ROOT .. 'tests/carrier_harness.lua'):match('\n(%-%- JSON %(enough.-)\n%-%- Helpers')
+  assert(section, 'harness JSON section')
+  return section .. '\nlocal OBJDEF = {}\n'
+    .. 'function OBJDEF:encode(value) return encode(value) end\n'
+    .. 'function OBJDEF:decode(text) return decode(text) end\n'
+    .. 'function OBJDEF:new() return setmetatable({}, { __index = OBJDEF }) end\n'
+    .. 'return OBJDEF:new()\n'
 end
 
 local function check(name, fn)
@@ -291,8 +310,16 @@ local function newMission(opts)
       return 288.15, 101591.67
     end },
     world = { event = EVENT, addEventHandler = function(h) W.handlers[#W.handlers + 1] = h end },
-    net = { lua2json = encode, json2lua = decode },
+    -- No net here: the server state only gets JSON as OverlordJSON from the hook (newHook removes
+    -- this stand-in so the hook must install it from the native JSON.lua fixture).
+    OverlordJSON = { encode = encode, decode = decode },
+    -- The scripting state keeps loadstring; chunks bind to the mission globals.
+    loadstring = function(source, name)
+      local ok, chunk = pcall(compile, source, name, W.env)
+      return ok and chunk or nil
+    end,
   }
+  allowedNil.OverlordJSON = true   -- until the hook installs it
   W.env = setmetatable(base, { __index = function(_, k)
     if allowedNil[k] then return nil end
     W.forbidden[#W.forbidden + 1] = k
@@ -752,8 +779,9 @@ end)
 
 -- Server hook with both features ------------------------------------------------------
 
-local function newHook(W, features)
-  local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {} }
+local function newHook(W, features, codec)
+  local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {},
+              codecCalls = {} }
   local dir = os.tmpname()
   os.remove(dir)
   os.execute('mkdir -p "' .. dir .. '/Config/"')
@@ -761,6 +789,9 @@ local function newHook(W, features)
   f:write('return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
     .. ' interval = 1, timeout = 3, state = "server", features = ' .. features .. ' }')
   f:close()
+  -- Native engine JSON.lua under the install dir; the scripting state starts without OverlordJSON.
+  if codec ~= false then writeFile(dir .. '/dcs/Scripts/JSON.lua', codec or nativeJsonFixture()) end
+  rawset(W.env, 'OverlordJSON', nil)
 
   local function respond(conn)
     local split = conn.data:find('\r\n\r\n', 1, true)
@@ -806,12 +837,14 @@ local function newHook(W, features)
       setUserCallbacks = function(cb) H.callbacks = cb end,
     },
     net = { dostring_in = function(state, code)
-      H.calls[#H.calls + 1] = { state = state, code = code }
+      -- JSON codec installs are recorded apart from bridge/auto-load calls.
+      local calls = code:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
+      calls[#calls + 1] = { state = state, code = code }
       local ok, result = pcall(compile(code, '=dostring', W.env))
       return tostring(result), ok
     end },
     log = { write = function(_, _, m) H.logs[#H.logs + 1] = m end, ERROR = 1, WARNING = 2, INFO = 3 },
-    lfs = { writedir = function() return dir .. '/' end },
+    lfs = { writedir = function() return dir .. '/' end, currentdir = function() return dir .. '/dcs' end },
     package = { path = '', cpath = '' },
     require = function(name) assert(name == 'socket', 'unexpected module ' .. name); return socket end,
   }, { __index = _G })
@@ -855,6 +888,9 @@ check('hook runs JTAC and carrier features on fixed routes with shared tokens an
   eq(count(carriers[1].body.carriers), 5)
   eq(count(carriers[1].body.aircraft), 0)
   eq(find(carriers[2].body.aircraft, 'unit_id', '301').carrier_id, '101', 'carrier watch round trip')
+  eq(rawget(W.env, 'net'), nil, 'no net in the scripting state')
+  eq(#H.codecCalls, 1, 'native JSON codec installed once before the bridges')
+  eq(H.codecCalls[1].state, 'server')
   for _, call in ipairs(H.calls) do
     eq(call.state, 'server')
     assert(call.code:match('^return OverlordJTAC and OverlordJTAC%.bridge%(".-",".*"%)$')
