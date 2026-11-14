@@ -20,6 +20,8 @@ Python standard library keeps control/network/domain services inspectable and de
 
 [![Native ATC and carrier radio architecture](docs/diagrams/previews/native-atc-carrier-bridge.png)](https://neboman11.github.io/overlordbot-local/diagrams/native-atc-carrier-bridge.html)
 
+[Exact pilot radio-call flowcharts](https://neboman11.github.io/overlordbot-local/radio-calls/) keep each complete procedure together, including readbacks, alternate routes and recovery loops.
+
 ## Run the complete local stack
 
 Requirements: Linux amd64, Docker Compose or Podman + podman-compose. Internet is needed for pinned build inputs/model downloads, **not inference**. The demo uses an internal container network without published ports or runtime internet access.

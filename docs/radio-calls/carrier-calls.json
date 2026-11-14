@@ -1,0 +1,2278 @@
+{
+  "source": {
+    "repository": "neboman11/overlordbot-local",
+    "commit": "63ba92534ddc60fa3268fbe2549eb1e455ad7748",
+    "guide": "docs/radio-calls/carrier.md",
+    "label_shape": "ID[\"YOU: <full call with [PLACEHOLDER]s>\"]; substitute values to obtain the spoken call"
+  },
+  "fixture": {
+    "carriers": {
+      "71": {
+        "name": "CVN-71 Theodore Roosevelt",
+        "spoken": "Roosevelt",
+        "channel": "2:127500000:0",
+        "coalition": 2,
+        "heading_true": 0,
+        "deck_angle": 9,
+        "lat": 43.0,
+        "lon": 41.0,
+        "altimeter_inhg": 29.92,
+        "brc_magnetic": 353,
+        "final_magnetic": 344,
+        "case3_radial": 164
+      },
+      "72": {
+        "name": "CVN-72 Abraham Lincoln",
+        "spoken": "Lincoln",
+        "channel": "2:128500000:0",
+        "coalition": 2
+      }
+    },
+    "player": {
+      "unit_id": "100",
+      "callsign": "Viper 1-1",
+      "player_name": "Bob",
+      "modex": "101",
+      "human": true
+    },
+    "date": "2026-11-12",
+    "abs_time": 43200,
+    "source": "tests/test_carrier.py:10-58"
+  },
+  "readback_formats": {
+    "case1": {
+      "order": [
+        "angels",
+        "altimeter"
+      ],
+      "template_node": "CR_Y_RB1",
+      "spoken_example": "Roosevelt marshal, Viper one one, readback angels two, altimeter two niner niner two",
+      "assignment_reply": "viper 1 1, Roosevelt marshal, CASE one recovery, BRC three five three, hold overhead at angels two, altimeter two nine nine two, read back angels and altimeter",
+      "source": "overlord/carrier.py:355-360,776-782; tests/test_carrier.py:299-310"
+    },
+    "case2_3": {
+      "order": [
+        "radial",
+        "DME",
+        "angels",
+        "approach time (minute only)",
+        "altimeter"
+      ],
+      "template_node": "CR_Y_RB23",
+      "spoken_example": "Roosevelt marshal, Viper one one, readback one six four radial, two one DME, angels six, approach time zero five, altimeter two niner niner two",
+      "assignment_reply": "viper 1 1, Roosevelt marshal, CASE three recovery, final bearing three four four, marshal on the one six four radial, two one DME, angels six, expected approach time zero five, altimeter two nine nine two, read back radial, DME, angels, approach time and altimeter",
+      "source": "overlord/carrier.py:355-372,783-793; tests/test_carrier.py:417-434"
+    },
+    "rules": [
+      "explicit word readback required",
+      "labels and fillers ignored; numbers compared in order",
+      "no extra numbers (no BRC/final bearing)",
+      "altimeter as 2992 or 29.92 digits; 29.9 fails",
+      "headings compared mod 360 as whole numbers",
+      "mismatch reply names first wrong field with correct value"
+    ],
+    "mismatch_examples": [
+      {
+        "said": "readback angels three, altimeter two niner niner two",
+        "assigned": {
+          "case": 1,
+          "angels": 2,
+          "altimeter": 29.92,
+          "brc": 353
+        },
+        "reply": "negative readback, angels two, read back again",
+        "source": "tests/test_carrier.py:305-306"
+      },
+      {
+        "said": "readback one six four radial, two one zero DME, angels six, approach time zero five, altimeter two niner niner two",
+        "assigned": {
+          "case": 3,
+          "angels": 6,
+          "altimeter": 29.92,
+          "brc": 353,
+          "final": 344,
+          "radial": 164,
+          "dme": 21,
+          "eat_minute": 5
+        },
+        "reply": "negative readback, two one DME, read back again",
+        "source": "tests/test_carrier.py:426-433"
+      }
+    ]
+  },
+  "charts": [
+    {
+      "id": "carrier-launch",
+      "mermaid_index": 0,
+      "carrier_id": "71",
+      "nodes": [
+        {
+          "id": "CL_Y_STARTUP",
+          "intent": "departure",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "departure",
+            "startup": true,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "no session, or any session except a recovery tracked in the air; creates departure session phase startup",
+          "reply_nodes": [
+            "CL_R_STARTUP",
+            "CL_R_LIMIT",
+            "CL_R_INAIR"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_READY",
+          "intent": "departure",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "departure",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session in startup -> queued; otherwise new ready (queued) session; repeat while queued/released/airborne returns status",
+          "reply_nodes": [
+            "CL_R_QUEUED",
+            "CL_R_QUEUED_MISSING"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_REQDEP",
+          "intent": "departure",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "departure",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "new launch request (phase queued); from a confirmed trap the deck is already proven",
+          "reply_nodes": [
+            "CL_R_QUEUED",
+            "CL_R_QUEUED_MISSING",
+            "CL_R_LIMIT",
+            "CL_R_INAIR"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_SAYAGAIN",
+          "intent": "sayAgain",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "sayAgain",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session; reply is the current phase status",
+          "reply_nodes": [
+            "CL_R_STARTUP",
+            "CL_R_QUEUED",
+            "CL_E_CLEARED",
+            "CL_R_AIRB_STATUS"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_EMERG",
+          "intent": "emergency",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "emergency",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session: priority set (launch order); with no session it enrols a recovery that closes if parked",
+          "reply_nodes": [
+            "CL_R_EMERG",
+            "CL_E_NOTAIR"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_CANCEL",
+          "intent": "cancel",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancel",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session (also accepted with a stale link)",
+          "reply_nodes": [
+            "CL_R_CANCEL",
+            "CL_R_NOACTIVE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_CHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own session (also accepted with a stale link)",
+          "reply_nodes": [
+            "CL_R_CHECKOUT",
+            "CL_R_NOACTIVE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_XCHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CALLSIGN": "Viper one one",
+            "OTHER_CARRIER": "Lincoln"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "said on the OTHER carrier's own channel (carrier_id 72, 2:128500000:0) where the session lives",
+          "reply_nodes": [
+            "CL_R_XCHECKOUT"
+          ],
+          "carrier_id": "72"
+        },
+        {
+          "id": "CL_Y_AIRBORNE",
+          "intent": "airborne",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "airborne",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session; information only",
+          "reply_nodes": [
+            "CL_R_AIRB_EARLY",
+            "CL_R_AIRB_STATUS"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_HANDOFF",
+          "intent": "handoff",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "handoff",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own departure session phase airborne (launch observed)",
+          "reply_nodes": [
+            "CL_R_HANDOFF",
+            "CL_R_HANDOFF_EARLY"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CL_Y_RETURN",
+          "intent": "checkIn",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkIn",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "replaces departure session with recovery; airborne continues in recovery chart, on deck closes",
+          "reply_nodes": [
+            "CL_GO_RECOVERY",
+            "CL_E_NOTAIR"
+          ],
+          "carrier_id": "71"
+        }
+      ]
+    },
+    {
+      "id": "carrier-recovery",
+      "mermaid_index": 1,
+      "carrier_id": "71",
+      "nodes": [
+        {
+          "id": "CR_Y_CHECKIN",
+          "intent": "checkIn",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkIn",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "no recovery session on this carrier (new); existing recovery returns status",
+          "reply_nodes": [
+            "CR_R_ASSIGN1",
+            "CR_R_ASSIGN23",
+            "CR_R_STANDBY",
+            "CR_R_LIMIT",
+            "CR_R_STATUS"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_EMERG",
+          "intent": "emergency",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "emergency",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "any; enrols with priority when not enrolled here, else sets priority",
+          "reply_nodes": [
+            "CR_R_EMERG_LEAD",
+            "CR_R_EMERG_STATUS",
+            "CR_R_LIMIT"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_RB1",
+          "intent": "readback",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one",
+            "ANGELS": "two",
+            "ALTIMETER": "two niner niner two"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": " angels two, altimeter two niner niner two"
+          },
+          "context": "recovery phase assigned, CASE I",
+          "reply_nodes": [
+            "CR_R_RBOK",
+            "CR_R_RBBAD",
+            "CR_R_RBNONE"
+          ],
+          "carrier_id": "71",
+          "readback_pending": {
+            "phase": "assigned",
+            "fields": [
+              [
+                "angels",
+                2
+              ],
+              [
+                "altimeter",
+                29.92
+              ]
+            ]
+          },
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_RB23",
+          "intent": "readback",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one",
+            "RADIAL": "one six four",
+            "DME": "two one",
+            "ANGELS": "six",
+            "EAT_MINUTE": "zero five",
+            "ALTIMETER": "two niner niner two"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": " one six four radial, two one DME, angels six, approach time zero five, altimeter two niner niner two"
+          },
+          "context": "recovery phase assigned, CASE II or III (sample CASE III)",
+          "reply_nodes": [
+            "CR_R_RBOK",
+            "CR_R_RBBAD",
+            "CR_R_RBNONE"
+          ],
+          "carrier_id": "71",
+          "readback_pending": {
+            "phase": "assigned",
+            "fields": [
+              [
+                "radial",
+                164
+              ],
+              [
+                "DME",
+                21
+              ],
+              [
+                "angels",
+                6
+              ],
+              [
+                "approach time",
+                5
+              ],
+              [
+                "altimeter",
+                29.92
+              ]
+            ]
+          },
+          "carrier_assignment": {
+            "case": 3,
+            "angels": 6,
+            "altimeter": 29.92,
+            "brc": 353,
+            "final": 344,
+            "radial": 164,
+            "dme": 21,
+            "eat_minute": 5
+          }
+        },
+        {
+          "id": "CR_Y_EST",
+          "intent": "established",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "established",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "phase marshal, tracked airborne, CASE I within 10 nm overhead / CASE II-III within 6 nm of fix, altitude within 1000 ft of angels",
+          "reply_nodes": [
+            "CR_R_EST_OK",
+            "CR_R_EST_NORB",
+            "CR_R_EST_NOASSIGN",
+            "CR_R_EST_NORADAR",
+            "CR_R_EST_NOTHOLD",
+            "CR_R_STATUS"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_SAYAGAIN",
+          "intent": "sayAgain",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "sayAgain",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "any own session; current status",
+          "reply_nodes": [
+            "CR_R_STATUS"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_COMM",
+          "intent": "commencing",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "commencing",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "phase established with lane granted, within 60 nm",
+          "reply_nodes": [
+            "CR_R_COMM_I",
+            "CR_R_COMM_III",
+            "CR_R_COMM_NEG",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS",
+            "CR_R_PAT_RADAR"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_PLAT",
+          "intent": "platform",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "platform",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "CASE II/III after commencing, within 35 nm",
+          "reply_nodes": [
+            "CR_R_PLAT2",
+            "CR_R_PLAT3",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 3,
+            "angels": 6,
+            "altimeter": 29.92,
+            "brc": 353,
+            "final": 344,
+            "radial": 164,
+            "dme": 21,
+            "eat_minute": 5
+          }
+        },
+        {
+          "id": "CR_Y_TEN",
+          "intent": "final",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "final",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "CASE III after platform, within 15 nm",
+          "reply_nodes": [
+            "CR_R_TEN",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 3,
+            "angels": 6,
+            "altimeter": 29.92,
+            "brc": 353,
+            "final": 344,
+            "radial": 164,
+            "dme": 21,
+            "eat_minute": 5
+          }
+        },
+        {
+          "id": "CR_Y_INIT",
+          "intent": "initial",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "initial",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "CASE I after granted established or commencing; CASE II after commencing or platform; within 8 nm",
+          "reply_nodes": [
+            "CR_R_INIT",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS",
+            "CR_R_PAT_NONE",
+            "CR_R_COMM_NEG"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_BREAK",
+          "intent": "break",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "break",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "CASE I/II after initial, within 5 nm",
+          "reply_nodes": [
+            "CR_R_BREAK",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_ABEAM",
+          "intent": "downwind",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "downwind",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "CASE I/II after break, within 5 nm",
+          "reply_nodes": [
+            "CR_R_ABEAM",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_POS"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_BALL",
+          "intent": "ball",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one",
+            "FUEL_STATE": "five point six"
+          },
+          "expected_fields": {
+            "intent": "ball",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "after abeam (I/II) or ten miles (III); within 2 nm, <=1500 ft, within 45 deg astern of final; no other enrolled aircraft touched down/on deck",
+          "reply_nodes": [
+            "CR_R_BALL",
+            "CR_R_BALL_POS",
+            "CR_R_BALL_FOUL",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_RADAR",
+            "CR_R_COMM_NEG"
+          ],
+          "carrier_id": "71",
+          "carrier_assignment": {
+            "case": 1,
+            "angels": 2,
+            "altimeter": 29.92,
+            "brc": 353
+          }
+        },
+        {
+          "id": "CR_Y_CLARA",
+          "intent": "clara",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "clara",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "recovery phase downwind, final or ball; no state change",
+          "reply_nodes": [
+            "CR_R_CLARA",
+            "CR_R_PAT_NONE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_WAVEOFF",
+          "intent": "waveoff",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "waveoff",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "recovery phase downwind, final or ball",
+          "reply_nodes": [
+            "CR_R_WAVEOFF",
+            "CR_R_PAT_NONE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_BOLTER",
+          "intent": "bolter",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "bolter",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "phase ball or touchdown AND track in_air; touchdown not airborne -> stand by",
+          "reply_nodes": [
+            "CR_R_BOLTER",
+            "CR_R_BOLTER_WAIT",
+            "CR_R_PAT_SEQ",
+            "CR_R_PAT_NONE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_TRAPPED",
+          "intent": "trapped",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "trapped",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "information only; phase on_deck returns trap status",
+          "reply_nodes": [
+            "CR_R_TRAPPED_OK",
+            "CR_R_TRAPPED_WAIT"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_DECKCLEAR",
+          "intent": "deckClear",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "deckClear",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "recovery phase on_deck (mission-confirmed trap); releases session and lane",
+          "reply_nodes": [
+            "CR_R_DECKCLEAR",
+            "CR_R_NOTRAP"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_HANDOVER",
+          "intent": "departure",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "departure",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "recovery phase on_deck (or after deck clear): new departure session with deck already proven",
+          "reply_nodes": [
+            "CR_GO_LAUNCH"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_CANCEL",
+          "intent": "cancel",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancel",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own recovery session, any phase (also with a stale link); ends the whole session, never a priority withdrawal",
+          "reply_nodes": [
+            "CR_R_CANCEL",
+            "CR_R_NOACTIVE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_CHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CARRIER": "Roosevelt",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "own session (also with a stale link)",
+          "reply_nodes": [
+            "CR_R_CHECKOUT",
+            "CR_R_NOACTIVE"
+          ],
+          "carrier_id": "71"
+        },
+        {
+          "id": "CR_Y_XCHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CALLSIGN": "Viper one one",
+            "OTHER_CARRIER": "Lincoln"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "startup": false,
+            "blocked": false,
+            "modex": null,
+            "transmitter": {
+              "group": "viper",
+              "flight": 1,
+              "element": 1
+            },
+            "readback": null
+          },
+          "context": "said on the OTHER carrier's own channel (carrier_id 72, 2:128500000:0) where the session lives",
+          "reply_nodes": [
+            "CR_R_XCHECKOUT"
+          ],
+          "carrier_id": "72"
+        }
+      ]
+    }
+  ],
+  "intent_coverage": {
+    "checkOut": [
+      "CL_Y_CHECKOUT",
+      "CL_Y_XCHECKOUT",
+      "CR_Y_CHECKOUT",
+      "CR_Y_XCHECKOUT"
+    ],
+    "cancel": [
+      "CL_Y_CANCEL",
+      "CR_Y_CANCEL"
+    ],
+    "waveoff": [
+      "CR_Y_WAVEOFF"
+    ],
+    "readback": [
+      "CR_Y_RB1",
+      "CR_Y_RB23"
+    ],
+    "sayAgain": [
+      "CL_Y_SAYAGAIN",
+      "CR_Y_SAYAGAIN"
+    ],
+    "emergency": [
+      "CL_Y_EMERG",
+      "CR_Y_EMERG"
+    ],
+    "departure": [
+      "CL_Y_STARTUP",
+      "CL_Y_READY",
+      "CL_Y_REQDEP",
+      "CR_Y_HANDOVER"
+    ],
+    "checkIn": [
+      "CL_Y_RETURN",
+      "CR_Y_CHECKIN"
+    ],
+    "established": [
+      "CR_Y_EST"
+    ],
+    "commencing": [
+      "CR_Y_COMM"
+    ],
+    "platform": [
+      "CR_Y_PLAT"
+    ],
+    "initial": [
+      "CR_Y_INIT"
+    ],
+    "break": [
+      "CR_Y_BREAK"
+    ],
+    "downwind": [
+      "CR_Y_ABEAM"
+    ],
+    "final": [
+      "CR_Y_TEN"
+    ],
+    "clara": [
+      "CR_Y_CLARA"
+    ],
+    "ball": [
+      "CR_Y_BALL"
+    ],
+    "bolter": [
+      "CR_Y_BOLTER"
+    ],
+    "deckClear": [
+      "CR_Y_DECKCLEAR"
+    ],
+    "trapped": [
+      "CR_Y_TRAPPED"
+    ],
+    "airborne": [
+      "CL_Y_AIRBORNE"
+    ],
+    "handoff": [
+      "CL_Y_HANDOFF"
+    ]
+  },
+  "branch_coverage": [
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "no receiver word -> None (no reply)",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_N_SILENT"
+      ],
+      "source": "overlord/carrier_parser.py:93-97"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "no receiver word -> None (no reply)",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_N_SILENT"
+      ],
+      "source": "overlord/carrier_parser.py:93-97"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "earliest command wins; negation voids positive call -> intent None/blocked",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_SAYAGAIN"
+      ],
+      "source": "overlord/carrier_parser.py:106-127"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "cancel word anywhere in positive call -> cancel; wave off -> waveoff",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_CANCEL",
+        "CR_Y_WAVEOFF"
+      ],
+      "source": "overlord/carrier_parser.py:120-125"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "emergency/readback only check scope up to keyword ('emergency, cancel' stays emergency)",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_EMERG",
+        "CR_Y_RB1",
+        "CR_Y_RB23"
+      ],
+      "source": "overlord/carrier_parser.py:120"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "startup flag from 'start up'",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_STARTUP"
+      ],
+      "source": "overlord/carrier_parser.py:113"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "readback raw text after keyword",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_RB1",
+        "CR_Y_RB23"
+      ],
+      "source": "overlord/carrier_parser.py:129-132"
+    },
+    {
+      "handler": "carrier_parser.parse",
+      "branch": "modex digits vs callsign",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_AMBIG",
+        "CL_R_NOID"
+      ],
+      "source": "overlord/carrier_parser.py:73-83,133-135"
+    },
+    {
+      "handler": "CarrierService._resolve",
+      "branch": "carrier_id not owning channel/coalition, or no unique carrier -> reply None",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_N_SILENT"
+      ],
+      "source": "overlord/carrier.py:982-993,1010-1012"
+    },
+    {
+      "handler": "CarrierService._resolve",
+      "branch": "carrier_id not owning channel/coalition, or no unique carrier -> reply None",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_N_SILENT"
+      ],
+      "source": "overlord/carrier.py:982-993,1010-1012"
+    },
+    {
+      "handler": "identify_player",
+      "branch": "unrecognized / unknown / ambiguous caller",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_NOID",
+        "CL_R_SAYAGAIN",
+        "CL_R_UNKNOWN",
+        "CL_R_AMBIG"
+      ],
+      "source": "overlord/identities.py:7-28; overlord/carrier.py:1017-1023"
+    },
+    {
+      "handler": "identify_player",
+      "branch": "unrecognized / unknown / ambiguous caller",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_NOID",
+        "CR_R_SAYAGAIN",
+        "CR_R_UNKNOWN",
+        "CR_R_AMBIG"
+      ],
+      "source": "overlord/identities.py:7-28; overlord/carrier.py:1017-1023"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "SRS sender name does not identify caller",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_SRS"
+      ],
+      "source": "overlord/carrier.py:1025-1030"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "SRS sender name does not identify caller",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_SRS"
+      ],
+      "source": "overlord/carrier.py:1025-1030"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "session incarnation differs -> old session released",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:1031-1034"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "bridge stale and intent not cancel/checkOut",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_STALE"
+      ],
+      "source": "overlord/carrier.py:1035-1037"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "bridge stale and intent not cancel/checkOut",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STALE"
+      ],
+      "source": "overlord/carrier.py:1035-1037"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "session on another carrier, intent not checkIn/departure/emergency",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_OTHER",
+        "CL_Y_XCHECKOUT"
+      ],
+      "source": "overlord/carrier.py:1038-1042"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "session on another carrier, intent not checkIn/departure/emergency",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_OTHER",
+        "CR_Y_XCHECKOUT"
+      ],
+      "source": "overlord/carrier.py:1038-1042"
+    },
+    {
+      "handler": "CarrierService.respond",
+      "branch": "speaker's own scheduler instruction appended (Charlie/commence/assignment)",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_EST_OK",
+        "CR_E_CHARLIE",
+        "CR_E_COMMENCE"
+      ],
+      "source": "overlord/carrier.py:1044-1049"
+    },
+    {
+      "handler": "Brain.respond",
+      "branch": "state reply to checkIn/departure/emergency releases airfield session; airfield enrolment releases carrier",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_XFER"
+      ],
+      "source": "overlord/brain.py:172-180; overlord/airfield.py:1475-1476"
+    },
+    {
+      "handler": "Brain.respond",
+      "branch": "state reply to checkIn/departure/emergency releases airfield session; airfield enrolment releases carrier",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_XFER"
+      ],
+      "source": "overlord/brain.py:172-180; overlord/airfield.py:1475-1476"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "cancel/checkOut with no own session",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_NOACTIVE"
+      ],
+      "source": "overlord/carrier.py:1074-1076"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "cancel/checkOut with no own session",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_NOACTIVE"
+      ],
+      "source": "overlord/carrier.py:1074-1076"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "checkOut releases",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_CHECKOUT",
+        "CL_R_CHECKOUT"
+      ],
+      "source": "overlord/carrier.py:1077-1079"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "cancel releases: departure cancelled",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_CANCEL",
+        "CL_R_CANCEL"
+      ],
+      "source": "overlord/carrier.py:1080"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "cancel releases: recovery cancelled",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_CANCEL",
+        "CR_R_CANCEL"
+      ],
+      "source": "overlord/carrier.py:1080"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "checkOut releases",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_CHECKOUT",
+        "CR_R_CHECKOUT"
+      ],
+      "source": "overlord/carrier.py:1077-1079"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "checkIn with own recovery -> status only",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_CHECKIN",
+        "CR_R_STATUS"
+      ],
+      "source": "overlord/carrier.py:1081-1083"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "checkIn otherwise -> enrol recovery (replaces departure)",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_RETURN",
+        "CL_GO_RECOVERY"
+      ],
+      "source": "overlord/carrier.py:1084"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "emergency with no own session -> enrol priority",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_EMERG",
+        "CR_R_EMERG_LEAD"
+      ],
+      "source": "overlord/carrier.py:1085-1087"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "emergency with own session -> priority + status",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_EMERG_STATUS"
+      ],
+      "source": "overlord/carrier.py:1088-1090"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "emergency with own departure -> priority + departure status",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_EMERG",
+        "CL_R_EMERG"
+      ],
+      "source": "overlord/carrier.py:1088-1090"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "intent None -> say again",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_SAYAGAIN"
+      ],
+      "source": "overlord/carrier.py:1093-1094"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "no own session for procedure call -> check in first",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_NOSESSION"
+      ],
+      "source": "overlord/carrier.py:1095-1096"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "no own session for procedure call -> check in first",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_NOSESSION"
+      ],
+      "source": "overlord/carrier.py:1095-1096"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "sayAgain -> status",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_SAYAGAIN",
+        "CR_R_STATUS"
+      ],
+      "source": "overlord/carrier.py:1097-1098"
+    },
+    {
+      "handler": "CarrierService._handle",
+      "branch": "sayAgain -> status",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_SAYAGAIN"
+      ],
+      "source": "overlord/carrier.py:1097-1098"
+    },
+    {
+      "handler": "CarrierService._enrol_recovery",
+      "branch": "traffic limit",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_LIMIT"
+      ],
+      "source": "overlord/carrier.py:1111-1114,1060-1063"
+    },
+    {
+      "handler": "CarrierService._enrol_recovery",
+      "branch": "missing facts -> checked in stand by",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STANDBY"
+      ],
+      "source": "overlord/carrier.py:1116-1119,741-750"
+    },
+    {
+      "handler": "CarrierService._enrol_recovery",
+      "branch": "assignment CASE I / CASE II-III",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_ASSIGN1",
+        "CR_R_ASSIGN23"
+      ],
+      "source": "overlord/carrier.py:1120,752-793"
+    },
+    {
+      "handler": "CarrierService._assign",
+      "branch": "marshal stack full",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STANDBY"
+      ],
+      "source": "overlord/carrier.py:758-762"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "own departure: startup -> queued on ready, else status",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_READY",
+        "CL_R_QUEUED"
+      ],
+      "source": "overlord/carrier.py:1124-1128"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "own recovery tracked in air, not on deck -> refuse",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_INAIR"
+      ],
+      "source": "overlord/carrier.py:1129-1131"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "traffic limit",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_LIMIT"
+      ],
+      "source": "overlord/carrier.py:1133-1135"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "new session startup vs queued",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_Y_STARTUP",
+        "CL_R_STARTUP",
+        "CL_Y_REQDEP"
+      ],
+      "source": "overlord/carrier.py:1136-1137,1147-1148"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "from on_deck recovery: deck_seen inherited (handover)",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_Y_HANDOVER",
+        "CR_GO_LAUNCH"
+      ],
+      "source": "overlord/carrier.py:1132,1138-1140"
+    },
+    {
+      "handler": "CarrierService._departure",
+      "branch": "from on_deck recovery: deck_seen inherited (handover)",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_HANDOVER"
+      ],
+      "source": "overlord/carrier.py:1132,1138-1140"
+    },
+    {
+      "handler": "CarrierService._status",
+      "branch": "departure queued with/without missing fact; released; airborne",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_QUEUED",
+        "CL_R_QUEUED_MISSING",
+        "CL_E_CLEARED",
+        "CL_R_AIRB_STATUS"
+      ],
+      "source": "overlord/carrier.py:1146-1156"
+    },
+    {
+      "handler": "CarrierService._status",
+      "branch": "recovery checked_in/assigned/marshal/established/pattern/ball/touchdown/on_deck",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STATUS",
+        "CR_R_STANDBY",
+        "CR_R_ASSIGN1",
+        "CR_R_TRAPPED_OK",
+        "CR_R_BOLTER_WAIT"
+      ],
+      "source": "overlord/carrier.py:1157-1175"
+    },
+    {
+      "handler": "CarrierService._readback",
+      "branch": "not recovery/not assigned",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_RBNONE"
+      ],
+      "source": "overlord/carrier.py:1190-1191"
+    },
+    {
+      "handler": "CarrierService._readback",
+      "branch": "mismatch (first wrong field, order, extra)",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_RBBAD"
+      ],
+      "source": "overlord/carrier.py:1192-1194,363-384"
+    },
+    {
+      "handler": "CarrierService._readback",
+      "branch": "exact -> marshal",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_RBOK"
+      ],
+      "source": "overlord/carrier.py:1195-1197"
+    },
+    {
+      "handler": "CarrierService._established",
+      "branch": "assigned / checked_in / departure",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_EST_NORB",
+        "CR_R_EST_NOASSIGN"
+      ],
+      "source": "overlord/carrier.py:1200-1202"
+    },
+    {
+      "handler": "CarrierService._established",
+      "branch": "phase beyond marshal -> status",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STATUS"
+      ],
+      "source": "overlord/carrier.py:1203-1204"
+    },
+    {
+      "handler": "CarrierService._established",
+      "branch": "not tracked",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_EST_NORADAR"
+      ],
+      "source": "overlord/carrier.py:1205-1206"
+    },
+    {
+      "handler": "CarrierService._established",
+      "branch": "CASE I overhead / CASE II-III fix and altitude check",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_F_HOLD1",
+        "CR_F_HOLD23",
+        "CR_R_EST_NOTHOLD"
+      ],
+      "source": "overlord/carrier.py:1207-1217"
+    },
+    {
+      "handler": "CarrierService._established",
+      "branch": "established -> rank",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_EST_OK"
+      ],
+      "source": "overlord/carrier.py:1218-1220"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "no assignment / departure session",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_PAT_NONE"
+      ],
+      "source": "overlord/carrier.py:1223-1224"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "repeat of current phase -> status",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_STATUS"
+      ],
+      "source": "overlord/carrier.py:1226-1227"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "established without grant -> continue holding",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_COMM_NEG"
+      ],
+      "source": "overlord/carrier.py:1228-1233"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "out of sequence / wrong CASE",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_PAT_SEQ"
+      ],
+      "source": "overlord/carrier.py:1229-1234,110-118"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "not tracked",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_PAT_RADAR"
+      ],
+      "source": "overlord/carrier.py:1235-1236"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "ball geometry not confirmed",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_BALL_POS"
+      ],
+      "source": "overlord/carrier.py:1238-1242"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "ball with foul deck -> wave off + recycle",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_BALL_FOUL",
+        "CR_C_RECYCLE"
+      ],
+      "source": "overlord/carrier.py:1243-1244"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "ball accepted",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_BALL"
+      ],
+      "source": "overlord/carrier.py:1245-1247"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "range check per call",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_PAT_POS"
+      ],
+      "source": "overlord/carrier.py:1248-1249,101"
+    },
+    {
+      "handler": "CarrierService._pattern",
+      "branch": "commencing/platform/initial/break/downwind/final accepted with PROMPT",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_COMM_I",
+        "CR_R_COMM_III",
+        "CR_R_PLAT2",
+        "CR_R_PLAT3",
+        "CR_R_INIT",
+        "CR_R_BREAK",
+        "CR_R_ABEAM",
+        "CR_R_TEN"
+      ],
+      "source": "overlord/carrier.py:1250-1252,119-128"
+    },
+    {
+      "handler": "CarrierService._clara",
+      "branch": "in downwind/final/ball vs otherwise",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_CLARA",
+        "CR_R_PAT_NONE"
+      ],
+      "source": "overlord/carrier.py:1275-1278"
+    },
+    {
+      "handler": "CarrierService._waveoff",
+      "branch": "in downwind/final/ball vs otherwise",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_WAVEOFF",
+        "CR_R_PAT_NONE"
+      ],
+      "source": "overlord/carrier.py:1280-1283"
+    },
+    {
+      "handler": "CarrierService._bolter",
+      "branch": "departure / ball-or-touchdown tracked airborne / touchdown on deck / other",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_PAT_NONE",
+        "CR_R_BOLTER",
+        "CR_R_BOLTER_WAIT",
+        "CR_R_PAT_SEQ"
+      ],
+      "source": "overlord/carrier.py:1285-1293"
+    },
+    {
+      "handler": "CarrierService._trapped",
+      "branch": "on_deck vs otherwise",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_TRAPPED_OK",
+        "CR_R_TRAPPED_WAIT"
+      ],
+      "source": "overlord/carrier.py:1295-1298"
+    },
+    {
+      "handler": "CarrierService._deckClear",
+      "branch": "on_deck releases vs no trap",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_DECKCLEAR",
+        "CR_R_NOTRAP",
+        "CR_DONE"
+      ],
+      "source": "overlord/carrier.py:1300-1304"
+    },
+    {
+      "handler": "CarrierService._airborne",
+      "branch": "airborne status vs stand by",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_AIRB_STATUS",
+        "CL_R_AIRB_EARLY"
+      ],
+      "source": "overlord/carrier.py:1306-1311"
+    },
+    {
+      "handler": "CarrierService._handoff",
+      "branch": "airborne releases vs not confirmed",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_HANDOFF",
+        "CL_R_HANDOFF_EARLY"
+      ],
+      "source": "overlord/carrier.py:1313-1317"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "terminal lifecycle event -> silent release",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:620-622"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "terminal lifecycle event -> silent release",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:620-622"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "land not on this deck -> recovery closed",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_OTHERDECK"
+      ],
+      "source": "overlord/carrier.py:623-627"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "land on this deck -> touchdown, deck fouled",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_F_TOUCH",
+        "CR_E_FOUL"
+      ],
+      "source": "overlord/carrier.py:628-630,702-706"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "departure airborne then land -> silent release",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_LANDED"
+      ],
+      "source": "overlord/carrier.py:631-633"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "foreign takeoff during recovery -> silent release",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_FOREIGN"
+      ],
+      "source": "overlord/carrier.py:634-637"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "takeoff after touchdown -> bolter; after on_deck -> airborne closed",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_BOLTER",
+        "CR_E_TAKEOFF"
+      ],
+      "source": "overlord/carrier.py:638-642"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "pre-launch takeoff foreign/unseen deck -> closed; else launch",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_E_FOREIGN",
+        "CL_F_LAUNCH"
+      ],
+      "source": "overlord/carrier.py:643-647"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "touchdown then in_air -> bolter; on_deck -> trap",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_F_LEAVE",
+        "CR_E_BOLTER",
+        "CR_W_TRAP",
+        "CR_E_TRAP"
+      ],
+      "source": "overlord/carrier.py:652-656"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "recovery on ground never airborne -> not airborne notice; airborne_seen + on_deck -> trap",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_NOTAIR",
+        "CR_E_TRAP"
+      ],
+      "source": "overlord/carrier.py:657-664"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "in_air pre-launch: deck seen -> launch, else not on deck",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_F_LAUNCH",
+        "CL_E_NOTDECK"
+      ],
+      "source": "overlord/carrier.py:666-672"
+    },
+    {
+      "handler": "CarrierService._observe",
+      "branch": "airborne departure beyond 10 nm -> auto handoff",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_F_10NM",
+        "CL_E_AUTOHANDOFF"
+      ],
+      "source": "overlord/carrier.py:673-675,103"
+    },
+    {
+      "handler": "CarrierService._recycle",
+      "branch": "no lane, no assignment / no lane with assignment / lane CASE III / lane CASE I-II",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_RC_CHECKIN",
+        "CR_R_RC_MARSHAL",
+        "CR_R_RC_III",
+        "CR_R_RC_PATTERN"
+      ],
+      "source": "overlord/carrier.py:677-691"
+    },
+    {
+      "handler": "CarrierService._trap",
+      "branch": "on_deck: assignment cleared, lane kept until release",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_TRAP",
+        "CR_Y_DECKCLEAR"
+      ],
+      "source": "overlord/carrier.py:696-700,579-591"
+    },
+    {
+      "handler": "CarrierService._launch",
+      "branch": "cleared vs uncleared launch",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_E_AIRBORNE",
+        "CL_E_UNCLEARED"
+      ],
+      "source": "overlord/carrier.py:708-722"
+    },
+    {
+      "handler": "CarrierService._schedule",
+      "branch": "facts changed: approach wave off / granted cancelled / holding new instructions",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_FACTS",
+        "CR_E_FACTS_APP",
+        "CR_E_FACTS_GRANT",
+        "CR_E_FACTS_HOLD"
+      ],
+      "source": "overlord/carrier.py:828-838,807-813"
+    },
+    {
+      "handler": "CarrierService._schedule",
+      "branch": "facts changed and cannot reassign: case gone / cancelled",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_FACTS_NONE",
+        "CR_E_FACTS_FULL"
+      ],
+      "source": "overlord/carrier.py:839-844"
+    },
+    {
+      "handler": "CarrierService._schedule",
+      "branch": "checked_in without assignment gets assignment when facts arrive",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_ASSIGN"
+      ],
+      "source": "overlord/carrier.py:845-848"
+    },
+    {
+      "handler": "CarrierService._schedule",
+      "branch": "lane grant: departure release",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_QUEUE",
+        "CL_E_CLEARED",
+        "CL_W_LANE"
+      ],
+      "source": "overlord/carrier.py:849-860,868-869,795-798"
+    },
+    {
+      "handler": "CarrierService._schedule",
+      "branch": "lane grant: CASE I Charlie / CASE II-III commence",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_LANE",
+        "CR_E_CHARLIE",
+        "CR_E_COMMENCE"
+      ],
+      "source": "overlord/carrier.py:849-860,866-867,799-801,803-805"
+    },
+    {
+      "handler": "CarrierService._refresh",
+      "branch": "stale: released departure back to queued, lane freed",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_STALE"
+      ],
+      "source": "overlord/carrier.py:447-460"
+    },
+    {
+      "handler": "CarrierService._refresh",
+      "branch": "stale: granted established loses grant, lane freed",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_STALE"
+      ],
+      "source": "overlord/carrier.py:447-460"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "carrier dropped/retuned, catalog/incarnation/coalition change -> silent release",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:537-552"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "carrier dropped/retuned, catalog/incarnation/coalition change -> silent release",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:537-552"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "rejected aircraft sample -> tracking data invalid",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_E_BADTRACK"
+      ],
+      "source": "overlord/carrier.py:555-559"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "rejected aircraft sample -> tracking data invalid",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_BADTRACK"
+      ],
+      "source": "overlord/carrier.py:555-559"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "omitted after watch handshake -> radar contact lost",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_E_LOST"
+      ],
+      "source": "overlord/carrier.py:567-570"
+    },
+    {
+      "handler": "CarrierService._apply",
+      "branch": "omitted after watch handshake -> radar contact lost",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_E_LOST"
+      ],
+      "source": "overlord/carrier.py:567-570"
+    },
+    {
+      "handler": "CarrierService.exchange",
+      "branch": "new epoch resets all sessions",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:470-477,428-435"
+    },
+    {
+      "handler": "CarrierService.exchange",
+      "branch": "new epoch resets all sessions",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_CLOSED"
+      ],
+      "source": "overlord/carrier.py:470-477,428-435"
+    },
+    {
+      "handler": "CarrierService.release_unit",
+      "branch": "transfer to airfield controller",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_W_XFER"
+      ],
+      "source": "overlord/carrier.py:593-605"
+    },
+    {
+      "handler": "CarrierService.release_unit",
+      "branch": "transfer to airfield controller",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_W_XFER"
+      ],
+      "source": "overlord/carrier.py:593-605"
+    },
+    {
+      "handler": "CarrierService._register",
+      "branch": "re-enrolment on another carrier releases the old session",
+      "chart": "carrier-recovery",
+      "nodes": [
+        "CR_R_OTHER",
+        "CR_Y_CHECKIN"
+      ],
+      "source": "overlord/carrier.py:1060-1070; tests/test_carrier.py:270-280"
+    },
+    {
+      "handler": "CarrierService._register",
+      "branch": "re-enrolment on another carrier releases the old session",
+      "chart": "carrier-launch",
+      "nodes": [
+        "CL_R_OTHER",
+        "CL_Y_REQDEP"
+      ],
+      "source": "overlord/carrier.py:1060-1070"
+    }
+  ],
+  "uncertainties": [
+    "Reply nodes show the message part only; actual speech is '<caller>, <Spoken> <role>, <message>' with the caller rendered from the catalog match (e.g. 'viper 1 1' or modex digit words).",
+    "CR_Y_RB23/assignment sample uses CASE III; CASE II uses identical marshal/readback grammar (carrier.py 783-793) but EAT minute depends on mission time.",
+    "Sample BRC 353 / final 344 / radial 164 were derived from domain.true_to_magnetic for the test fixture (43N 41E, 2026-11-12 12:00Z); tests compute them the same way (test_carrier.py 24-25) rather than hard-coding them.",
+    "Spoken-word callsign 'Viper one one' (tests use 'Viper 1 1'); the parser resolves both to viper/1/1.",
+    "Positive pattern/ball/established replies need mission telemetry positions (CALL_RANGE_NM, BALL_*, OVERHEAD_NM, FIX_TOLERANCE_NM); parser-only tests cannot validate those nodes without a bridge snapshot.",
+    "CL_Y_EMERG 'emergency' on deck with no session enrols a recovery that the next snapshot closes (not airborne); it is not a launch-priority call unless a departure session exists.",
+    "No priority-withdrawal intent exists: any cancel word ends the whole session (carrier.py 1074-1080).",
+    "Clara synonyms 'no ball'/'negative ball' and pattern synonyms (dirty up, see me, final, leaving marshal, downwind) are accepted but not separately charted (one canonical phrase per intent).",
+    "Chart edges from the shared guard hub apply to every YOU call; per-call guard edges are not drawn to keep one readable chart."
+  ]
+}

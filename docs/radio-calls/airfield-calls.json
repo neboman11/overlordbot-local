@@ -1,0 +1,3534 @@
+{
+  "source_revision": "63ba92534ddc60fa3268fbe2549eb1e455ad7748",
+  "label_contract": "Template = text after 'YOU: ' in the Mermaid label ID[\"YOU: ...\"] of the named node; substitute values[PLACEHOLDER] for [PLACEHOLDER].",
+  "fixture": "tests/test_airfield.py Base fixture: Ironwood id 1, runway 09-27, one radio 121.0 MHz with ground+tower+approach, wind 090/5 m/s, altimeter 29.92, player 100 Viper 1-1 modex 101. Positions (x,z metres): PARKING (-400,0), HOLD (-150,-1150), LINED_UP (0,-1150), ON_RUNWAY (0,0), OFF_RUNWAY (-300,300), FINAL (0,-6756) in_air 1000 ft AGL, AT_CROSSING (3000,3150), ON_CROSS_STRIP (3000,3000), PAST_CROSSING (3000,2850) — tests/test_airfield.py:19-43,550-552.",
+  "request_shape": {
+    "airfield": true,
+    "coalition": 2,
+    "channel": "2:121000000:0",
+    "text": "<substituted template>"
+  },
+  "charts": [
+    {
+      "id": "airfield-departure",
+      "markdown": "docs/radio-calls/airfield.md",
+      "section": "Chart 1 — Departure: startup to leaving the zone",
+      "nodes": [
+        {
+          "id": "D_INFO",
+          "intent": "information",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "information",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any; no session required; fresh bridge"
+        },
+        {
+          "id": "D_RCHECK",
+          "intent": "information",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "information",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any; no session required; fresh bridge"
+        },
+        {
+          "id": "D_STARTUP",
+          "intent": "startup",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "startup",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "no session; track PARKING (-400,0) on ground at airfield 1"
+        },
+        {
+          "id": "D_TAXI",
+          "intent": "taxi",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "taxi",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "session phase startup (or none) at PARKING, runway 09 selected"
+        },
+        {
+          "id": "D_TAXI_RB",
+          "intent": "readback",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "taxi",
+            "runway": "09",
+            "altimeter": null
+          },
+          "preconditions": "phase taxi_clearance"
+        },
+        {
+          "id": "D_CROSS",
+          "intent": "crossing",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "crossing",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "preconditions": "phase taxi (or taxi_in/holding_short/crossing_requested); plus CROSS_STRIP 18-36 (tests/test_airfield.py:550-552); track AT_CROSSING (3000,3150)"
+        },
+        {
+          "id": "D_CROSS_RB",
+          "intent": "readback",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "crossing",
+            "runway": "18",
+            "altimeter": null
+          },
+          "preconditions": "phase crossing_clearance granted, lane free, tower on channel"
+        },
+        {
+          "id": "D_CROSS_VAC",
+          "intent": "vacated",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "vacated",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "preconditions": "phase crossing, entered ON_CROSS_STRIP (3000,3000), now PAST_CROSSING (3000,2850)"
+        },
+        {
+          "id": "D_HOLD",
+          "intent": "holdingShort",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "holdingShort",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase taxi; track HOLD (-150,-1150)"
+        },
+        {
+          "id": "D_READY_DEP",
+          "intent": "holdingShort",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "holdingShort",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase holding_short (after lapse: expired, or after retune to a tower channel); track HOLD"
+        },
+        {
+          "id": "D_LU_RB",
+          "intent": "readback",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "lineup",
+            "runway": "09",
+            "altimeter": null
+          },
+          "preconditions": "phase lineup_clearance"
+        },
+        {
+          "id": "D_LINEDUP",
+          "intent": "linedUp",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "linedUp",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase lineup; track LINED_UP (0,-1150) heading 090"
+        },
+        {
+          "id": "D_READY_TO",
+          "intent": "holdingShort",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "holdingShort",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase lined_up with expired takeoff clearance; track LINED_UP"
+        },
+        {
+          "id": "D_TO_RB",
+          "intent": "readback",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "takeoff",
+            "runway": "09",
+            "altimeter": null
+          },
+          "preconditions": "phase takeoff_clearance"
+        },
+        {
+          "id": "D_AIRBORNE",
+          "intent": "airborne",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "airborne",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "departure phase airborne (takeoff event or in-air sample)"
+        },
+        {
+          "id": "D_HANDOFF",
+          "intent": "handoff",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "handoff",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "departure phase airborne"
+        },
+        {
+          "id": "D_RETURN",
+          "intent": "inbound",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "inbound",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "departure phase airborne, current sample in_air"
+        },
+        {
+          "id": "D_TAXIIN",
+          "intent": "taxiIn",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "taxiIn",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "departure phase startup/taxi_clearance/taxi/holding_short/crossing_requested, on ground here, no lane, off runway"
+        },
+        {
+          "id": "D_TAXIIN_RB",
+          "intent": "readback",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "taxi_in",
+            "runway": null,
+            "altimeter": null
+          },
+          "preconditions": "phase taxi_in_clearance"
+        },
+        {
+          "id": "D_CHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "phase taxi_in, not on a runway"
+        },
+        {
+          "id": "D_SAYAGAIN",
+          "intent": "sayAgain",
+          "values": {
+          "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "sayAgain",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any enrolled departure phase"
+        },
+        {
+          "id": "D_CANCEL",
+          "intent": "cancel",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancel",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any departure phase; off runway -> released, on runway -> vacate"
+        },
+        {
+          "id": "D_EMER",
+          "intent": "emergency",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "emergency",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any departure phase not on the runway (or no session -> new priority arrival)"
+        },
+        {
+          "id": "D_ABORT",
+          "intent": "emergency",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "emergency",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "phase lineup/lined_up/takeoff_clearance/cleared_takeoff, track on runway (LINED_UP)"
+        },
+        {
+          "id": "D_CANCEL_EMER",
+          "intent": "cancelEmergency",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancelEmergency",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "session with priority (else 'no emergency on record')"
+        },
+        {
+          "id": "D_VAC",
+          "intent": "vacated",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "vacated",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "session.vacating (after cancel, abort or runway change), track OFF_RUNWAY (-300,300)"
+        }
+      ]
+    },
+    {
+      "id": "airfield-arrival",
+      "markdown": "docs/radio-calls/airfield.md",
+      "section": "Chart 2 — Arrival: check-in to parking",
+      "nodes": [
+        {
+          "id": "A_INFO",
+          "intent": "information",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "information",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any; no session required; fresh bridge"
+        },
+        {
+          "id": "A_RCHECK",
+          "intent": "information",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "information",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any; no session required; fresh bridge"
+        },
+        {
+          "id": "A_INBOUND",
+          "intent": "inbound",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "inbound",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "no session (or airborne departure); track FINAL (0,-6756) in_air agl 1000 ft"
+        },
+        {
+          "id": "A_ARR_RB",
+          "intent": "readback",
+          "values": {
+            "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine",
+            "ALTIMETER": "two niner niner two"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "arrival",
+            "runway": "09",
+            "altimeter": 29.92
+          },
+          "preconditions": "phase arrival_briefing"
+        },
+        {
+          "id": "A_DOWNWIND",
+          "intent": "downwind",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "downwind",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "plus airfield pattern 'left' (airfield.py:199,202-203); phase inbound; in_air within 6 NM, 0-3000 ft AGL"
+        },
+        {
+          "id": "A_BASE",
+          "intent": "base",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "base",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "plus airfield pattern 'left' (airfield.py:199,202-203); phase downwind; in_air within 6 NM, 0-3000 ft AGL"
+        },
+        {
+          "id": "A_FINAL",
+          "intent": "final",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "final",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase inbound/downwind/base; track FINAL in_air agl 1000 ft heading 090"
+        },
+        {
+          "id": "A_LAND_RB",
+          "intent": "readback",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "landing",
+            "runway": "09",
+            "altimeter": null
+          },
+          "preconditions": "phase landing_clearance"
+        },
+        {
+          "id": "A_GOAROUND",
+          "intent": "goAround",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "goAround",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival airborne phase (inbound..cleared_land) or touchdown while in_air"
+        },
+        {
+          "id": "A_LANDED",
+          "intent": "landed",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "landed",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival phase touchdown/landed/vacated (land event at airfield 1, ON_RUNWAY)"
+        },
+        {
+          "id": "A_LANDED_NEG_CALL",
+          "intent": "landed",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "landed",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival still airborne (phase cleared_land) -> negative, touchdown not observed"
+        },
+        {
+          "id": "A_VAC",
+          "intent": "vacated",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "RUNWAY": "zero nine"
+          },
+          "expected_fields": {
+            "intent": "vacated",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "09",
+            "modex": null
+          },
+          "preconditions": "phase landed, track OFF_RUNWAY (-300,300) on ground airfield 1"
+        },
+        {
+          "id": "A_TAXIIN",
+          "intent": "taxiIn",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "taxiIn",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival phase vacated (or landed/taxi_in_clearance), off runway, ground here"
+        },
+        {
+          "id": "A_TAXI_VAC",
+          "intent": "taxi",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "taxi",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival phase vacated, off runway, ground here (taxi intent routes to taxi-in)"
+        },
+        {
+          "id": "A_TAXIIN_RB",
+          "intent": "readback",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "taxi_in",
+            "runway": null,
+            "altimeter": null
+          },
+          "preconditions": "phase taxi_in_clearance"
+        },
+        {
+          "id": "A_CROSS",
+          "intent": "crossing",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "crossing",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "preconditions": "phase taxi_in; plus CROSS_STRIP 18-36 (tests/test_airfield.py:550-552); track AT_CROSSING (3000,3150)"
+        },
+        {
+          "id": "A_CROSS_RB",
+          "intent": "readback",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "readback",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "readback_pending": {
+            "kind": "crossing",
+            "runway": "18",
+            "altimeter": null
+          },
+          "preconditions": "phase crossing_clearance"
+        },
+        {
+          "id": "A_CROSS_VAC",
+          "intent": "vacated",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one",
+            "CROSS_RUNWAY": "one eight"
+          },
+          "expected_fields": {
+            "intent": "vacated",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": "18",
+            "modex": null
+          },
+          "preconditions": "phase crossing, entered ON_CROSS_STRIP, now PAST_CROSSING"
+        },
+        {
+          "id": "A_CHECKOUT",
+          "intent": "checkOut",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "checkOut",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "phase taxi_in, not on a runway"
+        },
+        {
+          "id": "A_REDEP_TAXI",
+          "intent": "taxi",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "taxi",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival phase taxi_in_clearance/taxi_in, ground here -> new departure with taxi clearance"
+        },
+        {
+          "id": "A_REDEP_START",
+          "intent": "startup",
+          "values": {
+            "CURRENT_ROLE": "ground",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "startup",
+            "receiver_role": "ground",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival phase vacated/taxi_in_clearance/taxi_in, ground here -> new departure, startup"
+        },
+        {
+          "id": "A_SAYAGAIN",
+          "intent": "sayAgain",
+          "values": {
+          "CURRENT_ROLE": "approach",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "sayAgain",
+            "receiver_role": "approach",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any enrolled arrival phase"
+        },
+        {
+          "id": "A_CANCEL",
+          "intent": "cancel",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancel",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "any arrival phase; airborne/off runway -> released, touchdown/on runway -> vacate"
+        },
+        {
+          "id": "A_CXL_VAC",
+          "intent": "vacated",
+          "values": {
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "vacated",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "phase cancelled with vacating, track OFF_RUNWAY"
+        },
+        {
+          "id": "A_EMER",
+          "intent": "emergency",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "emergency",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "no session (opens priority arrival with briefing) or any arrival phase"
+        },
+        {
+          "id": "A_CANCEL_EMER",
+          "intent": "cancelEmergency",
+          "values": {
+          "CURRENT_ROLE": "tower",
+            "FIELD": "Ironwood",
+            "CALLSIGN": "Viper one one"
+          },
+          "expected_fields": {
+            "intent": "cancelEmergency",
+            "receiver_role": "tower",
+            "receiver_named": true,
+            "receiver_fields": [
+              "1"
+            ],
+            "runway": null,
+            "modex": null
+          },
+          "preconditions": "arrival session with priority"
+        }
+      ]
+    }
+  ],
+  "intent_coverage": {
+    "information": [
+      "D_INFO",
+      "D_RCHECK",
+      "A_INFO",
+      "A_RCHECK"
+    ],
+    "startup": [
+      "D_STARTUP",
+      "A_REDEP_START"
+    ],
+    "taxi": [
+      "D_TAXI",
+      "A_TAXI_VAC",
+      "A_REDEP_TAXI"
+    ],
+    "readback": [
+      "D_TAXI_RB",
+      "D_CROSS_RB",
+      "D_LU_RB",
+      "D_TO_RB",
+      "D_TAXIIN_RB",
+      "A_ARR_RB",
+      "A_LAND_RB",
+      "A_TAXIIN_RB",
+      "A_CROSS_RB"
+    ],
+    "crossing": [
+      "D_CROSS",
+      "A_CROSS"
+    ],
+    "vacated": [
+      "D_CROSS_VAC",
+      "D_VAC",
+      "A_VAC",
+      "A_CROSS_VAC",
+      "A_CXL_VAC"
+    ],
+    "holdingShort": [
+      "D_HOLD",
+      "D_READY_DEP",
+      "D_READY_TO"
+    ],
+    "linedUp": [
+      "D_LINEDUP"
+    ],
+    "airborne": [
+      "D_AIRBORNE"
+    ],
+    "handoff": [
+      "D_HANDOFF"
+    ],
+    "inbound": [
+      "D_RETURN",
+      "A_INBOUND"
+    ],
+    "taxiIn": [
+      "D_TAXIIN",
+      "A_TAXIIN"
+    ],
+    "checkOut": [
+      "D_CHECKOUT",
+      "A_CHECKOUT"
+    ],
+    "sayAgain": [
+      "D_SAYAGAIN",
+      "A_SAYAGAIN"
+    ],
+    "cancel": [
+      "D_CANCEL",
+      "A_CANCEL"
+    ],
+    "emergency": [
+      "D_EMER",
+      "D_ABORT",
+      "A_EMER"
+    ],
+    "cancelEmergency": [
+      "D_CANCEL_EMER",
+      "A_CANCEL_EMER"
+    ],
+    "downwind": [
+      "A_DOWNWIND"
+    ],
+    "base": [
+      "A_BASE"
+    ],
+    "final": [
+      "A_FINAL"
+    ],
+    "goAround": [
+      "A_GOAROUND"
+    ],
+    "landed": [
+      "A_LANDED",
+      "A_LANDED_NEG_CALL"
+    ]
+  },
+  "readback_formats": {
+    "taxi": {
+      "node": "D_TAXI_RB",
+      "requires": [
+        "cleared runway",
+        "hold short"
+      ],
+      "rejects": [
+        "other runway"
+      ],
+      "source": "overlord/airfield.py:466,477-518"
+    },
+    "taxi_in": {
+      "node": [
+        "D_TAXIIN_RB",
+        "A_TAXIIN_RB"
+      ],
+      "requires": [
+        "hold short"
+      ],
+      "rejects": [
+        "any 'runway <n>'"
+      ],
+      "source": "overlord/airfield.py:467,505-506"
+    },
+    "lineup": {
+      "node": "D_LU_RB",
+      "requires": [
+        "cleared runway",
+        "line up ... wait"
+      ],
+      "rejects": [
+        "takeoff",
+        "land",
+        "cleared"
+      ],
+      "source": "overlord/airfield.py:468-469"
+    },
+    "takeoff": {
+      "node": "D_TO_RB",
+      "requires": [
+        "cleared runway",
+        "cleared (for) takeoff"
+      ],
+      "rejects": [
+        "land"
+      ],
+      "source": "overlord/airfield.py:470"
+    },
+    "landing": {
+      "node": "A_LAND_RB",
+      "requires": [
+        "cleared runway",
+        "cleared (to) land"
+      ],
+      "rejects": [
+        "takeoff"
+      ],
+      "source": "overlord/airfield.py:471"
+    },
+    "crossing": {
+      "node": [
+        "D_CROSS_RB",
+        "A_CROSS_RB"
+      ],
+      "requires": [
+        "crossing runway",
+        "cross"
+      ],
+      "rejects": [
+        "takeoff",
+        "land",
+        "line"
+      ],
+      "source": "overlord/airfield.py:472"
+    },
+    "arrival": {
+      "node": "A_ARR_RB",
+      "requires": [
+        "cleared runway",
+        "altimeter exact (2992 or 29.92)"
+      ],
+      "rejects": [
+        "cleared"
+      ],
+      "source": "overlord/airfield.py:473,512-517"
+    },
+    "all": {
+      "rejects": [
+        "no",
+        "not",
+        "negative",
+        "dont",
+        "do not",
+        "unable",
+        "never",
+        "cannot",
+        "cant",
+        "cancel",
+        "abort",
+        "belay"
+      ],
+      "source": "overlord/airfield.py:486-488; overlord/airfield_parser.py:36,66"
+    }
+  },
+  "branch_coverage": [
+    {
+      "handler": "_final",
+      "branch": "downwind may proceed directly to final without a base report, when measured on final",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_DOWNWIND_R",
+        "A_W_FINAL",
+        "A_FINAL"
+      ],
+      "source": "overlord/airfield.py:1855-1856"
+    },
+    {
+      "handler": "_revoke_unstarted",
+      "branch": "stale-link recovery preserves crossing-requested, holding-short or lined-up state; ask current instruction and resume matching clearance, not taxi restart",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_STALE",
+        "D_SAYAGAIN",
+        "D_SAYAGAIN_R",
+        "D_CROSS_Q",
+        "D_READY_DEP",
+        "D_READY_TO"
+      ],
+      "source": "overlord/airfield.py:1108-1126"
+    },
+    {
+      "handler": "parse",
+      "branch": "no receiver words: not addressed (None)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_SILENT"
+      ],
+      "source": "overlord/airfield_parser.py:186-187"
+    },
+    {
+      "handler": "parse",
+      "branch": "no command phrase / negated procedure call -> intent None, blocked",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_NONE"
+      ],
+      "source": "overlord/airfield_parser.py:205-207,212-216"
+    },
+    {
+      "handler": "parse",
+      "branch": "explicit cancel word in a procedure call -> cancel",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CANCEL"
+      ],
+      "source": "overlord/airfield_parser.py:212-214"
+    },
+    {
+      "handler": "parse",
+      "branch": "emergency/readback: only words before keyword affect scope",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_ABORT",
+        "D_TAXI_RB"
+      ],
+      "source": "overlord/airfield_parser.py:211"
+    },
+    {
+      "handler": "parse",
+      "branch": "readback raw text after keyword captured",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_RB",
+        "D_LU_RB",
+        "D_TO_RB",
+        "D_CROSS_RB",
+        "D_TAXIIN_RB"
+      ],
+      "source": "overlord/airfield_parser.py:218-221"
+    },
+    {
+      "handler": "parse",
+      "branch": "first labelled runway after command start",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS",
+        "D_HOLD"
+      ],
+      "source": "overlord/airfield_parser.py:222-223"
+    },
+    {
+      "handler": "parse",
+      "branch": "modex caller vs callsign; unresolved receiver prefix",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_ID",
+        "D_G_WHICH"
+      ],
+      "source": "overlord/airfield_parser.py:224-230"
+    },
+    {
+      "handler": "parse",
+      "branch": "earliest command wins; equal start -> earlier table entry (taxiIn before taxi, emergency before cancel)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN",
+        "D_ABORT"
+      ],
+      "source": "overlord/airfield_parser.py:196-200"
+    },
+    {
+      "handler": "respond",
+      "branch": "no airfield on this channel -> no reply",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1384-1386"
+    },
+    {
+      "handler": "respond",
+      "branch": "parse None -> no reply",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1394-1397"
+    },
+    {
+      "handler": "respond",
+      "branch": "named airfield does not publish this channel -> no reply",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1407-1408"
+    },
+    {
+      "handler": "respond",
+      "branch": "refusal from _addressed",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_WHICH",
+        "D_G_COAL"
+      ],
+      "source": "overlord/airfield.py:1409-1412"
+    },
+    {
+      "handler": "respond",
+      "branch": "spoken role not published on channel",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_ROLE"
+      ],
+      "source": "overlord/airfield.py:1413-1422"
+    },
+    {
+      "handler": "respond",
+      "branch": "unidentified player (None intent -> say again, else problem)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_ID",
+        "D_G_NONE"
+      ],
+      "source": "overlord/airfield.py:1423-1427"
+    },
+    {
+      "handler": "respond",
+      "branch": "SRS sender does not identify spoken caller",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_ID"
+      ],
+      "source": "overlord/airfield.py:1428-1433"
+    },
+    {
+      "handler": "respond",
+      "branch": "stale link refuses all but cancel/checkOut/cancelEmergency",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_STALE"
+      ],
+      "source": "overlord/airfield.py:1436-1437"
+    },
+    {
+      "handler": "respond",
+      "branch": "session at another airfield: non-enrolling intent / lane held / enrol here",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_BUSY"
+      ],
+      "source": "overlord/airfield.py:1438-1447"
+    },
+    {
+      "handler": "respond",
+      "branch": "same airfield other channel: session moves, old speech invalid (not for information)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_INFO",
+        "D_SAYAGAIN"
+      ],
+      "source": "overlord/airfield.py:1449-1453"
+    },
+    {
+      "handler": "respond",
+      "branch": "schedule with speaker appends grant to the reply",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_LU_CLR",
+        "D_TO_CLR",
+        "D_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1455-1462"
+    },
+    {
+      "handler": "respond",
+      "branch": "information reply bound to live facts (kind facts)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_INFO_R"
+      ],
+      "source": "overlord/airfield.py:1456,1467-1470"
+    },
+    {
+      "handler": "respond",
+      "branch": "enrolment returns transfer_unit_id (cross-role release)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP",
+        "D_TAXI"
+      ],
+      "source": "overlord/airfield.py:1475-1476"
+    },
+    {
+      "handler": "respond",
+      "branch": "no airfield on this channel -> no reply",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1384-1386"
+    },
+    {
+      "handler": "respond",
+      "branch": "parse None -> no reply",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1394-1397"
+    },
+    {
+      "handler": "respond",
+      "branch": "named airfield does not publish this channel -> no reply",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_SILENT"
+      ],
+      "source": "overlord/airfield.py:1407-1408"
+    },
+    {
+      "handler": "respond",
+      "branch": "refusal from _addressed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_WHICH",
+        "A_G_COAL"
+      ],
+      "source": "overlord/airfield.py:1409-1412"
+    },
+    {
+      "handler": "respond",
+      "branch": "spoken role not published on channel",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_ROLE"
+      ],
+      "source": "overlord/airfield.py:1413-1422"
+    },
+    {
+      "handler": "respond",
+      "branch": "unidentified player (None intent -> say again, else problem)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_ID",
+        "A_G_NONE"
+      ],
+      "source": "overlord/airfield.py:1423-1427"
+    },
+    {
+      "handler": "respond",
+      "branch": "SRS sender does not identify spoken caller",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_ID"
+      ],
+      "source": "overlord/airfield.py:1428-1433"
+    },
+    {
+      "handler": "respond",
+      "branch": "stale link refuses all but cancel/checkOut/cancelEmergency",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_STALE"
+      ],
+      "source": "overlord/airfield.py:1436-1437"
+    },
+    {
+      "handler": "respond",
+      "branch": "session at another airfield: non-enrolling intent / lane held / enrol here",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_BUSY"
+      ],
+      "source": "overlord/airfield.py:1438-1447"
+    },
+    {
+      "handler": "respond",
+      "branch": "same airfield other channel: session moves, old speech invalid (not for information)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INFO",
+        "A_SAYAGAIN"
+      ],
+      "source": "overlord/airfield.py:1449-1453"
+    },
+    {
+      "handler": "respond",
+      "branch": "schedule with speaker appends grant to the reply",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LAND_CLR",
+        "A_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1455-1462"
+    },
+    {
+      "handler": "respond",
+      "branch": "information reply bound to live facts (kind facts)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INFO_R"
+      ],
+      "source": "overlord/airfield.py:1456,1467-1470"
+    },
+    {
+      "handler": "respond",
+      "branch": "enrolment returns transfer_unit_id (cross-role release)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INBOUND",
+        "A_EMER"
+      ],
+      "source": "overlord/airfield.py:1475-1476"
+    },
+    {
+      "handler": "_addressed",
+      "branch": "multiple named fields -> full name",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_WHICH"
+      ],
+      "source": "overlord/airfield.py:1491-1492"
+    },
+    {
+      "handler": "_addressed",
+      "branch": "named sharing field of other coalition -> no service",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_COAL"
+      ],
+      "source": "overlord/airfield.py:1495-1498"
+    },
+    {
+      "handler": "_addressed",
+      "branch": "unresolved receiver words -> say again with airfield name",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_WHICH"
+      ],
+      "source": "overlord/airfield.py:1501-1503"
+    },
+    {
+      "handler": "_addressed",
+      "branch": "unnamed: existing session's field / single member / say which",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_WHICH",
+        "A_INBOUND"
+      ],
+      "source": "overlord/airfield.py:1504-1509"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancelEmergency without priority / with priority",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CANCEL_EMER",
+        "D_CANCEL_EMER_R"
+      ],
+      "source": "overlord/airfield.py:1531-1536"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancelEmergency with priority (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CANCEL_EMER",
+        "A_CANCEL_EMER_R"
+      ],
+      "source": "overlord/airfield.py:1531-1536"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancel/checkOut: no session",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CANCEL",
+        "D_CANCEL_NONE"
+      ],
+      "source": "overlord/airfield.py:1537-1539"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancel/checkOut: occupying runway -> cancelled+vacating",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CANCEL_OCC",
+        "D_W_VAC"
+      ],
+      "source": "overlord/airfield.py:1540-1543"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancel/checkOut: occupying runway (arrival touchdown)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CANCEL_OCC",
+        "A_W_CXL_VAC"
+      ],
+      "source": "overlord/airfield.py:1540-1543"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancel released",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CANCEL_R"
+      ],
+      "source": "overlord/airfield.py:1544-1545"
+    },
+    {
+      "handler": "_handle",
+      "branch": "checkOut released",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CHECKOUT",
+        "D_CHECKOUT_R"
+      ],
+      "source": "overlord/airfield.py:1544-1545"
+    },
+    {
+      "handler": "_handle",
+      "branch": "cancel released (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CANCEL_R"
+      ],
+      "source": "overlord/airfield.py:1544-1545"
+    },
+    {
+      "handler": "_handle",
+      "branch": "checkOut released (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CHECKOUT",
+        "A_CHECKOUT_R"
+      ],
+      "source": "overlord/airfield.py:1544-1545"
+    },
+    {
+      "handler": "_handle",
+      "branch": "information",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_INFO",
+        "D_RCHECK",
+        "D_INFO_R"
+      ],
+      "source": "overlord/airfield.py:1546-1547"
+    },
+    {
+      "handler": "_handle",
+      "branch": "information (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INFO",
+        "A_RCHECK",
+        "A_INFO_R"
+      ],
+      "source": "overlord/airfield.py:1546-1547"
+    },
+    {
+      "handler": "_handle",
+      "branch": "intent None -> say again",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_NONE"
+      ],
+      "source": "overlord/airfield.py:1548-1549"
+    },
+    {
+      "handler": "_handle",
+      "branch": "taxi from arrival vacated -> taxi-in",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXI_VAC",
+        "A_TAXIIN_CLR"
+      ],
+      "source": "overlord/airfield.py:1554-1556"
+    },
+    {
+      "handler": "_handle",
+      "branch": "procedure intent without session",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_NOSESSION"
+      ],
+      "source": "overlord/airfield.py:1560-1561"
+    },
+    {
+      "handler": "_handle",
+      "branch": "procedure intent without session (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_NOSESSION"
+      ],
+      "source": "overlord/airfield.py:1560-1561"
+    },
+    {
+      "handler": "_handle",
+      "branch": "sayAgain -> status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_SAYAGAIN",
+        "D_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1562-1563"
+    },
+    {
+      "handler": "_handle",
+      "branch": "sayAgain -> status (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_SAYAGAIN",
+        "A_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1562-1563"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "no session: new priority arrival + briefing",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_EMER",
+        "A_EMER_NEW_R"
+      ],
+      "source": "overlord/airfield.py:1567-1572"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "no session from departure context",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_EMER",
+        "D_EMER_NEW",
+        "D_TO_ARR"
+      ],
+      "source": "overlord/airfield.py:1567-1572"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "traffic limit",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_BUSY"
+      ],
+      "source": "overlord/airfield.py:1569-1570"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "departure on runway in lineup/takeoff -> takeoff aborted, vacate",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_EMER",
+        "D_ABORT",
+        "D_ABORT_R",
+        "D_W_VAC"
+      ],
+      "source": "overlord/airfield.py:1575-1578"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "enrolled -> priority + status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_EMER",
+        "D_EMER_R"
+      ],
+      "source": "overlord/airfield.py:1573-1574,1579"
+    },
+    {
+      "handler": "_emergency",
+      "branch": "enrolled arrival -> priority + status",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_EMER",
+        "A_EMER_R"
+      ],
+      "source": "overlord/airfield.py:1573-1574,1579"
+    },
+    {
+      "handler": "_departure",
+      "branch": "taxi-in departure on ground here -> reset to startup",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_PARK",
+        "D_STARTUP",
+        "D_TAXI"
+      ],
+      "source": "overlord/airfield.py:1583-1587"
+    },
+    {
+      "handler": "_departure",
+      "branch": "taxi request in startup/taxi_clearance: not on ground here",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_NOTGND"
+      ],
+      "source": "overlord/airfield.py:1588-1590"
+    },
+    {
+      "handler": "_departure",
+      "branch": "taxi request in startup/taxi_clearance -> taxi clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI",
+        "D_TAXI_CLR"
+      ],
+      "source": "overlord/airfield.py:1588-1591"
+    },
+    {
+      "handler": "_departure",
+      "branch": "existing departure other phase -> status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_SB",
+        "D_TAXI_NOTGND"
+      ],
+      "source": "overlord/airfield.py:1592"
+    },
+    {
+      "handler": "_departure",
+      "branch": "arrival not vacated on ground -> unable",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_ARR"
+      ],
+      "source": "overlord/airfield.py:1596-1598"
+    },
+    {
+      "handler": "_departure",
+      "branch": "arrival vacated/taxi-in on ground -> new departure (startup)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_REDEP_START",
+        "A_TO_DEP"
+      ],
+      "source": "overlord/airfield.py:1594-1599,1604-1607"
+    },
+    {
+      "handler": "_departure",
+      "branch": "arrival taxi-in on ground -> new departure (taxi)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_REDEP_TAXI",
+        "A_TO_DEP"
+      ],
+      "source": "overlord/airfield.py:1594-1599,1604-1606"
+    },
+    {
+      "handler": "_departure",
+      "branch": "traffic limit",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_G_BUSY"
+      ],
+      "source": "overlord/airfield.py:1600-1601"
+    },
+    {
+      "handler": "_departure",
+      "branch": "not yet observed on ground -> standby, enrolled",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_SB",
+        "D_W_GROUND"
+      ],
+      "source": "overlord/airfield.py:1602-1603"
+    },
+    {
+      "handler": "_departure",
+      "branch": "on ground: startup approved / taxi clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_OK",
+        "D_TAXI_CLR"
+      ],
+      "source": "overlord/airfield.py:1604-1607"
+    },
+    {
+      "handler": "_arrival",
+      "branch": "existing arrival -> status",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INBOUND",
+        "A_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1610-1611"
+    },
+    {
+      "handler": "_arrival",
+      "branch": "existing departure on ground or untracked -> unable",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INB_GROUND"
+      ],
+      "source": "overlord/airfield.py:1613-1616"
+    },
+    {
+      "handler": "_arrival",
+      "branch": "airborne departure -> new arrival",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RETURN",
+        "D_TO_ARR"
+      ],
+      "source": "overlord/airfield.py:1612-1620"
+    },
+    {
+      "handler": "_arrival",
+      "branch": "traffic limit",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_G_BUSY"
+      ],
+      "source": "overlord/airfield.py:1618-1619"
+    },
+    {
+      "handler": "_arrival",
+      "branch": "register + brief",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_INBOUND",
+        "A_BRIEF",
+        "A_STANDBY"
+      ],
+      "source": "overlord/airfield.py:1617-1620"
+    },
+    {
+      "handler": "_taxi_in",
+      "branch": "lane holder or occupying -> vacate first",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXIIN_NEG"
+      ],
+      "source": "overlord/airfield.py:1623-1624"
+    },
+    {
+      "handler": "_taxi_in",
+      "branch": "not on ground here",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN_NEG"
+      ],
+      "source": "overlord/airfield.py:1625-1626"
+    },
+    {
+      "handler": "_taxi_in",
+      "branch": "clearance with route / without route",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN_CLR"
+      ],
+      "source": "overlord/airfield.py:1627-1634"
+    },
+    {
+      "handler": "_taxi_in",
+      "branch": "clearance (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXIIN_CLR"
+      ],
+      "source": "overlord/airfield.py:1627-1634"
+    },
+    {
+      "handler": "_taxiIn",
+      "branch": "departure eligible phases",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN"
+      ],
+      "source": "overlord/airfield.py:1808-1810"
+    },
+    {
+      "handler": "_taxiIn",
+      "branch": "arrival vacated/landed/taxi_in_clearance",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXIIN"
+      ],
+      "source": "overlord/airfield.py:1811-1812"
+    },
+    {
+      "handler": "_taxiIn",
+      "branch": "other phase -> unable + status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN_NEG"
+      ],
+      "source": "overlord/airfield.py:1813"
+    },
+    {
+      "handler": "_tower_note",
+      "branch": "contact tower on another channel / no tower service",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HOLD_TWR",
+        "D_CROSS_TWR"
+      ],
+      "source": "overlord/airfield.py:1636-1643"
+    },
+    {
+      "handler": "_tower_note",
+      "branch": "final without tower",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_FINAL_TWR",
+        "A_CROSS_Q"
+      ],
+      "source": "overlord/airfield.py:1636-1643"
+    },
+    {
+      "handler": "_status",
+      "branch": "lane phase lapsed or no tower -> tower note / no longer current",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1649-1651"
+    },
+    {
+      "handler": "_status",
+      "branch": "pending clearance text",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1652-1653"
+    },
+    {
+      "handler": "_status",
+      "branch": "vacating/cancelled/landed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LANDED_R",
+        "A_SAYAGAIN_R"
+      ],
+      "source": "overlord/airfield.py:1654-1655"
+    },
+    {
+      "handler": "_status",
+      "branch": "departure phases startup_requested..airborne",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_OK",
+        "D_TAXI_OK",
+        "D_CROSS_Q",
+        "D_CROSS_OK",
+        "D_HOLD_Q",
+        "D_LU_OK",
+        "D_LINEDUP_HOLD",
+        "D_AIRBORNE_R"
+      ],
+      "source": "overlord/airfield.py:1656-1684"
+    },
+    {
+      "handler": "_status",
+      "branch": "arrival phases inbound_standby..vacated",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_STANDBY",
+        "A_ARR_OK",
+        "A_DOWNWIND_R",
+        "A_BASE_R",
+        "A_FINAL_Q",
+        "A_GA_WAIT",
+        "A_VAC_R"
+      ],
+      "source": "overlord/airfield.py:1685-1704"
+    },
+    {
+      "handler": "_status",
+      "branch": "fallback taxi-in",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXIIN_OK"
+      ],
+      "source": "overlord/airfield.py:1705"
+    },
+    {
+      "handler": "_readback",
+      "branch": "no pending clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RB_NONE"
+      ],
+      "source": "overlord/airfield.py:1710-1711"
+    },
+    {
+      "handler": "_readback",
+      "branch": "no pending clearance (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_RB_NONE"
+      ],
+      "source": "overlord/airfield.py:1710-1711"
+    },
+    {
+      "handler": "_readback",
+      "branch": "problem -> negative readback",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RB_BAD"
+      ],
+      "source": "overlord/airfield.py:1712-1714"
+    },
+    {
+      "handler": "_readback",
+      "branch": "problem -> negative readback (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_RB_BAD"
+      ],
+      "source": "overlord/airfield.py:1712-1714"
+    },
+    {
+      "handler": "_readback",
+      "branch": "taxi correct",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_RB",
+        "D_TAXI_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "taxi_in correct",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXIIN_RB",
+        "D_TAXIIN_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "lineup correct, not yet lined up / already lined up",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_LU_RB",
+        "D_LU_OK",
+        "D_LINEDUP_HOLD"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "takeoff correct",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TO_RB",
+        "D_TO_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "crossing correct",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_RB",
+        "D_CROSS_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "arrival correct",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_ARR_RB",
+        "A_ARR_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "landing correct",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LAND_RB",
+        "A_LAND_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "taxi_in correct (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TAXIIN_RB",
+        "A_TAXIIN_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "_readback",
+      "branch": "crossing correct (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CROSS_RB",
+        "A_CROSS_OK"
+      ],
+      "source": "overlord/airfield.py:1715-1724"
+    },
+    {
+      "handler": "readback_problem",
+      "branch": "negation or cancel word",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RB_BAD"
+      ],
+      "source": "overlord/airfield.py:486-488"
+    },
+    {
+      "handler": "readback_problem",
+      "branch": "runway missing/wrong or runway in a no-runway clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RB_BAD",
+        "D_TAXIIN_RB"
+      ],
+      "source": "overlord/airfield.py:489-506"
+    },
+    {
+      "handler": "readback_problem",
+      "branch": "required term missing / conflicting term",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_RB_BAD",
+        "D_LU_RB",
+        "D_TO_RB",
+        "D_CROSS_RB"
+      ],
+      "source": "overlord/airfield.py:465-474,507-511"
+    },
+    {
+      "handler": "readback_problem",
+      "branch": "arrival: cleared conflict, altimeter exact",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_RB_BAD",
+        "A_ARR_RB"
+      ],
+      "source": "overlord/airfield.py:473,510-517"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "arrival -> unable, no departure in progress",
+      "chart": "airfield-arrival",
+      "nodes": [],
+      "source": "overlord/airfield.py:1727-1728",
+      "note": "refusal only; documented in 'Calls that are refusals in the wrong context' table, not drawn as a chart node"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "lineup/lined_up -> delegates to lined up",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_READY_TO",
+        "D_LINEDUP_HOLD"
+      ],
+      "source": "overlord/airfield.py:1729-1730"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "taxi_clearance -> read back first",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HOLD_RBFIRST"
+      ],
+      "source": "overlord/airfield.py:1731-1732"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "holding_short expired -> fresh request",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_READY_DEP",
+        "D_HOLD_Q",
+        "D_LU_CLR"
+      ],
+      "source": "overlord/airfield.py:1733-1736"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "other phase -> status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_READY_DEP",
+        "D_HOLD_TWR"
+      ],
+      "source": "overlord/airfield.py:1737-1738"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "not at holding point",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HOLD_NEG"
+      ],
+      "source": "overlord/airfield.py:1739-1740"
+    },
+    {
+      "handler": "_holdingShort",
+      "branch": "at holding point -> holding_short",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HOLD",
+        "D_HOLD_Q",
+        "D_LU_CLR"
+      ],
+      "source": "overlord/airfield.py:1741-1743"
+    },
+    {
+      "handler": "_linedUp",
+      "branch": "not lined up geometry",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_LINEDUP_NEG"
+      ],
+      "source": "overlord/airfield.py:1749-1750"
+    },
+    {
+      "handler": "_linedUp",
+      "branch": "lined up -> status (+takeoff grant)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_LINEDUP",
+        "D_LINEDUP_HOLD",
+        "D_TO_CLR"
+      ],
+      "source": "overlord/airfield.py:1751-1752,1756"
+    },
+    {
+      "handler": "_linedUp",
+      "branch": "lined_up expired -> fresh request",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_READY_TO",
+        "D_LINEDUP_HOLD"
+      ],
+      "source": "overlord/airfield.py:1753-1756"
+    },
+    {
+      "handler": "_crossing",
+      "branch": "wrong phase -> unable + status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_NEG"
+      ],
+      "source": "overlord/airfield.py:1759-1760"
+    },
+    {
+      "handler": "_crossing",
+      "branch": "no/unknown runway",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_NEG"
+      ],
+      "source": "overlord/airfield.py:1761-1763"
+    },
+    {
+      "handler": "_crossing",
+      "branch": "not at crossing",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_NEG"
+      ],
+      "source": "overlord/airfield.py:1764-1765"
+    },
+    {
+      "handler": "_crossing",
+      "branch": "request recorded, resume taxi or taxi_in",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS",
+        "D_CROSS_Q",
+        "D_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1766-1770"
+    },
+    {
+      "handler": "_crossing",
+      "branch": "request from taxi-in (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CROSS",
+        "A_CROSS_Q",
+        "A_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1766-1770"
+    },
+    {
+      "handler": "_crossing_vacated",
+      "branch": "resume taxi out / taxi in",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_EV",
+        "D_CROSS_DONE"
+      ],
+      "source": "overlord/airfield.py:1772-1780"
+    },
+    {
+      "handler": "_crossing_vacated",
+      "branch": "resume taxi in (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CROSS_EV",
+        "A_CROSS_DONE"
+      ],
+      "source": "overlord/airfield.py:1772-1780"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "no sample, airborne or on runway -> negative",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_VAC_NEG"
+      ],
+      "source": "overlord/airfield.py:1783-1785"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "no sample, airborne or on runway -> negative (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_VAC_NEG"
+      ],
+      "source": "overlord/airfield.py:1783-1785"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "crossing entered -> crossing vacated",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_VAC",
+        "D_CROSS_DONE"
+      ],
+      "source": "overlord/airfield.py:1786-1787"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "crossing entered (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CROSS_VAC",
+        "A_CROSS_DONE"
+      ],
+      "source": "overlord/airfield.py:1786-1787"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "vacating after cancel -> checked out",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_VAC",
+        "D_VAC_CXL"
+      ],
+      "source": "overlord/airfield.py:1788-1791"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "vacating after cancel (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CXL_VAC",
+        "A_CXL_VAC_R"
+      ],
+      "source": "overlord/airfield.py:1788-1791"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "vacating after abort/runway change -> status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_VAC",
+        "D_VAC_START"
+      ],
+      "source": "overlord/airfield.py:1788-1792"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "landed -> vacated",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_VAC",
+        "A_VAC_R"
+      ],
+      "source": "overlord/airfield.py:1793-1797"
+    },
+    {
+      "handler": "_vacated",
+      "branch": "otherwise status (crossing not entered)",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_VAC",
+        "D_CROSS_OK"
+      ],
+      "source": "overlord/airfield.py:1798"
+    },
+    {
+      "handler": "_observed_vacated",
+      "branch": "cancelled -> release with notice",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_VAC_CXL_EV"
+      ],
+      "source": "overlord/airfield.py:1800-1805"
+    },
+    {
+      "handler": "_observed_vacated",
+      "branch": "cancelled -> release with notice (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CXL_VAC_EV"
+      ],
+      "source": "overlord/airfield.py:1800-1805"
+    },
+    {
+      "handler": "_observed_vacated",
+      "branch": "abort/runway change -> silent",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_VAC",
+        "D_TAXI"
+      ],
+      "source": "overlord/airfield.py:1800-1803"
+    },
+    {
+      "handler": "_airborne",
+      "branch": "departure airborne -> status",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_AIRBORNE",
+        "D_AIRBORNE_R"
+      ],
+      "source": "overlord/airfield.py:1816-1817"
+    },
+    {
+      "handler": "_airborne",
+      "branch": "otherwise negative",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_AIRBORNE_NEG"
+      ],
+      "source": "overlord/airfield.py:1818"
+    },
+    {
+      "handler": "_handoff",
+      "branch": "not airborne departure -> unable",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HANDOFF_EARLY"
+      ],
+      "source": "overlord/airfield.py:1821-1822"
+    },
+    {
+      "handler": "_handoff",
+      "branch": "release",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HANDOFF",
+        "D_HANDOFF_R"
+      ],
+      "source": "overlord/airfield.py:1823-1824"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "not arrival",
+      "chart": "airfield-departure",
+      "nodes": [],
+      "source": "overlord/airfield.py:1827-1828",
+      "note": "refusal only; documented in 'Calls that are refusals in the wrong context' table, not drawn as a chart node"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "briefing readback owed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_BRIEF_FIRST"
+      ],
+      "source": "overlord/airfield.py:1829-1830"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "same phase repeated -> status",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_FINAL_Q"
+      ],
+      "source": "overlord/airfield.py:1831-1832"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "out of sequence",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_ORDER"
+      ],
+      "source": "overlord/airfield.py:1833-1834"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "final not observed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_FINAL_NEG"
+      ],
+      "source": "overlord/airfield.py:1836-1838"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "pattern position not confirmed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_POS_NEG"
+      ],
+      "source": "overlord/airfield.py:1839-1840"
+    },
+    {
+      "handler": "_pattern_call",
+      "branch": "accepted -> roger <call>",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_DOWNWIND_R",
+        "A_BASE_R",
+        "A_FINAL_Q"
+      ],
+      "source": "overlord/airfield.py:1841-1843"
+    },
+    {
+      "handler": "_downwind",
+      "branch": "no published pattern",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_NOPATTERN"
+      ],
+      "source": "overlord/airfield.py:1846-1847"
+    },
+    {
+      "handler": "_downwind",
+      "branch": "pattern call",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_DOWNWIND"
+      ],
+      "source": "overlord/airfield.py:1848"
+    },
+    {
+      "handler": "_base",
+      "branch": "no published pattern",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_NOPATTERN"
+      ],
+      "source": "overlord/airfield.py:1851-1852"
+    },
+    {
+      "handler": "_base",
+      "branch": "pattern call",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_BASE"
+      ],
+      "source": "overlord/airfield.py:1853"
+    },
+    {
+      "handler": "_final",
+      "branch": "from inbound/downwind/base",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_FINAL"
+      ],
+      "source": "overlord/airfield.py:1855-1856"
+    },
+    {
+      "handler": "_goAround",
+      "branch": "no approach",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_GA_UNABLE"
+      ],
+      "source": "overlord/airfield.py:1859-1860"
+    },
+    {
+      "handler": "_goAround",
+      "branch": "touchdown on ground",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_GA_WAIT"
+      ],
+      "source": "overlord/airfield.py:1862-1863"
+    },
+    {
+      "handler": "_goAround",
+      "branch": "re-entry pattern/straight-in or no runway",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_GOAROUND",
+        "A_GA_R",
+        "A_GA_NORWY"
+      ],
+      "source": "overlord/airfield.py:1864-1865"
+    },
+    {
+      "handler": "_landed",
+      "branch": "touchdown/landed/vacated -> status",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LANDED",
+        "A_LANDED_R"
+      ],
+      "source": "overlord/airfield.py:1868-1869"
+    },
+    {
+      "handler": "_landed",
+      "branch": "otherwise negative",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LANDED_NEG_CALL",
+        "A_LANDED_NEG"
+      ],
+      "source": "overlord/airfield.py:1870"
+    },
+    {
+      "handler": "_observe",
+      "branch": "terminal events release silently",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:808-810"
+    },
+    {
+      "handler": "_observe",
+      "branch": "terminal events release silently (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:808-810"
+    },
+    {
+      "handler": "_observe",
+      "branch": "land event arrival elsewhere -> closed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_ELSE"
+      ],
+      "source": "overlord/airfield.py:811-816"
+    },
+    {
+      "handler": "_observe",
+      "branch": "land event arrival here -> touchdown",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_W_TOUCH",
+        "A_W_ROLLOUT"
+      ],
+      "source": "overlord/airfield.py:817-818"
+    },
+    {
+      "handler": "_observe",
+      "branch": "land event after departure airborne -> silent release",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:819-821"
+    },
+    {
+      "handler": "_observe",
+      "branch": "takeoff event at another airfield -> silent release",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:822-824"
+    },
+    {
+      "handler": "_observe",
+      "branch": "takeoff event departure ground phase -> takeoff",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_ROLL",
+        "D_AIR_EV",
+        "D_AIR_UNCLR"
+      ],
+      "source": "overlord/airfield.py:825-826"
+    },
+    {
+      "handler": "_observe",
+      "branch": "takeoff event after touchdown -> touch and go",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TNG_EV"
+      ],
+      "source": "overlord/airfield.py:827-828"
+    },
+    {
+      "handler": "_observe",
+      "branch": "takeoff event arrival after landing phases -> closed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_AIR"
+      ],
+      "source": "overlord/airfield.py:829-831"
+    },
+    {
+      "handler": "_observe",
+      "branch": "touchdown + ground sample -> landed event",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LANDED_EV"
+      ],
+      "source": "overlord/airfield.py:839-845"
+    },
+    {
+      "handler": "_observe",
+      "branch": "touchdown + in air -> touch and go",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TNG_EV"
+      ],
+      "source": "overlord/airfield.py:840-841"
+    },
+    {
+      "handler": "_observe",
+      "branch": "on ground never airborne: priority -> emergency on ground",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_EMER_GROUND"
+      ],
+      "source": "overlord/airfield.py:846-853"
+    },
+    {
+      "handler": "_observe",
+      "branch": "on ground never airborne: not priority -> release",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_NOT_AIR"
+      ],
+      "source": "overlord/airfield.py:854-856"
+    },
+    {
+      "handler": "_observe",
+      "branch": "ground sample here without land event after airborne -> landed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LANDED_EV"
+      ],
+      "source": "overlord/airfield.py:857-860"
+    },
+    {
+      "handler": "_observe",
+      "branch": "ground sample at another airfield -> closed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_ELSE"
+      ],
+      "source": "overlord/airfield.py:861-863"
+    },
+    {
+      "handler": "_observe",
+      "branch": "crossing entered then clear -> crossing vacated event",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_CROSSING",
+        "D_CROSS_EV"
+      ],
+      "source": "overlord/airfield.py:864-869"
+    },
+    {
+      "handler": "_observe",
+      "branch": "crossing entered then clear (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_W_CROSSING",
+        "A_CROSS_EV"
+      ],
+      "source": "overlord/airfield.py:864-869"
+    },
+    {
+      "handler": "_observe",
+      "branch": "vacating and clear -> observed vacated",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_VAC",
+        "D_VAC_CXL_EV"
+      ],
+      "source": "overlord/airfield.py:870-871"
+    },
+    {
+      "handler": "_observe",
+      "branch": "landed and clear -> vacated event",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_W_VACATE",
+        "A_VAC_EV"
+      ],
+      "source": "overlord/airfield.py:872-876"
+    },
+    {
+      "handler": "_observe_departure",
+      "branch": "in air in ground phase -> takeoff",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_ROLL",
+        "D_AIR_EV"
+      ],
+      "source": "overlord/airfield.py:879-880"
+    },
+    {
+      "handler": "_observe_departure",
+      "branch": "startup_requested: ground here -> startup event",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_GROUND",
+        "D_STARTUP_EV"
+      ],
+      "source": "overlord/airfield.py:881-885"
+    },
+    {
+      "handler": "_observe_departure",
+      "branch": "startup_requested: ground elsewhere -> closed",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_CLOSED"
+      ],
+      "source": "overlord/airfield.py:886-887"
+    },
+    {
+      "handler": "_observe_departure",
+      "branch": "lineup geometry -> lined_up",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_LINEUP",
+        "D_TO_CLR"
+      ],
+      "source": "overlord/airfield.py:888-890"
+    },
+    {
+      "handler": "_observe_departure",
+      "branch": "airborne beyond 10 NM -> released",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_W_10NM",
+        "D_10NM_R"
+      ],
+      "source": "overlord/airfield.py:891-892"
+    },
+    {
+      "handler": "_touchdown",
+      "branch": "landing without clearance notice",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_UNCLR_LAND"
+      ],
+      "source": "overlord/airfield.py:894-899"
+    },
+    {
+      "handler": "_touch_and_go",
+      "branch": "go around re-entry",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_TNG_EV"
+      ],
+      "source": "overlord/airfield.py:901-904"
+    },
+    {
+      "handler": "_takeoff",
+      "branch": "startup_requested -> closed",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_STARTUP_CLOSED"
+      ],
+      "source": "overlord/airfield.py:907-909"
+    },
+    {
+      "handler": "_takeoff",
+      "branch": "cleared -> airborne text",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_AIR_EV"
+      ],
+      "source": "overlord/airfield.py:910-915"
+    },
+    {
+      "handler": "_takeoff",
+      "branch": "uncleared -> warning",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_AIR_UNCLR"
+      ],
+      "source": "overlord/airfield.py:916-917"
+    },
+    {
+      "handler": "_airborne_text",
+      "branch": "approach on other channel -> contact approach",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_AIR_EV"
+      ],
+      "source": "overlord/airfield.py:919-924"
+    },
+    {
+      "handler": "_reentry",
+      "branch": "no runway -> standby",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_GA_NORWY"
+      ],
+      "source": "overlord/airfield.py:932-934"
+    },
+    {
+      "handler": "_reentry",
+      "branch": "pattern / straight-in re-entry",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_GA_R",
+        "A_TNG_EV",
+        "A_X_GA"
+      ],
+      "source": "overlord/airfield.py:935-938"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "stale bridge or field disabled -> nothing",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_STALE"
+      ],
+      "source": "overlord/airfield.py:983-984"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "arrival rebrief: runway changed / standby facts / altimeter changed",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_REBRIEF",
+        "A_W_STANDBY",
+        "A_BRIEF"
+      ],
+      "source": "overlord/airfield.py:1006-1017"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "departure runway changed while occupying",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_RWY_OCC",
+        "D_W_VAC"
+      ],
+      "source": "overlord/airfield.py:1018-1023"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "departure runway changed not occupying -> new taxi clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_RWY_TAXI",
+        "D_TAXI_RB"
+      ],
+      "source": "overlord/airfield.py:1024-1026"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "lane clearance unread 60 s -> expired, no readback",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_LU",
+        "D_X_TO",
+        "D_CROSS_REV"
+      ],
+      "source": "overlord/airfield.py:1030-1037"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "lane clearance unread 60 s (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_X_GA",
+        "A_CROSS_REV"
+      ],
+      "source": "overlord/airfield.py:1030-1037"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "lane holder without tower service",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_LU",
+        "D_X_TO"
+      ],
+      "source": "overlord/airfield.py:1038-1046"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "lane holder without tower service (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_X_GA"
+      ],
+      "source": "overlord/airfield.py:1038-1046"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "another occupier -> revoke",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_LU",
+        "D_X_TO",
+        "D_CROSS_REV"
+      ],
+      "source": "overlord/airfield.py:1047-1052"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "another occupier -> go around",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_X_GA"
+      ],
+      "source": "overlord/airfield.py:1047-1052"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "lined up lane holder -> takeoff clearance",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TO_CLR"
+      ],
+      "source": "overlord/airfield.py:1053-1059"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "first eligible: landing",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_LAND_CLR"
+      ],
+      "source": "overlord/airfield.py:1060-1068,1075"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "first eligible: line up",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_LU_CLR"
+      ],
+      "source": "overlord/airfield.py:1069-1071,1075"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "first eligible: crossing",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1072-1075"
+    },
+    {
+      "handler": "_schedule",
+      "branch": "first eligible: crossing (arrival taxi-in)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_CROSS_CLR"
+      ],
+      "source": "overlord/airfield.py:1072-1075"
+    },
+    {
+      "handler": "_eligible",
+      "branch": "geometry/tower/expired gate",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_HOLD_Q",
+        "D_CROSS_Q"
+      ],
+      "source": "overlord/airfield.py:1090-1098"
+    },
+    {
+      "handler": "_eligible",
+      "branch": "final geometry gate",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_FINAL_Q"
+      ],
+      "source": "overlord/airfield.py:1090-1098"
+    },
+    {
+      "handler": "_revoke_unstarted",
+      "branch": "takeoff granted not rolling on runway -> hold position",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_TO"
+      ],
+      "source": "overlord/airfield.py:1108-1113"
+    },
+    {
+      "handler": "_revoke_unstarted",
+      "branch": "landing/final -> go around",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_X_GA"
+      ],
+      "source": "overlord/airfield.py:1114-1116"
+    },
+    {
+      "handler": "_revoke_unstarted",
+      "branch": "crossing -> hold short",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_CROSS_REV"
+      ],
+      "source": "overlord/airfield.py:1117-1121"
+    },
+    {
+      "handler": "_revoke_unstarted",
+      "branch": "lineup/takeoff off runway -> hold short",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_LU"
+      ],
+      "source": "overlord/airfield.py:1122-1126"
+    },
+    {
+      "handler": "_brief",
+      "branch": "no runway or altimeter -> standby",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_STANDBY",
+        "A_W_STANDBY"
+      ],
+      "source": "overlord/airfield.py:1134-1137"
+    },
+    {
+      "handler": "_brief",
+      "branch": "briefing pattern/straight-in",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_BRIEF"
+      ],
+      "source": "overlord/airfield.py:1138-1146"
+    },
+    {
+      "handler": "_taxi_clearance",
+      "branch": "no runway -> hold position",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_NORWY"
+      ],
+      "source": "overlord/airfield.py:1152-1154"
+    },
+    {
+      "handler": "_taxi_clearance",
+      "branch": "route / no route",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_CLR"
+      ],
+      "source": "overlord/airfield.py:1155-1162"
+    },
+    {
+      "handler": "_information",
+      "branch": "runway/reason, wind, altimeter, pattern",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_INFO_R"
+      ],
+      "source": "overlord/airfield.py:1173-1179"
+    },
+    {
+      "handler": "_select_runway",
+      "branch": "configured active / wind / calm / unavailable",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_TAXI_NORWY",
+        "D_X_RWY_TAXI"
+      ],
+      "source": "overlord/airfield.py:954-973"
+    },
+    {
+      "handler": "_refresh",
+      "branch": "stale: revoke unstarted, taxi_clearance->startup, briefing->standby, silent",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_X_STALE"
+      ],
+      "source": "overlord/airfield.py:588-602"
+    },
+    {
+      "handler": "_refresh",
+      "branch": "stale: briefing->standby, landing revoked silently",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_X_STALE",
+        "A_W_STANDBY"
+      ],
+      "source": "overlord/airfield.py:588-602"
+    },
+    {
+      "handler": "exchange",
+      "branch": "new epoch resets sessions silently",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:606-623"
+    },
+    {
+      "handler": "_apply",
+      "branch": "player gone/new incarnation/coalition -> silent release",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:714-718"
+    },
+    {
+      "handler": "_apply",
+      "branch": "rejected aircraft record -> tracking data invalid",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_BAD"
+      ],
+      "source": "overlord/airfield.py:721-724"
+    },
+    {
+      "handler": "_apply",
+      "branch": "rejected aircraft record (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_BAD"
+      ],
+      "source": "overlord/airfield.py:721-724"
+    },
+    {
+      "handler": "_apply",
+      "branch": "track missing more than one sequence -> radar contact lost",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_LOST"
+      ],
+      "source": "overlord/airfield.py:732-735"
+    },
+    {
+      "handler": "_apply",
+      "branch": "track missing (arrival)",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_LOST"
+      ],
+      "source": "overlord/airfield.py:732-735"
+    },
+    {
+      "handler": "_drop_unpublished",
+      "branch": "channel/airfield no longer served -> silent release",
+      "chart": "airfield-departure",
+      "nodes": [
+        "D_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:739-752"
+    },
+    {
+      "handler": "release_unit",
+      "branch": "cross-role transfer to carrier -> silent release",
+      "chart": "airfield-arrival",
+      "nodes": [
+        "A_L_SILENT"
+      ],
+      "source": "overlord/airfield.py:1306-1317"
+    }
+  ],
+  "uncertainties": [
+    "Authored by source inspection only: no parser, readback validator or Mermaid render was executed by this author.",
+    "expected_fields.runway is the first 'runway <n>' after the command start per airfield_parser.runway_mentions; transmitter group normalisation is not asserted (parse_callsign/_resolve_group not traced).",
+    "[WIND] magnetic bearing and [APPROACH_FREQ] in reply nodes are illustrative; the fixture has one combined radio, so contact-tower/approach handover replies need a split-radio fixture (tests/test_airfield.py:341-369).",
+    "A_DOWNWIND/A_BASE need field pattern 'left' added to the fixture; the default Ironwood fixture has no pattern and answers 'unable, no published traffic pattern'.",
+    "Mermaid: several edges reference nodes defined in later subgraphs; Mermaid normally keeps subgraph membership, but rendering was not checked.",
+    "Departure taxi_in session has no automatic end at parking; it persists until checking out, cancel or a lifecycle closure (airfield.py:796-876 has no parked observer).",
+    "_status phases 'cancelled' and the 'previous runway clearance no longer current, report intentions' text are covered only in the say-again table, not as dedicated chart nodes."
+  ]
+}

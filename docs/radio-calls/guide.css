@@ -1,0 +1,14 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; line-height: 1.6; }
+body { margin: 0; padding: 1.5rem; }
+main { max-width: 76rem; margin: auto; }
+nav { line-height: 2; }
+section { margin-block: 3rem; scroll-margin-top: 1rem; }
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-block: .75rem; }
+button { min-height: 2.5rem; min-width: 2.5rem; padding: .4rem .8rem; font: inherit; cursor: pointer; }
+button:disabled { cursor: wait; }
+a:focus-visible, button:focus-visible, .viewport:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+.viewport { overflow: auto; max-height: 80vh; min-height: 6rem; border: 1px solid; padding: 1rem; background: white; }
+.viewport svg { display: block; max-width: none !important; }
+.status { min-height: 1.6em; }
+output { min-width: 4ch; }
+@media (max-width: 40rem) { body { padding: .75rem; } }
