@@ -11,4 +11,10 @@ a:focus-visible, button:focus-visible, .viewport:focus-visible { outline: 3px so
 .viewport svg { display: block; max-width: none !important; }
 .status { min-height: 1.6em; }
 output { min-width: 4ch; }
+.legend { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; list-style: none; padding: 0; font-size: .9rem; }
+.legend li::before { content: ""; display: inline-block; width: 2rem; margin-inline-end: .5rem; border-top: 3px solid; vertical-align: middle; }
+.legend .normal::before { border-color: #15803d; }
+.legend .error::before { border-color: #b91c1c; }
+.legend .recovery::before { border-color: #92400e; border-top-style: dashed; }
+.legend .neutral::before { border-color: #64748b; border-top-width: 1px; }
 @media (max-width: 40rem) { body { padding: .75rem; } }

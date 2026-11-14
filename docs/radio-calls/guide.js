@@ -73,7 +73,10 @@ function attachControls(section, svg) {
 
 try {
   const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.esm.min.mjs');
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral', maxTextSize: 50000,
+  const { default: elkLayouts } = await import('https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs');
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral', htmlLabels: false, maxTextSize: 50000,
+    layout: 'elk', elk: { mergeEdges: false, nodePlacementStrategy: 'NETWORK_SIMPLEX' },
     flowchart: { useMaxWidth: false, htmlLabels: false, curve: 'linear' } });
   for (const section of sections) {
     try {

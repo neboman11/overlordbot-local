@@ -11,6 +11,8 @@ Validation manifest: [`airfield-calls.json`](airfield-calls.json). It gives samp
 
 ## How to read the charts
 
+**Path colors:** green solid = normal progression; red = refusal/error; amber dashed = retry, recovery, emergency or cancellation; gray = optional status/shared checks. Calls and conditions remain explicit: color is not the only cue.
+
 | Shape | Meaning |
 |---|---|
 | `ID["YOU: …"]` (rectangle) | The complete transmission you make, with placeholders. Say it as written. |
@@ -66,12 +68,25 @@ Reply-only placeholders (you never say these):
 ## Chart 1 — Departure: startup to leaving the zone
 
 ```mermaid
+---
+config:
+  htmlLabels: false
+  fontSize: 14
+  themeVariables:
+    fontSize: 14px
+  flowchart:
+    nodeSpacing: 12
+    rankSpacing: 24
+    padding: 8
+    wrappingWidth: 180
+    htmlLabels: false
+---
 flowchart TD
   D_START(("START: human aircraft parked at [FIELD]"))
   D_END(("END: airfield session closed"))
   D_TO_ARR(("Continue in ARRIVAL chart at the briefing readback"))
 
-  subgraph D_SG_GUARD["Guards on EVERY call below: no enrolment, fix and RETRY the same call"]
+  %% Guards on EVERY call below: no enrolment, fix and RETRY the same call
     D_G_HUB{{"Any YOU call in this chart can first meet one of these"}}
     D_G_ID(["ATC: last transmitter, i could not recognize your callsign or modex — or — more than one aircraft matches, say modex — or — unable, no player aircraft with that identity — or — unable, your radio name does not identify you"])
     D_G_WHICH(["ATC: Ground, say which airfield you are calling, [FIELD] or [OTHER_FIELD] — or — Ground, say again with the airfield name — or — Tower, more than one airfield matches that name, say again with the full name"])
@@ -81,21 +96,13 @@ flowchart TD
     D_G_BUSY(["ATC: unable, you are working [OTHER_FIELD] — or — unable, you hold a runway clearance at [OTHER_FIELD], cancel it first — or — unable, airfield traffic limit reached"])
     D_G_NONE(["ATC: say again — no command recognised, or a procedure call voided by a negation"])
     D_G_SILENT{{"NO REPLY: call not opened with an airfield receiver, named airfield not on this frequency, or frequency not an airfield radio"}}
-  end
-  D_START --> D_G_HUB
-  D_G_HUB --> D_G_ID & D_G_WHICH & D_G_ROLE & D_G_COAL & D_G_STALE & D_G_BUSY & D_G_NONE & D_G_SILENT
-  D_G_ID & D_G_WHICH & D_G_ROLE & D_G_COAL & D_G_STALE & D_G_BUSY & D_G_NONE & D_G_SILENT -.->|"RETRY: fix name, role, frequency, callsign or wait for link, then repeat the call"| D_START
 
-  subgraph D_SG_INFO["Facts: any time, before or during a session — never enrols, never moves the session"]
+  %% Facts: any time, before or during a session — never enrols, never moves the session
     D_INFO["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request information"]
     D_RCHECK["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], radio check"]
     D_INFO_R(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], [PATTERN] traffic"])
-  end
-  D_START --> D_INFO & D_RCHECK
-  D_INFO & D_RCHECK --> D_INFO_R
-  D_INFO_R -.->|"RETURN to your current step"| D_START
 
-  subgraph D_SG_START["1 · Ground: startup"]
+  %% 1 · Ground: startup
     D_STARTUP["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request startup"]
     D_STARTUP_OK(["ATC: startup approved, altimeter [ALTIMETER], report ready to taxi"])
     D_STARTUP_SB(["ATC: standby, not yet observed on the ground at [FIELD]"])
@@ -103,46 +110,20 @@ flowchart TD
     D_STARTUP_EV(["ATC event: startup approved, altimeter [ALTIMETER], report ready to taxi"])
     D_STARTUP_CLOSED(["ATC event: unable, not observed on the ground at [FIELD], departure closed"])
     D_STARTUP_ARR(["ATC: unable, departure requires the aircraft on the ground clear of the runway"])
-  end
-  D_START --> D_STARTUP
-  D_STARTUP -->|"sampled on the ground here"| D_STARTUP_OK
-  D_STARTUP -->|"no ground sample here yet: enrolled"| D_STARTUP_SB --> D_W_GROUND
-  D_W_GROUND -->|"ground sample here"| D_STARTUP_EV
-  D_W_GROUND -->|"on the ground at another airfield, or a takeoff event"| D_STARTUP_CLOSED
-  D_STARTUP_CLOSED -.->|"RETURN"| D_START
-  D_STARTUP -->|"your arrival session is not yet vacated and on the ground"| D_STARTUP_ARR
-  D_STARTUP_ARR -.->|"RETRY after vacating"| D_START
 
-  subgraph D_SG_TAXI["2 · Ground: taxi clearance — the startup call is optional"]
+  %% 2 · Ground: taxi clearance — the startup call is optional
     D_TAXI["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
     D_TAXI_CLR(["ATC: taxi to holding point runway [RUNWAY] via [TAXI_ROUTE], hold short of all runways, altimeter [ALTIMETER], read back"])
     D_TAXI_NORWY(["ATC: [RUNWAY_REASON], hold position"])
     D_TAXI_NOTGND(["ATC: unable, not observed on the ground here — or — standby, not yet observed on the ground at [FIELD]"])
     D_TAXI_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi holding point runway [RUNWAY], hold short of all runways"]
     D_TAXI_OK(["ATC: readback correct, taxi to holding point runway [RUNWAY], hold short of all runways, report holding short"])
-  end
-  D_START -->|"startup call optional"| D_TAXI
-  D_STARTUP_OK & D_STARTUP_EV --> D_TAXI
-  D_TAXI -->|"runway known, ground sample here"| D_TAXI_CLR --> D_TAXI_RB
-  D_TAXI_RB -->|"exact"| D_TAXI_OK
-  D_TAXI -->|"no runway in use"| D_TAXI_NORWY
-  D_TAXI_NORWY -.->|"RETRY when wind or active runway available"| D_TAXI
-  D_TAXI -->|"no ground sample here"| D_TAXI_NOTGND
-  D_TAXI_NOTGND -.->|"WAIT then RETRY"| D_W_GROUND
 
-  subgraph D_SG_RB["Readback outcomes shared by every readback in this chart"]
+  %% Readback outcomes shared by every readback in this chart
     D_RB_BAD(["ATC: negative readback, [READBACK_PROBLEM], read back again"])
     D_RB_NONE(["ATC: unable, no clearance to read back"])
-  end
-  D_TAXI_RB & D_CROSS_RB & D_LU_RB & D_TO_RB & D_TAXIIN_RB -->|"wrong or missing runway or term, negation, cancel word"| D_RB_BAD
-  D_RB_BAD -.->|"RETRY taxi readback"| D_TAXI_RB
-  D_RB_BAD -.->|"RETRY crossing readback"| D_CROSS_RB
-  D_RB_BAD -.->|"RETRY line-up readback"| D_LU_RB
-  D_RB_BAD -.->|"RETRY takeoff readback"| D_TO_RB
-  D_RB_BAD -.->|"RETRY parking readback"| D_TAXIIN_RB
-  D_CROSS_RB & D_LU_RB & D_TO_RB -->|"clearance already lapsed or revoked"| D_RB_NONE
 
-  subgraph D_SG_CROSS["3 · Runway crossing: taxi out or taxi back to parking"]
+  %% 3 · Runway crossing: taxi out or taxi back to parking
     D_W_CROSSPT{{"TAXI — NO CALL: stop beside runway [CROSS_RUNWAY], off every runway, within 400 m of its edge"}}
     D_CROSS["YOU: [FIELD] tower, [CALLSIGN], request crossing runway [CROSS_RUNWAY]"]
     D_CROSS_NEG(["ATC: negative, not observed holding short runway [CROSS_RUNWAY] — or — unable, say the runway to cross"])
@@ -156,27 +137,8 @@ flowchart TD
     D_CROSS_EV(["ATC event: runway vacated, continue taxi to holding point runway [RUNWAY], hold short of all runways — returning to parking: runway vacated, continue taxi to parking, hold short of all runways"])
     D_CROSS_VAC["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], vacated runway [CROSS_RUNWAY]"]
     D_CROSS_DONE(["ATC: roger, runway vacated, continue taxi to holding point runway [RUNWAY], hold short of all runways — returning to parking: roger, runway vacated, continue taxi to parking, hold short of all runways"])
-  end
-  D_TAXI_OK -->|"route crosses a runway"| D_W_CROSSPT
-  D_W_CROSSPT --> D_CROSS
-  D_CROSS -->|"not measured at that crossing, or no valid runway named"| D_CROSS_NEG
-  D_CROSS_NEG -.->|"RETRY"| D_CROSS
-  D_CROSS -->|"lane busy or not first in order"| D_CROSS_Q
-  D_CROSS -->|"no tower on this frequency"| D_CROSS_TWR
-  D_CROSS_TWR -.->|"retune to tower, RETRY"| D_CROSS
-  D_CROSS -->|"first, lane free, runways clear, tower here"| D_CROSS_CLR
-  D_CROSS_Q -->|"WAIT — granted as an event when eligible"| D_CROSS_CLR
-  D_CROSS_CLR --> D_CROSS_RB
-  D_CROSS_RB -->|"exact"| D_CROSS_OK --> D_W_CROSSING
-  D_CROSS_CLR & D_CROSS_OK -->|"clearance unread after 60 s, or another aircraft on a runway, or tower lost — not yet on the runway"| D_CROSS_REV
-  D_CROSS_REV -.->|"after no readback: RETRY the request — otherwise WAIT for a new grant"| D_CROSS
-  D_W_CROSSING -->|"measured clear: no call needed"| D_CROSS_EV
-  D_W_CROSSING --> D_CROSS_VAC
-  D_CROSS_VAC -->|"entered and now measured clear"| D_CROSS_DONE
-  D_CROSS_VAC -->|"not yet entered: reply is cross runway [CROSS_RUNWAY], report vacated"| D_CROSS_OK
-  D_CROSS_VAC -->|"still on a runway"| D_VAC_NEG
 
-  subgraph D_SG_RWY["4 · Tower: holding point, line up, takeoff"]
+  %% 4 · Tower: holding point, line up, takeoff
     D_W_HOLD{{"TAXI — NO CALL: stop at holding point runway [RUNWAY], 400 m before to 900 m past the threshold, off every runway"}}
     D_HOLD["YOU: [FIELD] tower, [CALLSIGN], holding short runway [RUNWAY]"]
     D_HOLD_NEG(["ATC: negative, not observed at the holding point runway [RUNWAY], report holding short"])
@@ -196,58 +158,15 @@ flowchart TD
     D_TO_RB["YOU: [FIELD] tower, [CALLSIGN], readback runway [RUNWAY], cleared for takeoff"]
     D_TO_OK(["ATC: readback correct"])
     D_W_ROLL{{"FLY — NO CALL: take off — the mission takeoff event or an in-air sample ends your runway lane"}}
-  end
-  D_TAXI_OK --> D_W_HOLD
-  D_CROSS_EV & D_CROSS_DONE -->|"taxiing out"| D_W_HOLD
-  D_W_HOLD --> D_HOLD
-  D_HOLD -->|"not measured at the holding point"| D_HOLD_NEG
-  D_HOLD_NEG -.->|"RETRY"| D_HOLD
-  D_HOLD -->|"taxi readback still owed"| D_HOLD_RBFIRST
-  D_HOLD_RBFIRST -.->|"RETRY"| D_TAXI_RB
-  D_HOLD -->|"lane busy or not first"| D_HOLD_Q
-  D_HOLD -->|"no tower on this frequency"| D_HOLD_TWR
-  D_HOLD_TWR -.->|"retune to the tower frequency"| D_READY_DEP
-  D_READY_DEP -->|"queued"| D_HOLD_Q
-  D_HOLD & D_READY_DEP -->|"first, lane free, runways clear, tower here: appended to the reply"| D_LU_CLR
-  D_HOLD_Q -->|"WAIT — granted as an event when eligible"| D_LU_CLR
-  D_LU_CLR --> D_LU_RB
-  D_LU_RB -->|"exact, not yet lined up"| D_LU_OK --> D_W_LINEUP
-  D_LU_RB -->|"exact, already measured lined up"| D_LINEDUP_HOLD
-  D_W_LINEUP -->|"measured lined up: takeoff clearance arrives as an event, no call needed"| D_TO_CLR
-  D_W_LINEUP --> D_LINEDUP
-  D_LINEDUP -->|"not measured lined up"| D_LINEDUP_NEG
-  D_LINEDUP_NEG -.->|"RETRY after lining up"| D_W_LINEUP
-  D_LINEDUP -->|"measured lined up"| D_LINEDUP_HOLD
-  D_READY_TO -->|"lined up, earlier clearance lapsed"| D_LINEDUP_HOLD
-  D_LINEDUP_HOLD -->|"runway yours, tower here: appended"| D_TO_CLR
-  D_TO_CLR --> D_TO_RB
-  D_TO_RB -->|"exact"| D_TO_OK --> D_W_ROLL
 
-  subgraph D_SG_REV["Revocations: controller-initiated, RETURN edges"]
+  %% Revocations: controller-initiated, RETURN edges
     D_X_LU(["ATC event: no readback, hold short runway [RUNWAY], line up clearance cancelled, clearance cancelled — or — hold short runway [RUNWAY], line up clearance cancelled, [REVOKE_REASON]"])
     D_X_TO(["ATC event: no readback, hold position, takeoff clearance cancelled, clearance cancelled — or — hold position, takeoff clearance cancelled, [REVOKE_REASON]"])
     D_X_RWY_TAXI(["ATC event: runway changed, taxi to holding point runway [RUNWAY] via [TAXI_ROUTE], hold short of all runways, altimeter [ALTIMETER], read back"])
     D_X_RWY_OCC(["ATC event: runway changed, clearance cancelled, vacate the runway, then request taxi"])
     D_X_STALE{{"NO TRANSMISSION: bridge stale — clearances not yet started are revoked, an unread taxi clearance falls back to startup, every earlier reply becomes invalid"}}
-  end
-  D_LU_CLR & D_LU_OK -->|"clearance unread after 60 s, or another aircraft on a runway, or tower lost — not yet on the runway"| D_X_LU
-  D_X_LU -.->|"after no readback: ask again"| D_READY_DEP
-  D_X_LU -.->|"runway occupied: WAIT, regranted automatically"| D_HOLD_Q
-  D_TO_CLR & D_TO_OK -->|"clearance unread after 60 s, or another aircraft on a runway, or tower lost — on the runway, not rolling"| D_X_TO
-  D_X_TO -.->|"ask again"| D_READY_TO
-  D_TAXI_OK & D_HOLD_Q & D_LU_CLR & D_CROSS_Q -->|"wind selects another runway — not on a runway"| D_X_RWY_TAXI
-  D_X_RWY_TAXI -->|"read back the new runway"| D_TAXI_RB
-  D_LU_OK & D_TO_CLR -->|"wind selects another runway while on the runway"| D_X_RWY_OCC
-  D_X_RWY_OCC --> D_W_VAC
-  D_TAXI_CLR & D_LU_CLR & D_TO_CLR & D_CROSS_CLR -->|"bridge goes stale"| D_X_STALE
-  D_X_STALE -.->|"link returns: ask for current instruction on same frequency"| D_SAYAGAIN
-  D_SAYAGAIN_R -.->|"revoked unread taxi clearance only: startup, request taxi"| D_TAXI
-  D_SAYAGAIN_R -.->|"crossing requested, still queued"| D_CROSS_Q
-  D_SAYAGAIN_R -.->|"crossing already granted: read back current clearance"| D_CROSS_RB
-  D_SAYAGAIN_R -.->|"holding short: await regrant or ready departure"| D_READY_DEP
-  D_SAYAGAIN_R -.->|"lined up: await regrant or ready takeoff"| D_READY_TO
 
-  subgraph D_SG_AIR["5 · Airborne and leaving the zone"]
+  %% 5 · Airborne and leaving the zone
     D_AIR_EV(["ATC event: airborne, contact [FIELD] approach [APPROACH_FREQ], report leaving the zone — or, approach on this frequency or none published — airborne, report leaving the zone"])
     D_AIR_UNCLR(["ATC event: takeoff not cleared, airborne observed, report leaving the zone"])
     D_AIRBORNE["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], airborne"]
@@ -259,38 +178,18 @@ flowchart TD
     D_W_10NM{{"FLY — NO CALL: beyond 10 NM from [FIELD]"}}
     D_10NM_R(["ATC event: leaving the zone, frequency change approved"])
     D_RETURN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing"]
-  end
-  D_W_ROLL --> D_AIR_EV
-  D_TAXI_OK & D_HOLD_Q & D_LU_OK -->|"takes off without a takeoff clearance"| D_AIR_UNCLR
-  D_AIR_EV & D_AIR_UNCLR --> D_AIRBORNE & D_HANDOFF & D_W_10NM & D_RETURN
-  D_AIRBORNE -->|"airborne phase"| D_AIRBORNE_R
-  D_AIRBORNE -->|"before observed takeoff"| D_AIRBORNE_NEG
-  D_HANDOFF -->|"airborne phase"| D_HANDOFF_R --> D_END
-  D_HANDOFF -->|"before observed takeoff"| D_HANDOFF_EARLY
-  D_W_10NM --> D_10NM_R --> D_END
-  D_RETURN -->|"airborne: new arrival session with a briefing"| D_TO_ARR
 
-  subgraph D_SG_PARK["Return to parking, re-departure, check-out"]
+  %% Return to parking, re-departure, check-out
     D_TAXIIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking"]
     D_TAXIIN_NEG(["ATC: vacate the runway first, report vacated — or — unable, not observed on the ground here — or — unable, [CURRENT_INSTRUCTION]"])
     D_TAXIIN_CLR(["ATC: taxi to parking via [TAXI_ROUTE], hold short of all runways, read back"])
     D_TAXIIN_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi to parking, hold short all runways"]
     D_TAXIIN_OK(["ATC: readback correct, taxi to parking, hold short of all runways, report parked"])
-    D_W_PARK{{"TAXI — NO CALL: to parking — cross any runway only through section 3"}}
+    D_W_PARK{{"TAXI — NO CALL: to parking — cross any runway only after crossing clearance and readback"}}
     D_CHECKOUT["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], checking out"]
     D_CHECKOUT_R(["ATC: copy, checked out"])
-  end
-  D_STARTUP_OK & D_TAXI_OK & D_HOLD_Q & D_CROSS_Q -->|"abandon before the runway"| D_TAXIIN
-  D_TAXIIN -->|"on the ground here, no runway held"| D_TAXIIN_CLR --> D_TAXIIN_RB
-  D_TAXIIN -->|"lane holder, on a runway, not on ground here, or line-up/takeoff phase"| D_TAXIIN_NEG
-  D_TAXIIN_RB -->|"exact"| D_TAXIIN_OK --> D_W_PARK
-  D_W_PARK --> D_W_CROSSPT
-  D_CROSS_EV & D_CROSS_DONE -->|"returning to parking"| D_W_PARK
-  D_W_PARK --> D_CHECKOUT --> D_CHECKOUT_R --> D_END
-  D_W_PARK -->|"depart again from here"| D_TAXI
-  D_W_PARK -->|"or restart the departure"| D_STARTUP
 
-  subgraph D_SG_ANY["Any enrolled point: status, cancel, emergency"]
+  %% Any enrolled point: status, cancel, emergency
     D_ANY{{"At any enrolled point of this chart"}}
     D_SAYAGAIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], say again"]
     D_SAYAGAIN_R(["ATC: [CURRENT_INSTRUCTION] — rebuilt from present state, never a lapsed or revoked clearance"])
@@ -312,54 +211,273 @@ flowchart TD
     D_VAC_CXL(["ATC: roger, runway vacated, checked out"])
     D_VAC_CXL_EV(["ATC event: runway vacated, checked out"])
     D_VAC_START(["ATC: roger, startup approved, altimeter [ALTIMETER], report ready to taxi"])
-  end
-  D_STARTUP_SB & D_STARTUP_OK & D_TAXI_OK & D_HOLD_Q & D_LU_OK & D_TO_OK & D_TAXIIN_OK --> D_ANY
-  D_ANY --> D_SAYAGAIN & D_CANCEL & D_EMER & D_CANCEL_EMER
-  D_START --> D_SAYAGAIN & D_CANCEL & D_EMER & D_CANCEL_EMER
-  D_SAYAGAIN -->|"enrolled"| D_SAYAGAIN_R
-  D_SAYAGAIN_R -.->|"RETURN to the current step"| D_ANY
-  D_SAYAGAIN -->|"no session"| D_NOSESSION
-  D_NOSESSION -.->|"RETURN"| D_START
-  D_RB_NONE -.->|"check what is current"| D_SAYAGAIN
-  D_CANCEL -->|"not on a runway"| D_CANCEL_R --> D_END
-  D_CANCEL -->|"no session"| D_CANCEL_NONE
-  D_CANCEL -->|"on a runway"| D_CANCEL_OCC --> D_W_VAC
-  D_EMER -->|"other enrolled states: first in runway order"| D_EMER_R
-  D_EMER -->|"occupying runway in lineup, lined-up or granted takeoff phase: automatically aborts"| D_ABORT_R
-  D_EMER_R -.->|"RETURN to the current step"| D_ANY
-  D_EMER -->|"no session"| D_EMER_NEW --> D_TO_ARR
-  D_LU_OK & D_LINEDUP_HOLD & D_TO_CLR & D_TO_OK --> D_ABORT
-  D_ABORT -->|"line-up or takeoff phase, on the runway"| D_ABORT_R --> D_W_VAC
-  D_ABORT -->|"not on the runway"| D_EMER_R
-  D_CANCEL_EMER --> D_CANCEL_EMER_R
-  D_CANCEL_EMER_R -.->|"RETURN, priority removed"| D_ANY
-  D_W_VAC -->|"after cancel: measured clear"| D_VAC_CXL_EV --> D_END
-  D_W_VAC -->|"after abort or runway change: measured clear, no transmission"| D_TAXI
-  D_W_VAC --> D_VAC
-  D_VAC -->|"after cancel, measured clear"| D_VAC_CXL --> D_END
-  D_VAC -->|"after abort or runway change, measured clear"| D_VAC_START --> D_TAXI
-  D_VAC -->|"still on a runway or no current sample"| D_VAC_NEG
-  D_VAC_NEG -.->|"RETRY when clear"| D_W_VAC
 
-  subgraph D_SG_LIFE["Lifecycle closures: RETURN to a fresh call"]
+  %% Lifecycle closures: RETURN to a fresh call
     D_L_SILENT{{"NO TRANSMISSION: dead, eject, disconnect or birth event — new incarnation or coalition — event at another airfield — land event after takeoff — airfield or frequency no longer served — new mission epoch — session moved to a carrier"}}
     D_L_LOST(["ATC event: radar contact lost, airfield session closed, call again"])
     D_L_BAD(["ATC event: tracking data invalid, airfield session closed, call again"])
-  end
-  D_ANY --> D_L_SILENT & D_L_LOST & D_L_BAD
-  D_L_SILENT & D_L_LOST & D_L_BAD -.->|"RETURN: start again with a valid call"| D_START
+
+  %% Stable edge IDs keep path colors attached to their transitions.
+  D_START edge_D_START__D_G_HUB@--> D_G_HUB
+  D_G_HUB edge_D_G_HUB__D_G_ID@--> D_G_ID
+  D_G_HUB edge_D_G_HUB__D_G_WHICH@--> D_G_WHICH
+  D_G_HUB edge_D_G_HUB__D_G_ROLE@--> D_G_ROLE
+  D_G_HUB edge_D_G_HUB__D_G_COAL@--> D_G_COAL
+  D_G_HUB edge_D_G_HUB__D_G_STALE@--> D_G_STALE
+  D_G_HUB edge_D_G_HUB__D_G_BUSY@--> D_G_BUSY
+  D_G_HUB edge_D_G_HUB__D_G_NONE@--> D_G_NONE
+  D_G_HUB edge_D_G_HUB__D_G_SILENT@--> D_G_SILENT
+  D_G_ID edge_D_G_ID__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_WHICH edge_D_G_WHICH__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_ROLE edge_D_G_ROLE__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_COAL edge_D_G_COAL__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_STALE edge_D_G_STALE__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_BUSY edge_D_G_BUSY__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_NONE edge_D_G_NONE__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_G_SILENT edge_D_G_SILENT__D_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| D_START
+  D_START edge_D_START__D_INFO@--> D_INFO
+  D_START edge_D_START__D_RCHECK@--> D_RCHECK
+  D_INFO edge_D_INFO__D_INFO_R@--> D_INFO_R
+  D_RCHECK edge_D_RCHECK__D_INFO_R@--> D_INFO_R
+  D_INFO_R edge_D_INFO_R__D_START@-.->|"RETURN to your current step"| D_START
+  D_START edge_D_START__D_STARTUP@--> D_STARTUP
+  D_STARTUP edge_D_STARTUP__D_STARTUP_OK@-->|"sampled on the ground here"| D_STARTUP_OK
+  D_STARTUP edge_D_STARTUP__D_STARTUP_SB@-->|"no ground sample here yet:<br/>enrolled"| D_STARTUP_SB
+  D_STARTUP_SB edge_D_STARTUP_SB__D_W_GROUND@--> D_W_GROUND
+  D_W_GROUND edge_D_W_GROUND__D_STARTUP_EV@-->|"ground sample here"| D_STARTUP_EV
+  D_W_GROUND edge_D_W_GROUND__D_STARTUP_CLOSED@-->|"on the ground at another<br/>airfield, or a takeoff event"| D_STARTUP_CLOSED
+  D_STARTUP_CLOSED edge_D_STARTUP_CLOSED__D_START@-.->|"RETURN"| D_START
+  D_STARTUP edge_D_STARTUP__D_STARTUP_ARR@-->|"your arrival session is not yet<br/>vacated and on the ground"| D_STARTUP_ARR
+  D_STARTUP_ARR edge_D_STARTUP_ARR__D_START@-.->|"RETRY after vacating"| D_START
+  D_START edge_D_START__D_TAXI@-->|"startup call optional"| D_TAXI
+  D_STARTUP_OK edge_D_STARTUP_OK__D_TAXI@--> D_TAXI
+  D_STARTUP_EV edge_D_STARTUP_EV__D_TAXI@--> D_TAXI
+  D_TAXI edge_D_TAXI__D_TAXI_CLR@-->|"runway known, ground sample here"| D_TAXI_CLR
+  D_TAXI_CLR edge_D_TAXI_CLR__D_TAXI_RB@--> D_TAXI_RB
+  D_TAXI_RB edge_D_TAXI_RB__D_TAXI_OK@-->|"exact"| D_TAXI_OK
+  D_TAXI edge_D_TAXI__D_TAXI_NORWY@-->|"no runway in use"| D_TAXI_NORWY
+  D_TAXI_NORWY edge_D_TAXI_NORWY__D_TAXI@-.->|"RETRY when wind or active runway<br/>available"| D_TAXI
+  D_TAXI edge_D_TAXI__D_TAXI_NOTGND@-->|"no ground sample here"| D_TAXI_NOTGND
+  D_TAXI_NOTGND edge_D_TAXI_NOTGND__D_W_GROUND@-.->|"WAIT then RETRY"| D_W_GROUND
+  D_TAXI_RB edge_D_TAXI_RB__D_RB_BAD@-->|"wrong or missing runway or term,<br/>negation, cancel word"| D_RB_BAD
+  D_CROSS_RB edge_D_CROSS_RB__D_RB_BAD@-->|"wrong or missing runway or term,<br/>negation, cancel word"| D_RB_BAD
+  D_LU_RB edge_D_LU_RB__D_RB_BAD@-->|"wrong or missing runway or term,<br/>negation, cancel word"| D_RB_BAD
+  D_TO_RB edge_D_TO_RB__D_RB_BAD@-->|"wrong or missing runway or term,<br/>negation, cancel word"| D_RB_BAD
+  D_TAXIIN_RB edge_D_TAXIIN_RB__D_RB_BAD@-->|"wrong or missing runway or term,<br/>negation, cancel word"| D_RB_BAD
+  D_RB_BAD edge_D_RB_BAD__D_TAXI_RB@-.->|"RETRY taxi readback"| D_TAXI_RB
+  D_RB_BAD edge_D_RB_BAD__D_CROSS_RB@-.->|"RETRY crossing readback"| D_CROSS_RB
+  D_RB_BAD edge_D_RB_BAD__D_LU_RB@-.->|"RETRY line-up readback"| D_LU_RB
+  D_RB_BAD edge_D_RB_BAD__D_TO_RB@-.->|"RETRY takeoff readback"| D_TO_RB
+  D_RB_BAD edge_D_RB_BAD__D_TAXIIN_RB@-.->|"RETRY parking readback"| D_TAXIIN_RB
+  D_CROSS_RB edge_D_CROSS_RB__D_RB_NONE@-->|"clearance already lapsed or<br/>revoked"| D_RB_NONE
+  D_LU_RB edge_D_LU_RB__D_RB_NONE@-->|"clearance already lapsed or<br/>revoked"| D_RB_NONE
+  D_TO_RB edge_D_TO_RB__D_RB_NONE@-->|"clearance already lapsed or<br/>revoked"| D_RB_NONE
+  D_TAXI_OK edge_D_TAXI_OK__D_W_CROSSPT@-->|"route crosses a runway"| D_W_CROSSPT
+  D_W_CROSSPT edge_D_W_CROSSPT__D_CROSS@--> D_CROSS
+  D_CROSS edge_D_CROSS__D_CROSS_NEG@-->|"not measured at that crossing,<br/>or no valid runway named"| D_CROSS_NEG
+  D_CROSS_NEG edge_D_CROSS_NEG__D_CROSS@-.->|"RETRY"| D_CROSS
+  D_CROSS edge_D_CROSS__D_CROSS_Q@-->|"lane busy or not first in order"| D_CROSS_Q
+  D_CROSS edge_D_CROSS__D_CROSS_TWR@-->|"no tower on this frequency"| D_CROSS_TWR
+  D_CROSS_TWR edge_D_CROSS_TWR__D_CROSS@-.->|"retune to tower, RETRY"| D_CROSS
+  D_CROSS edge_D_CROSS__D_CROSS_CLR@-->|"first, lane free, runways clear,<br/>tower here"| D_CROSS_CLR
+  D_CROSS_Q edge_D_CROSS_Q__D_CROSS_CLR@-->|"WAIT — granted as an event when<br/>eligible"| D_CROSS_CLR
+  D_CROSS_CLR edge_D_CROSS_CLR__D_CROSS_RB@--> D_CROSS_RB
+  D_CROSS_RB edge_D_CROSS_RB__D_CROSS_OK@-->|"exact"| D_CROSS_OK
+  D_CROSS_OK edge_D_CROSS_OK__D_W_CROSSING@--> D_W_CROSSING
+  D_CROSS_CLR edge_D_CROSS_CLR__D_CROSS_REV@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| D_CROSS_REV
+  D_CROSS_OK edge_D_CROSS_OK__D_CROSS_REV@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| D_CROSS_REV
+  D_CROSS_REV edge_D_CROSS_REV__D_CROSS@-.->|"after no readback: RETRY the<br/>request — otherwise WAIT for a<br/>new grant"| D_CROSS
+  D_W_CROSSING edge_D_W_CROSSING__D_CROSS_EV@-->|"measured clear: no call needed"| D_CROSS_EV
+  D_W_CROSSING edge_D_W_CROSSING__D_CROSS_VAC@--> D_CROSS_VAC
+  D_CROSS_VAC edge_D_CROSS_VAC__D_CROSS_DONE@-->|"entered and now measured clear"| D_CROSS_DONE
+  D_CROSS_VAC edge_D_CROSS_VAC__D_CROSS_OK@-->|"not yet entered: reply is cross<br/>runway [CROSS_RUNWAY], report<br/>vacated"| D_CROSS_OK
+  D_CROSS_VAC edge_D_CROSS_VAC__D_VAC_NEG@-->|"still on a runway"| D_VAC_NEG
+  D_TAXI_OK edge_D_TAXI_OK__D_W_HOLD@--> D_W_HOLD
+  D_CROSS_EV edge_D_CROSS_EV__D_W_HOLD@-->|"taxiing out"| D_W_HOLD
+  D_CROSS_DONE edge_D_CROSS_DONE__D_W_HOLD@-->|"taxiing out"| D_W_HOLD
+  D_W_HOLD edge_D_W_HOLD__D_HOLD@--> D_HOLD
+  D_HOLD edge_D_HOLD__D_HOLD_NEG@-->|"not measured at the holding<br/>point"| D_HOLD_NEG
+  D_HOLD_NEG edge_D_HOLD_NEG__D_HOLD@-.->|"RETRY"| D_HOLD
+  D_HOLD edge_D_HOLD__D_HOLD_RBFIRST@-->|"taxi readback still owed"| D_HOLD_RBFIRST
+  D_HOLD_RBFIRST edge_D_HOLD_RBFIRST__D_TAXI_RB@-.->|"RETRY"| D_TAXI_RB
+  D_HOLD edge_D_HOLD__D_HOLD_Q@-->|"lane busy or not first"| D_HOLD_Q
+  D_HOLD edge_D_HOLD__D_HOLD_TWR@-->|"no tower on this frequency"| D_HOLD_TWR
+  D_HOLD_TWR edge_D_HOLD_TWR__D_READY_DEP@-.->|"retune to the tower frequency"| D_READY_DEP
+  D_READY_DEP edge_D_READY_DEP__D_HOLD_Q@-->|"queued"| D_HOLD_Q
+  D_HOLD edge_D_HOLD__D_LU_CLR@-->|"first, lane free, runways clear,<br/>tower here: appended to the<br/>reply"| D_LU_CLR
+  D_READY_DEP edge_D_READY_DEP__D_LU_CLR@-->|"first, lane free, runways clear,<br/>tower here: appended to the<br/>reply"| D_LU_CLR
+  D_HOLD_Q edge_D_HOLD_Q__D_LU_CLR@-->|"WAIT — granted as an event when<br/>eligible"| D_LU_CLR
+  D_LU_CLR edge_D_LU_CLR__D_LU_RB@--> D_LU_RB
+  D_LU_RB edge_D_LU_RB__D_LU_OK@-->|"exact, not yet lined up"| D_LU_OK
+  D_LU_OK edge_D_LU_OK__D_W_LINEUP@--> D_W_LINEUP
+  D_LU_RB edge_D_LU_RB__D_LINEDUP_HOLD@-->|"exact, already measured lined up"| D_LINEDUP_HOLD
+  D_W_LINEUP edge_D_W_LINEUP__D_TO_CLR@-->|"measured lined up: takeoff<br/>clearance arrives as an event,<br/>no call needed"| D_TO_CLR
+  D_W_LINEUP edge_D_W_LINEUP__D_LINEDUP@--> D_LINEDUP
+  D_LINEDUP edge_D_LINEDUP__D_LINEDUP_NEG@-->|"not measured lined up"| D_LINEDUP_NEG
+  D_LINEDUP_NEG edge_D_LINEDUP_NEG__D_W_LINEUP@-.->|"RETRY after lining up"| D_W_LINEUP
+  D_LINEDUP edge_D_LINEDUP__D_LINEDUP_HOLD@-->|"measured lined up"| D_LINEDUP_HOLD
+  D_READY_TO edge_D_READY_TO__D_LINEDUP_HOLD@-->|"lined up, earlier clearance<br/>lapsed"| D_LINEDUP_HOLD
+  D_LINEDUP_HOLD edge_D_LINEDUP_HOLD__D_TO_CLR@-->|"runway yours, tower here:<br/>appended"| D_TO_CLR
+  D_TO_CLR edge_D_TO_CLR__D_TO_RB@--> D_TO_RB
+  D_TO_RB edge_D_TO_RB__D_TO_OK@-->|"exact"| D_TO_OK
+  D_TO_OK edge_D_TO_OK__D_W_ROLL@--> D_W_ROLL
+  D_LU_CLR edge_D_LU_CLR__D_X_LU@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| D_X_LU
+  D_LU_OK edge_D_LU_OK__D_X_LU@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| D_X_LU
+  D_X_LU edge_D_X_LU__D_READY_DEP@-.->|"after no readback: ask again"| D_READY_DEP
+  D_X_LU edge_D_X_LU__D_HOLD_Q@-.->|"runway occupied: WAIT, regranted<br/>automatically"| D_HOLD_Q
+  D_TO_CLR edge_D_TO_CLR__D_X_TO@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — on the runway, not<br/>rolling"| D_X_TO
+  D_TO_OK edge_D_TO_OK__D_X_TO@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — on the runway, not<br/>rolling"| D_X_TO
+  D_X_TO edge_D_X_TO__D_READY_TO@-.->|"ask again"| D_READY_TO
+  D_TAXI_OK edge_D_TAXI_OK__D_X_RWY_TAXI@-->|"wind selects another runway —<br/>not on a runway"| D_X_RWY_TAXI
+  D_HOLD_Q edge_D_HOLD_Q__D_X_RWY_TAXI@-->|"wind selects another runway —<br/>not on a runway"| D_X_RWY_TAXI
+  D_LU_CLR edge_D_LU_CLR__D_X_RWY_TAXI@-->|"wind selects another runway —<br/>not on a runway"| D_X_RWY_TAXI
+  D_CROSS_Q edge_D_CROSS_Q__D_X_RWY_TAXI@-->|"wind selects another runway —<br/>not on a runway"| D_X_RWY_TAXI
+  D_X_RWY_TAXI edge_D_X_RWY_TAXI__D_TAXI_RB@-->|"read back the new runway"| D_TAXI_RB
+  D_LU_OK edge_D_LU_OK__D_X_RWY_OCC@-->|"wind selects another runway<br/>while on the runway"| D_X_RWY_OCC
+  D_TO_CLR edge_D_TO_CLR__D_X_RWY_OCC@-->|"wind selects another runway<br/>while on the runway"| D_X_RWY_OCC
+  D_X_RWY_OCC edge_D_X_RWY_OCC__D_W_VAC@--> D_W_VAC
+  D_TAXI_CLR edge_D_TAXI_CLR__D_X_STALE@-->|"bridge goes stale"| D_X_STALE
+  D_LU_CLR edge_D_LU_CLR__D_X_STALE@-->|"bridge goes stale"| D_X_STALE
+  D_TO_CLR edge_D_TO_CLR__D_X_STALE@-->|"bridge goes stale"| D_X_STALE
+  D_CROSS_CLR edge_D_CROSS_CLR__D_X_STALE@-->|"bridge goes stale"| D_X_STALE
+  D_X_STALE edge_D_X_STALE__D_SAYAGAIN@-.->|"link returns: ask for current<br/>instruction on same frequency"| D_SAYAGAIN
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_TAXI@-.->|"revoked unread taxi clearance<br/>only: startup, request taxi"| D_TAXI
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_CROSS_Q@-.->|"crossing requested, still queued"| D_CROSS_Q
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_CROSS_RB@-.->|"crossing already granted: read<br/>back current clearance"| D_CROSS_RB
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_READY_DEP@-.->|"holding short: await regrant or<br/>ready departure"| D_READY_DEP
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_READY_TO@-.->|"lined up: await regrant or ready<br/>takeoff"| D_READY_TO
+  D_W_ROLL edge_D_W_ROLL__D_AIR_EV@--> D_AIR_EV
+  D_TAXI_OK edge_D_TAXI_OK__D_AIR_UNCLR@-->|"takes off without a takeoff<br/>clearance"| D_AIR_UNCLR
+  D_HOLD_Q edge_D_HOLD_Q__D_AIR_UNCLR@-->|"takes off without a takeoff<br/>clearance"| D_AIR_UNCLR
+  D_LU_OK edge_D_LU_OK__D_AIR_UNCLR@-->|"takes off without a takeoff<br/>clearance"| D_AIR_UNCLR
+  D_AIR_EV edge_D_AIR_EV__D_AIRBORNE@--> D_AIRBORNE
+  D_AIR_EV edge_D_AIR_EV__D_HANDOFF@--> D_HANDOFF
+  D_AIR_EV edge_D_AIR_EV__D_W_10NM@--> D_W_10NM
+  D_AIR_EV edge_D_AIR_EV__D_RETURN@--> D_RETURN
+  D_AIR_UNCLR edge_D_AIR_UNCLR__D_AIRBORNE@--> D_AIRBORNE
+  D_AIR_UNCLR edge_D_AIR_UNCLR__D_HANDOFF@--> D_HANDOFF
+  D_AIR_UNCLR edge_D_AIR_UNCLR__D_W_10NM@--> D_W_10NM
+  D_AIR_UNCLR edge_D_AIR_UNCLR__D_RETURN@--> D_RETURN
+  D_AIRBORNE edge_D_AIRBORNE__D_AIRBORNE_R@-->|"airborne phase"| D_AIRBORNE_R
+  D_AIRBORNE edge_D_AIRBORNE__D_AIRBORNE_NEG@-->|"before observed takeoff"| D_AIRBORNE_NEG
+  D_HANDOFF edge_D_HANDOFF__D_HANDOFF_R@-->|"airborne phase"| D_HANDOFF_R
+  D_HANDOFF_R edge_D_HANDOFF_R__D_END@--> D_END
+  D_HANDOFF edge_D_HANDOFF__D_HANDOFF_EARLY@-->|"before observed takeoff"| D_HANDOFF_EARLY
+  D_W_10NM edge_D_W_10NM__D_10NM_R@--> D_10NM_R
+  D_10NM_R edge_D_10NM_R__D_END@--> D_END
+  D_RETURN edge_D_RETURN__D_TO_ARR@-->|"airborne: new arrival session<br/>with a briefing"| D_TO_ARR
+  D_STARTUP_OK edge_D_STARTUP_OK__D_TAXIIN@-->|"abandon before the runway"| D_TAXIIN
+  D_TAXI_OK edge_D_TAXI_OK__D_TAXIIN@-->|"abandon before the runway"| D_TAXIIN
+  D_HOLD_Q edge_D_HOLD_Q__D_TAXIIN@-->|"abandon before the runway"| D_TAXIIN
+  D_CROSS_Q edge_D_CROSS_Q__D_TAXIIN@-->|"abandon before the runway"| D_TAXIIN
+  D_TAXIIN edge_D_TAXIIN__D_TAXIIN_CLR@-->|"on the ground here, no runway<br/>held"| D_TAXIIN_CLR
+  D_TAXIIN_CLR edge_D_TAXIIN_CLR__D_TAXIIN_RB@--> D_TAXIIN_RB
+  D_TAXIIN edge_D_TAXIIN__D_TAXIIN_NEG@-->|"lane holder, on a runway, not on<br/>ground here, or line-up/takeoff<br/>phase"| D_TAXIIN_NEG
+  D_TAXIIN_RB edge_D_TAXIIN_RB__D_TAXIIN_OK@-->|"exact"| D_TAXIIN_OK
+  D_TAXIIN_OK edge_D_TAXIIN_OK__D_W_PARK@--> D_W_PARK
+  D_W_PARK edge_D_W_PARK__D_W_CROSSPT@--> D_W_CROSSPT
+  D_CROSS_EV edge_D_CROSS_EV__D_W_PARK@-->|"returning to parking"| D_W_PARK
+  D_CROSS_DONE edge_D_CROSS_DONE__D_W_PARK@-->|"returning to parking"| D_W_PARK
+  D_W_PARK edge_D_W_PARK__D_CHECKOUT@--> D_CHECKOUT
+  D_CHECKOUT edge_D_CHECKOUT__D_CHECKOUT_R@--> D_CHECKOUT_R
+  D_CHECKOUT_R edge_D_CHECKOUT_R__D_END@--> D_END
+  D_W_PARK edge_D_W_PARK__D_TAXI@-->|"depart again from here"| D_TAXI
+  D_W_PARK edge_D_W_PARK__D_STARTUP@-->|"or restart the departure"| D_STARTUP
+  D_STARTUP_SB edge_D_STARTUP_SB__D_ANY@--> D_ANY
+  D_STARTUP_OK edge_D_STARTUP_OK__D_ANY@--> D_ANY
+  D_TAXI_OK edge_D_TAXI_OK__D_ANY@--> D_ANY
+  D_HOLD_Q edge_D_HOLD_Q__D_ANY@--> D_ANY
+  D_LU_OK edge_D_LU_OK__D_ANY@--> D_ANY
+  D_TO_OK edge_D_TO_OK__D_ANY@--> D_ANY
+  D_TAXIIN_OK edge_D_TAXIIN_OK__D_ANY@--> D_ANY
+  D_ANY edge_D_ANY__D_SAYAGAIN@--> D_SAYAGAIN
+  D_ANY edge_D_ANY__D_CANCEL@--> D_CANCEL
+  D_ANY edge_D_ANY__D_EMER@--> D_EMER
+  D_ANY edge_D_ANY__D_CANCEL_EMER@--> D_CANCEL_EMER
+  D_START edge_D_START__D_SAYAGAIN@--> D_SAYAGAIN
+  D_START edge_D_START__D_CANCEL@--> D_CANCEL
+  D_START edge_D_START__D_EMER@--> D_EMER
+  D_START edge_D_START__D_CANCEL_EMER@--> D_CANCEL_EMER
+  D_SAYAGAIN edge_D_SAYAGAIN__D_SAYAGAIN_R@-->|"enrolled"| D_SAYAGAIN_R
+  D_SAYAGAIN_R edge_D_SAYAGAIN_R__D_ANY@-.->|"RETURN to the current step"| D_ANY
+  D_SAYAGAIN edge_D_SAYAGAIN__D_NOSESSION@-->|"no session"| D_NOSESSION
+  D_NOSESSION edge_D_NOSESSION__D_START@-.->|"RETURN"| D_START
+  D_RB_NONE edge_D_RB_NONE__D_SAYAGAIN@-.->|"check what is current"| D_SAYAGAIN
+  D_CANCEL edge_D_CANCEL__D_CANCEL_R@-->|"not on a runway"| D_CANCEL_R
+  D_CANCEL_R edge_D_CANCEL_R__D_END@--> D_END
+  D_CANCEL edge_D_CANCEL__D_CANCEL_NONE@-->|"no session"| D_CANCEL_NONE
+  D_CANCEL edge_D_CANCEL__D_CANCEL_OCC@-->|"on a runway"| D_CANCEL_OCC
+  D_CANCEL_OCC edge_D_CANCEL_OCC__D_W_VAC@--> D_W_VAC
+  D_EMER edge_D_EMER__D_EMER_R@-->|"other enrolled states: first in<br/>runway order"| D_EMER_R
+  D_EMER edge_D_EMER__D_ABORT_R@-->|"occupying runway in lineup,<br/>lined-up or granted takeoff<br/>phase: automatically aborts"| D_ABORT_R
+  D_EMER_R edge_D_EMER_R__D_ANY@-.->|"RETURN to the current step"| D_ANY
+  D_EMER edge_D_EMER__D_EMER_NEW@-->|"no session"| D_EMER_NEW
+  D_EMER_NEW edge_D_EMER_NEW__D_TO_ARR@--> D_TO_ARR
+  D_LU_OK edge_D_LU_OK__D_ABORT@--> D_ABORT
+  D_LINEDUP_HOLD edge_D_LINEDUP_HOLD__D_ABORT@--> D_ABORT
+  D_TO_CLR edge_D_TO_CLR__D_ABORT@--> D_ABORT
+  D_TO_OK edge_D_TO_OK__D_ABORT@--> D_ABORT
+  D_ABORT edge_D_ABORT__D_ABORT_R@-->|"line-up or takeoff phase, on the<br/>runway"| D_ABORT_R
+  D_ABORT_R edge_D_ABORT_R__D_W_VAC@--> D_W_VAC
+  D_ABORT edge_D_ABORT__D_EMER_R@-->|"not on the runway"| D_EMER_R
+  D_CANCEL_EMER edge_D_CANCEL_EMER__D_CANCEL_EMER_R@--> D_CANCEL_EMER_R
+  D_CANCEL_EMER_R edge_D_CANCEL_EMER_R__D_ANY@-.->|"RETURN, priority removed"| D_ANY
+  D_W_VAC edge_D_W_VAC__D_VAC_CXL_EV@-->|"after cancel: measured clear"| D_VAC_CXL_EV
+  D_VAC_CXL_EV edge_D_VAC_CXL_EV__D_END@--> D_END
+  D_W_VAC edge_D_W_VAC__D_TAXI@-->|"after abort or runway change:<br/>measured clear, no transmission"| D_TAXI
+  D_W_VAC edge_D_W_VAC__D_VAC@--> D_VAC
+  D_VAC edge_D_VAC__D_VAC_CXL@-->|"after cancel, measured clear"| D_VAC_CXL
+  D_VAC_CXL edge_D_VAC_CXL__D_END@--> D_END
+  D_VAC edge_D_VAC__D_VAC_START@-->|"after abort or runway change,<br/>measured clear"| D_VAC_START
+  D_VAC_START edge_D_VAC_START__D_TAXI@--> D_TAXI
+  D_VAC edge_D_VAC__D_VAC_NEG@-->|"still on a runway or no current<br/>sample"| D_VAC_NEG
+  D_VAC_NEG edge_D_VAC_NEG__D_W_VAC@-.->|"RETRY when clear"| D_W_VAC
+  D_ANY edge_D_ANY__D_L_SILENT@--> D_L_SILENT
+  D_ANY edge_D_ANY__D_L_LOST@--> D_L_LOST
+  D_ANY edge_D_ANY__D_L_BAD@--> D_L_BAD
+  D_L_SILENT edge_D_L_SILENT__D_START@-.->|"RETURN: start again with a valid<br/>call"| D_START
+  D_L_LOST edge_D_L_LOST__D_START@-.->|"RETURN: start again with a valid<br/>call"| D_START
+  D_L_BAD edge_D_L_BAD__D_START@-.->|"RETURN: start again with a valid<br/>call"| D_START
+
+  classDef normalFlow stroke:#15803d,stroke-width:3px,stroke-dasharray:0
+  classDef errorFlow stroke:#b91c1c,stroke-width:2.5px,stroke-dasharray:0
+  classDef recoveryFlow stroke:#92400e,stroke-width:2px,stroke-dasharray:7 4
+  classDef neutralFlow stroke:#64748b,stroke-width:1px,stroke-dasharray:0
+  classDef pilotCall fill:#eff6ff,stroke:#1d4ed8,color:#172554
+  classDef errorNode fill:#fef2f2,stroke:#b91c1c,color:#450a0a
+  classDef recoveryNode fill:#fffbeb,stroke:#92400e,color:#451a03
+  class edge_D_START__D_G_HUB,edge_D_START__D_INFO,edge_D_START__D_RCHECK,edge_D_INFO__D_INFO_R,edge_D_RCHECK__D_INFO_R,edge_D_INFO_R__D_START,edge_D_STARTUP_SB__D_ANY,edge_D_STARTUP_OK__D_ANY,edge_D_TAXI_OK__D_ANY,edge_D_HOLD_Q__D_ANY,edge_D_LU_OK__D_ANY,edge_D_TO_OK__D_ANY,edge_D_TAXIIN_OK__D_ANY,edge_D_ANY__D_SAYAGAIN,edge_D_START__D_SAYAGAIN,edge_D_SAYAGAIN__D_SAYAGAIN_R,edge_D_SAYAGAIN_R__D_ANY,edge_D_NOSESSION__D_START neutralFlow
+  class edge_D_G_HUB__D_G_ID,edge_D_G_HUB__D_G_WHICH,edge_D_G_HUB__D_G_ROLE,edge_D_G_HUB__D_G_COAL,edge_D_G_HUB__D_G_STALE,edge_D_G_HUB__D_G_BUSY,edge_D_G_HUB__D_G_NONE,edge_D_G_HUB__D_G_SILENT,edge_D_W_GROUND__D_STARTUP_CLOSED,edge_D_STARTUP__D_STARTUP_ARR,edge_D_TAXI__D_TAXI_NORWY,edge_D_TAXI__D_TAXI_NOTGND,edge_D_TAXI_RB__D_RB_BAD,edge_D_CROSS_RB__D_RB_BAD,edge_D_LU_RB__D_RB_BAD,edge_D_TO_RB__D_RB_BAD,edge_D_TAXIIN_RB__D_RB_BAD,edge_D_CROSS_RB__D_RB_NONE,edge_D_LU_RB__D_RB_NONE,edge_D_TO_RB__D_RB_NONE,edge_D_CROSS__D_CROSS_NEG,edge_D_CROSS__D_CROSS_TWR,edge_D_CROSS_CLR__D_CROSS_REV,edge_D_CROSS_OK__D_CROSS_REV,edge_D_CROSS_VAC__D_VAC_NEG,edge_D_HOLD__D_HOLD_NEG,edge_D_HOLD__D_HOLD_RBFIRST,edge_D_HOLD__D_HOLD_TWR,edge_D_LINEDUP__D_LINEDUP_NEG,edge_D_LU_CLR__D_X_LU,edge_D_LU_OK__D_X_LU,edge_D_TO_CLR__D_X_TO,edge_D_TO_OK__D_X_TO,edge_D_TAXI_OK__D_X_RWY_TAXI,edge_D_HOLD_Q__D_X_RWY_TAXI,edge_D_LU_CLR__D_X_RWY_TAXI,edge_D_CROSS_Q__D_X_RWY_TAXI,edge_D_LU_OK__D_X_RWY_OCC,edge_D_TO_CLR__D_X_RWY_OCC,edge_D_TAXI_CLR__D_X_STALE,edge_D_LU_CLR__D_X_STALE,edge_D_TO_CLR__D_X_STALE,edge_D_CROSS_CLR__D_X_STALE,edge_D_TAXI_OK__D_AIR_UNCLR,edge_D_HOLD_Q__D_AIR_UNCLR,edge_D_LU_OK__D_AIR_UNCLR,edge_D_AIRBORNE__D_AIRBORNE_NEG,edge_D_HANDOFF__D_HANDOFF_EARLY,edge_D_TAXIIN__D_TAXIIN_NEG,edge_D_SAYAGAIN__D_NOSESSION,edge_D_ANY__D_L_SILENT,edge_D_ANY__D_L_LOST,edge_D_ANY__D_L_BAD errorFlow
+  class edge_D_G_ID__D_START,edge_D_G_WHICH__D_START,edge_D_G_ROLE__D_START,edge_D_G_COAL__D_START,edge_D_G_STALE__D_START,edge_D_G_BUSY__D_START,edge_D_G_NONE__D_START,edge_D_G_SILENT__D_START,edge_D_STARTUP_CLOSED__D_START,edge_D_STARTUP_ARR__D_START,edge_D_TAXI_NORWY__D_TAXI,edge_D_TAXI_NOTGND__D_W_GROUND,edge_D_RB_BAD__D_TAXI_RB,edge_D_RB_BAD__D_CROSS_RB,edge_D_RB_BAD__D_LU_RB,edge_D_RB_BAD__D_TO_RB,edge_D_RB_BAD__D_TAXIIN_RB,edge_D_CROSS_NEG__D_CROSS,edge_D_CROSS_TWR__D_CROSS,edge_D_CROSS_REV__D_CROSS,edge_D_HOLD_NEG__D_HOLD,edge_D_HOLD_RBFIRST__D_TAXI_RB,edge_D_HOLD_TWR__D_READY_DEP,edge_D_LINEDUP_NEG__D_W_LINEUP,edge_D_READY_TO__D_LINEDUP_HOLD,edge_D_X_LU__D_READY_DEP,edge_D_X_LU__D_HOLD_Q,edge_D_X_TO__D_READY_TO,edge_D_X_RWY_TAXI__D_TAXI_RB,edge_D_X_RWY_OCC__D_W_VAC,edge_D_X_STALE__D_SAYAGAIN,edge_D_SAYAGAIN_R__D_TAXI,edge_D_SAYAGAIN_R__D_CROSS_Q,edge_D_SAYAGAIN_R__D_CROSS_RB,edge_D_SAYAGAIN_R__D_READY_DEP,edge_D_SAYAGAIN_R__D_READY_TO,edge_D_AIR_UNCLR__D_AIRBORNE,edge_D_AIR_UNCLR__D_HANDOFF,edge_D_AIR_UNCLR__D_W_10NM,edge_D_AIR_UNCLR__D_RETURN,edge_D_STARTUP_OK__D_TAXIIN,edge_D_TAXI_OK__D_TAXIIN,edge_D_HOLD_Q__D_TAXIIN,edge_D_CROSS_Q__D_TAXIIN,edge_D_TAXIIN__D_TAXIIN_CLR,edge_D_TAXIIN_CLR__D_TAXIIN_RB,edge_D_TAXIIN_RB__D_TAXIIN_OK,edge_D_TAXIIN_OK__D_W_PARK,edge_D_W_PARK__D_W_CROSSPT,edge_D_CROSS_EV__D_W_PARK,edge_D_CROSS_DONE__D_W_PARK,edge_D_W_PARK__D_CHECKOUT,edge_D_CHECKOUT__D_CHECKOUT_R,edge_D_CHECKOUT_R__D_END,edge_D_W_PARK__D_TAXI,edge_D_W_PARK__D_STARTUP,edge_D_ANY__D_CANCEL,edge_D_ANY__D_EMER,edge_D_ANY__D_CANCEL_EMER,edge_D_START__D_CANCEL,edge_D_START__D_EMER,edge_D_START__D_CANCEL_EMER,edge_D_RB_NONE__D_SAYAGAIN,edge_D_CANCEL__D_CANCEL_R,edge_D_CANCEL_R__D_END,edge_D_CANCEL__D_CANCEL_NONE,edge_D_CANCEL__D_CANCEL_OCC,edge_D_CANCEL_OCC__D_W_VAC,edge_D_EMER__D_EMER_R,edge_D_EMER__D_ABORT_R,edge_D_EMER_R__D_ANY,edge_D_EMER__D_EMER_NEW,edge_D_EMER_NEW__D_TO_ARR,edge_D_LU_OK__D_ABORT,edge_D_LINEDUP_HOLD__D_ABORT,edge_D_TO_CLR__D_ABORT,edge_D_TO_OK__D_ABORT,edge_D_ABORT__D_ABORT_R,edge_D_ABORT_R__D_W_VAC,edge_D_ABORT__D_EMER_R,edge_D_CANCEL_EMER__D_CANCEL_EMER_R,edge_D_CANCEL_EMER_R__D_ANY,edge_D_W_VAC__D_VAC_CXL_EV,edge_D_VAC_CXL_EV__D_END,edge_D_W_VAC__D_TAXI,edge_D_W_VAC__D_VAC,edge_D_VAC__D_VAC_CXL,edge_D_VAC_CXL__D_END,edge_D_VAC__D_VAC_START,edge_D_VAC_START__D_TAXI,edge_D_VAC__D_VAC_NEG,edge_D_VAC_NEG__D_W_VAC,edge_D_L_SILENT__D_START,edge_D_L_LOST__D_START,edge_D_L_BAD__D_START recoveryFlow
+  class edge_D_START__D_STARTUP,edge_D_STARTUP__D_STARTUP_OK,edge_D_STARTUP__D_STARTUP_SB,edge_D_STARTUP_SB__D_W_GROUND,edge_D_W_GROUND__D_STARTUP_EV,edge_D_START__D_TAXI,edge_D_STARTUP_OK__D_TAXI,edge_D_STARTUP_EV__D_TAXI,edge_D_TAXI__D_TAXI_CLR,edge_D_TAXI_CLR__D_TAXI_RB,edge_D_TAXI_RB__D_TAXI_OK,edge_D_TAXI_OK__D_W_CROSSPT,edge_D_W_CROSSPT__D_CROSS,edge_D_CROSS__D_CROSS_Q,edge_D_CROSS__D_CROSS_CLR,edge_D_CROSS_Q__D_CROSS_CLR,edge_D_CROSS_CLR__D_CROSS_RB,edge_D_CROSS_RB__D_CROSS_OK,edge_D_CROSS_OK__D_W_CROSSING,edge_D_W_CROSSING__D_CROSS_EV,edge_D_W_CROSSING__D_CROSS_VAC,edge_D_CROSS_VAC__D_CROSS_DONE,edge_D_CROSS_VAC__D_CROSS_OK,edge_D_TAXI_OK__D_W_HOLD,edge_D_CROSS_EV__D_W_HOLD,edge_D_CROSS_DONE__D_W_HOLD,edge_D_W_HOLD__D_HOLD,edge_D_HOLD__D_HOLD_Q,edge_D_READY_DEP__D_HOLD_Q,edge_D_HOLD__D_LU_CLR,edge_D_READY_DEP__D_LU_CLR,edge_D_HOLD_Q__D_LU_CLR,edge_D_LU_CLR__D_LU_RB,edge_D_LU_RB__D_LU_OK,edge_D_LU_OK__D_W_LINEUP,edge_D_LU_RB__D_LINEDUP_HOLD,edge_D_W_LINEUP__D_TO_CLR,edge_D_W_LINEUP__D_LINEDUP,edge_D_LINEDUP__D_LINEDUP_HOLD,edge_D_LINEDUP_HOLD__D_TO_CLR,edge_D_TO_CLR__D_TO_RB,edge_D_TO_RB__D_TO_OK,edge_D_TO_OK__D_W_ROLL,edge_D_W_ROLL__D_AIR_EV,edge_D_AIR_EV__D_AIRBORNE,edge_D_AIR_EV__D_HANDOFF,edge_D_AIR_EV__D_W_10NM,edge_D_AIR_EV__D_RETURN,edge_D_AIRBORNE__D_AIRBORNE_R,edge_D_HANDOFF__D_HANDOFF_R,edge_D_HANDOFF_R__D_END,edge_D_W_10NM__D_10NM_R,edge_D_10NM_R__D_END,edge_D_RETURN__D_TO_ARR normalFlow
+  class D_INFO,D_RCHECK,D_STARTUP,D_TAXI,D_TAXI_RB,D_CROSS_RB,D_LU_RB,D_TO_RB,D_TAXIIN_RB,D_CROSS,D_CROSS_VAC,D_HOLD,D_READY_DEP,D_LINEDUP,D_READY_TO,D_SAYAGAIN,D_AIRBORNE,D_HANDOFF,D_RETURN,D_TAXIIN,D_CHECKOUT,D_CANCEL,D_EMER,D_ABORT,D_CANCEL_EMER,D_VAC pilotCall
+  class D_G_ID,D_G_WHICH,D_G_ROLE,D_G_COAL,D_G_STALE,D_G_BUSY,D_G_NONE,D_G_SILENT,D_STARTUP_CLOSED,D_STARTUP_ARR,D_TAXI_NORWY,D_TAXI_NOTGND,D_RB_BAD,D_RB_NONE,D_CROSS_NEG,D_CROSS_TWR,D_CROSS_REV,D_VAC_NEG,D_HOLD_NEG,D_HOLD_RBFIRST,D_HOLD_TWR,D_LINEDUP_NEG,D_X_LU,D_X_TO,D_X_RWY_TAXI,D_X_RWY_OCC,D_X_STALE,D_AIR_UNCLR,D_AIRBORNE_NEG,D_HANDOFF_EARLY,D_TAXIIN_NEG,D_NOSESSION,D_L_SILENT,D_L_LOST,D_L_BAD errorNode
+  class D_CANCEL,D_CANCEL_R,D_CANCEL_NONE,D_CANCEL_OCC,D_EMER,D_EMER_R,D_EMER_NEW,D_ABORT,D_ABORT_R,D_CANCEL_EMER,D_CANCEL_EMER_R,D_W_VAC,D_VAC_CXL_EV,D_VAC_CXL,D_VAC_START recoveryNode
 ```
 
 ## Chart 2 — Arrival: check-in to parking
 
 ```mermaid
+---
+config:
+  htmlLabels: false
+  fontSize: 14
+  themeVariables:
+    fontSize: 14px
+  flowchart:
+    nodeSpacing: 12
+    rankSpacing: 24
+    padding: 8
+    wrappingWidth: 180
+    htmlLabels: false
+---
 flowchart TD
   A_START(("START: airborne, inbound to [FIELD]"))
   A_FROM_DEP(("From DEPARTURE chart: airborne departure calls inbound, or no-session emergency"))
   A_END(("END: airfield session closed"))
   A_TO_DEP(("Continue in DEPARTURE chart at the taxi clearance or startup reply"))
 
-  subgraph A_SG_GUARD["Guards on EVERY call below: no enrolment, fix and RETRY the same call"]
+  %% Guards on EVERY call below: no enrolment, fix and RETRY the same call
     A_G_HUB{{"Any YOU call in this chart can first meet one of these"}}
     A_G_ID(["ATC: last transmitter, i could not recognize your callsign or modex — or — more than one aircraft matches, say modex — or — unable, no player aircraft with that identity — or — unable, your radio name does not identify you"])
     A_G_WHICH(["ATC: Approach, say which airfield you are calling, [FIELD] or [OTHER_FIELD] — or — Approach, say again with the airfield name — or — Tower, more than one airfield matches that name, say again with the full name"])
@@ -369,21 +487,13 @@ flowchart TD
     A_G_BUSY(["ATC: unable, you are working [OTHER_FIELD] — or — unable, you hold a runway clearance at [OTHER_FIELD], cancel it first — or — unable, airfield traffic limit reached"])
     A_G_NONE(["ATC: say again — no command recognised, or a procedure call voided by a negation"])
     A_G_SILENT{{"NO REPLY: call not opened with an airfield receiver, named airfield not on this frequency, or frequency not an airfield radio"}}
-  end
-  A_START --> A_G_HUB
-  A_G_HUB --> A_G_ID & A_G_WHICH & A_G_ROLE & A_G_COAL & A_G_STALE & A_G_BUSY & A_G_NONE & A_G_SILENT
-  A_G_ID & A_G_WHICH & A_G_ROLE & A_G_COAL & A_G_STALE & A_G_BUSY & A_G_NONE & A_G_SILENT -.->|"RETRY: fix name, role, frequency, callsign or wait for link, then repeat the call"| A_START
 
-  subgraph A_SG_INFO["Facts: any time, before or during a session — never enrols, never moves the session"]
+  %% Facts: any time, before or during a session — never enrols, never moves the session
     A_INFO["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request information"]
     A_RCHECK["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], radio check"]
     A_INFO_R(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], [PATTERN] traffic"])
-  end
-  A_START --> A_INFO & A_RCHECK
-  A_INFO & A_RCHECK --> A_INFO_R
-  A_INFO_R -.->|"RETURN to your current step"| A_START
 
-  subgraph A_SG_BRIEF["1 · Approach: check-in and arrival briefing"]
+  %% 1 · Approach: check-in and arrival briefing
     A_INBOUND["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing"]
     A_BRIEF(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], no published approach available, make a visual approach, [VISUAL_INSTRUCTION], read back runway and altimeter"])
     A_STANDBY(["ATC: [RUNWAY_REASON], remain clear of the airfield, stand by"])
@@ -393,31 +503,12 @@ flowchart TD
     A_ARR_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback runway [RUNWAY], altimeter [ALTIMETER]"]
     A_ARR_OK(["ATC: readback correct, report [PATTERN] downwind runway [RUNWAY] — or, no published pattern — readback correct, report final runway [RUNWAY]"])
     A_REBRIEF(["ATC event: runway changed, runway [RUNWAY] in use, … read back runway and altimeter — or, if cleared to land — go around, runway changed, runway [RUNWAY] in use, … — or, altimeter changed during the briefing — runway [RUNWAY] in use, … read back runway and altimeter"])
-  end
-  A_START & A_FROM_DEP --> A_INBOUND
-  A_INBOUND -->|"runway and altimeter known: enrolled"| A_BRIEF
-  A_INBOUND -->|"runway or altimeter unavailable: enrolled"| A_STANDBY --> A_W_STANDBY
-  A_W_STANDBY -->|"facts available: event"| A_BRIEF
-  A_INBOUND -->|"you hold a departure session and are on the ground"| A_INB_GROUND
-  A_INBOUND -->|"enrolled, then sampled on the ground here without having flown"| A_NOT_AIR
-  A_NOT_AIR -.->|"RETURN"| A_START
-  A_BRIEF --> A_ARR_RB
-  A_ARR_RB -->|"exact runway and altimeter"| A_ARR_OK
-  A_BRIEF -.->|"bridge stale: back to standby, no transmission"| A_W_STANDBY
-  A_REBRIEF --> A_ARR_RB
 
-  subgraph A_SG_RB["Readback outcomes shared by every readback in this chart"]
+  %% Readback outcomes shared by every readback in this chart
     A_RB_BAD(["ATC: negative readback, [READBACK_PROBLEM], read back again"])
     A_RB_NONE(["ATC: unable, no clearance to read back"])
-  end
-  A_ARR_RB & A_LAND_RB & A_CROSS_RB & A_TAXIIN_RB -->|"wrong or missing value, extra runway, cleared word in briefing readback, negation, cancel word"| A_RB_BAD
-  A_RB_BAD -.->|"RETRY briefing readback"| A_ARR_RB
-  A_RB_BAD -.->|"RETRY landing readback"| A_LAND_RB
-  A_RB_BAD -.->|"RETRY crossing readback"| A_CROSS_RB
-  A_RB_BAD -.->|"RETRY parking readback"| A_TAXIIN_RB
-  A_LAND_RB & A_CROSS_RB -->|"clearance already lapsed or revoked"| A_RB_NONE
 
-  subgraph A_SG_PAT["2 · Published pattern — skip to final for a straight-in"]
+  %% 2 · Published pattern — skip to final for a straight-in
     A_W_PATTERN{{"FLY — NO CALL: enter [PATTERN] downwind, within 6 NM of [FIELD] and below 3000 ft above the field"}}
     A_DOWNWIND["YOU: [FIELD] tower, [CALLSIGN], downwind runway [RUNWAY]"]
     A_DOWNWIND_R(["ATC: roger downwind, report base"])
@@ -428,20 +519,8 @@ flowchart TD
     A_NOPATTERN(["ATC: unable, no published traffic pattern, [CURRENT_INSTRUCTION]"])
     A_ORDER(["ATC: unable, [CURRENT_INSTRUCTION] — call out of sequence"])
     A_BRIEF_FIRST(["ATC: unable, read back runway and altimeter first"])
-  end
-  A_ARR_OK -->|"pattern published"| A_W_PATTERN
-  A_W_PATTERN --> A_DOWNWIND
-  A_DOWNWIND -->|"measured in the pattern"| A_DOWNWIND_R --> A_W_BASE --> A_BASE
-  A_BASE -->|"measured in the pattern, after downwind"| A_BASE_R
-  A_DOWNWIND & A_BASE -->|"outside 6 NM or 3000 ft"| A_POS_NEG
-  A_POS_NEG -.->|"RETRY in position"| A_W_PATTERN
-  A_DOWNWIND & A_BASE -->|"no published pattern"| A_NOPATTERN
-  A_BASE -->|"before downwind"| A_ORDER
-  A_ORDER -.->|"RETURN"| A_W_PATTERN
-  A_DOWNWIND & A_BASE & A_FINAL -->|"briefing readback still owed"| A_BRIEF_FIRST
-  A_BRIEF_FIRST -.->|"RETRY"| A_ARR_RB
 
-  subgraph A_SG_FINAL["3 · Tower: final and landing clearance"]
+  %% 3 · Tower: final and landing clearance
     A_W_FINAL{{"FLY — NO CALL: on the extended centreline of runway [RUNWAY] inside 10 NM, below 3000 ft above the field, heading within 45 degrees"}}
     A_FINAL["YOU: [FIELD] tower, [CALLSIGN], final runway [RUNWAY]"]
     A_FINAL_NEG(["ATC: negative, not observed on final runway [RUNWAY], [CURRENT_INSTRUCTION]"])
@@ -452,47 +531,16 @@ flowchart TD
     A_LAND_OK(["ATC: readback correct"])
     A_X_STALE{{"NO TRANSMISSION: bridge stale — an unstarted landing or crossing clearance is revoked, a cleared arrival falls back to re-entry, an unread briefing falls back to standby, every earlier reply becomes invalid"}}
     A_X_GA(["ATC event: no readback, go around, clearance cancelled, fly runway heading, … — or — go around, [REVOKE_REASON], fly runway heading, re-enter [PATTERN] downwind runway [RUNWAY], report downwind — or — …, fly runway heading, report final runway [RUNWAY]"])
-  end
-  A_ARR_OK -->|"no pattern: straight-in"| A_W_FINAL
-  A_BASE_R & A_NOPATTERN --> A_W_FINAL
-  A_DOWNWIND_R -->|"base report optional: when measured on final"| A_W_FINAL
-  A_W_PATTERN -->|"straight-in also allowed with a pattern"| A_W_FINAL
-  A_W_FINAL --> A_FINAL
-  A_FINAL -->|"not measured on final"| A_FINAL_NEG
-  A_FINAL_NEG -.->|"RETRY on final"| A_W_FINAL
-  A_FINAL -->|"queued, or a runway occupied"| A_FINAL_Q
-  A_FINAL -->|"no tower on this frequency"| A_FINAL_TWR
-  A_FINAL_TWR -.->|"retune to tower, RETRY the final call"| A_FINAL
-  A_FINAL -->|"first, lane free, runways clear, tower here"| A_LAND_CLR
-  A_FINAL_Q -->|"WAIT — granted as an event when eligible"| A_LAND_CLR
-  A_LAND_CLR --> A_LAND_RB
-  A_LAND_RB -->|"exact"| A_LAND_OK
-  A_LAND_CLR & A_LAND_OK -->|"clearance unread after 60 s, or another aircraft on a runway, or tower lost"| A_X_GA
-  A_X_GA -.->|"after no readback: fly the circuit and report again"| A_W_PATTERN
-  A_X_GA -.->|"straight-in"| A_W_FINAL
-  A_LAND_CLR & A_LAND_OK & A_CROSS_CLR -->|"bridge goes stale"| A_X_STALE
-  A_X_STALE -.->|"after the link returns: check what is current"| A_SAYAGAIN
-  A_ARR_OK & A_FINAL_Q & A_LAND_OK -->|"wind selects another runway, or altimeter changes during the briefing"| A_REBRIEF
 
-  subgraph A_SG_GA["Go-around and touch-and-go"]
+  %% Go-around and touch-and-go
     A_GOAROUND["YOU: [FIELD] tower, [CALLSIGN], going around"]
     A_GA_R(["ATC: roger going around, fly runway heading, re-enter [PATTERN] downwind runway [RUNWAY], report downwind — or, no pattern — roger going around, fly runway heading, report final runway [RUNWAY]"])
     A_GA_NORWY(["ATC: roger going around, runway in use not available, remain clear of the airfield, stand by"])
     A_GA_WAIT(["ATC: stand by for landing confirmation"])
     A_GA_UNABLE(["ATC: unable, no approach in progress"])
     A_TNG_EV(["ATC event: airborne observed, go around, fly runway heading, re-enter [PATTERN] downwind runway [RUNWAY], report downwind — or — …, report final runway [RUNWAY]"])
-  end
-  A_W_PATTERN & A_W_FINAL & A_FINAL_Q & A_LAND_OK --> A_GOAROUND
-  A_GOAROUND -->|"airborne arrival phase"| A_GA_R
-  A_GA_R -.->|"pattern"| A_W_PATTERN
-  A_GA_R -.->|"straight-in"| A_W_FINAL
-  A_GOAROUND -->|"no runway in use"| A_GA_NORWY --> A_W_STANDBY
-  A_GOAROUND -->|"touched down, still on the ground"| A_GA_WAIT
-  A_GOAROUND -->|"rolled out, vacated, or taxiing"| A_GA_UNABLE
-  A_TNG_EV -.->|"pattern"| A_W_PATTERN
-  A_TNG_EV -.->|"straight-in"| A_W_FINAL
 
-  subgraph A_SG_LAND["4 · Touchdown, roll-out, vacate"]
+  %% 4 · Touchdown, roll-out, vacate
     A_W_TOUCH{{"FLY — NO CALL: land — the mission land event at [FIELD] starts the touchdown"}}
     A_UNCLR_LAND(["ATC event: landing without clearance observed"])
     A_W_ROLLOUT{{"ROLL OUT — NO CALL: an on-ground sample at [FIELD] confirms the landing"}}
@@ -506,25 +554,8 @@ flowchart TD
     A_VAC["YOU: [FIELD] tower, [CALLSIGN], vacated runway [RUNWAY]"]
     A_VAC_R(["ATC: roger, request taxi to parking"])
     A_VAC_NEG(["ATC: negative, not observed clear of the runway"])
-  end
-  A_LAND_OK --> A_W_TOUCH
-  A_W_TOUCH -->|"land event here, landing lane held"| A_W_ROLLOUT
-  A_W_TOUCH -->|"land event here without a landing clearance"| A_UNCLR_LAND --> A_W_ROLLOUT
-  A_FINAL_Q & A_W_FINAL -->|"lands without clearance"| A_W_TOUCH
-  A_W_ROLLOUT -->|"on-ground sample here"| A_LANDED_EV --> A_W_VACATE
-  A_W_ROLLOUT -->|"airborne again"| A_TNG_EV
-  A_W_ROLLOUT & A_W_VACATE --> A_LANDED
-  A_LANDED -->|"touchdown, landed or vacated phase"| A_LANDED_R
-  A_W_TOUCH --> A_LANDED_NEG_CALL
-  A_LANDED_NEG_CALL -->|"still airborne: no touchdown observed"| A_LANDED_NEG
-  A_LANDED_NEG -.->|"RETURN"| A_W_TOUCH
-  A_W_VACATE -->|"measured clear: no call needed"| A_VAC_EV
-  A_W_VACATE --> A_VAC
-  A_VAC -->|"measured clear"| A_VAC_R
-  A_VAC -->|"still on a runway, in the air, or no current sample"| A_VAC_NEG
-  A_VAC_NEG -.->|"RETRY when clear"| A_W_VACATE
 
-  subgraph A_SG_PARK["5 · Ground: taxi to parking with runway crossings, check-out, re-departure"]
+  %% 5 · Ground: taxi to parking with runway crossings, check-out, re-departure
     A_TAXIIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking"]
     A_TAXI_VAC["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
     A_TAXIIN_NEG(["ATC: vacate the runway first, report vacated — or — unable, not observed on the ground here — or — unable, [CURRENT_INSTRUCTION]"])
@@ -548,34 +579,8 @@ flowchart TD
     A_CHECKOUT_R(["ATC: copy, checked out"])
     A_REDEP_TAXI["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
     A_REDEP_START["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request startup"]
-  end
-  A_VAC_EV & A_VAC_R --> A_TAXIIN & A_TAXI_VAC
-  A_LANDED_EV -->|"may ask before vacating"| A_TAXIIN
-  A_TAXIIN & A_TAXI_VAC -->|"on the ground here, off the runway"| A_TAXIIN_CLR --> A_TAXIIN_RB
-  A_TAXIIN -->|"still on the runway or holding the lane, or no ground sample"| A_TAXIIN_NEG
-  A_TAXIIN_NEG -.->|"RETRY after vacating"| A_W_VACATE
-  A_TAXIIN_RB -->|"exact"| A_TAXIIN_OK --> A_W_PARK
-  A_W_PARK -->|"route crosses a runway"| A_W_CROSSPT --> A_CROSS
-  A_CROSS -->|"not measured at that crossing, or no valid runway named"| A_CROSS_NEG
-  A_CROSS_NEG -.->|"RETRY"| A_CROSS
-  A_CROSS -->|"queued, or no tower on this frequency"| A_CROSS_Q
-  A_CROSS_Q -.->|"retune to tower and RETRY, or WAIT for the event"| A_CROSS
-  A_CROSS -->|"first, lane free, runways clear, tower here"| A_CROSS_CLR
-  A_CROSS_Q -->|"WAIT — granted as an event when eligible"| A_CROSS_CLR
-  A_CROSS_CLR --> A_CROSS_RB
-  A_CROSS_RB -->|"exact"| A_CROSS_OK --> A_W_CROSSING
-  A_CROSS_CLR & A_CROSS_OK -->|"clearance unread after 60 s, or another aircraft on a runway, or tower lost — not yet on the runway"| A_CROSS_REV
-  A_CROSS_REV -.->|"after no readback: RETRY the request — otherwise WAIT"| A_CROSS
-  A_W_CROSSING -->|"measured clear: no call needed"| A_CROSS_EV --> A_W_PARK
-  A_W_CROSSING --> A_CROSS_VAC
-  A_CROSS_VAC -->|"entered and now measured clear"| A_CROSS_DONE --> A_W_PARK
-  A_CROSS_VAC -->|"still on a runway"| A_VAC_NEG
-  A_W_PARK --> A_CHECKOUT --> A_CHECKOUT_R --> A_END
-  A_W_PARK --> A_REDEP_TAXI -->|"taxi-in phase, on the ground here: new departure with taxi clearance"| A_TO_DEP
-  A_VAC_R & A_W_PARK --> A_REDEP_START
-  A_REDEP_START -->|"vacated or taxi-in, on the ground here: new departure, startup approved"| A_TO_DEP
 
-  subgraph A_SG_ANY["Any enrolled point: status, cancel, emergency"]
+  %% Any enrolled point: status, cancel, emergency
     A_ANY{{"At any enrolled point of this chart"}}
     A_SAYAGAIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], say again"]
     A_SAYAGAIN_R(["ATC: [CURRENT_INSTRUCTION] — rebuilt from present state, never a lapsed or revoked clearance"])
@@ -594,41 +599,239 @@ flowchart TD
     A_EMER_GROUND(["ATC event: emergency on the ground, vacate any runway, report vacated"])
     A_CANCEL_EMER["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], cancel emergency"]
     A_CANCEL_EMER_R(["ATC: roger, emergency cancelled, [CURRENT_INSTRUCTION] — or — roger, no emergency on record"])
-  end
-  A_ARR_OK & A_W_STANDBY & A_FINAL_Q & A_LAND_OK & A_LANDED_EV & A_TAXIIN_OK --> A_ANY
-  A_ANY --> A_SAYAGAIN & A_CANCEL & A_EMER & A_CANCEL_EMER
-  A_START & A_FROM_DEP --> A_EMER
-  A_START --> A_SAYAGAIN & A_CANCEL
-  A_SAYAGAIN -->|"enrolled"| A_SAYAGAIN_R
-  A_SAYAGAIN_R -.->|"RETURN to the current step"| A_ANY
-  A_SAYAGAIN -->|"no session"| A_NOSESSION
-  A_NOSESSION -.->|"RETURN"| A_START
-  A_RB_NONE -.->|"check what is current"| A_SAYAGAIN
-  A_CANCEL -->|"not on a runway"| A_CANCEL_R --> A_END
-  A_CANCEL -->|"no session"| A_CANCEL_NONE
-  A_CANCEL -->|"touched down or on a runway"| A_CANCEL_OCC --> A_W_CXL_VAC
-  A_W_CXL_VAC -->|"measured clear"| A_CXL_VAC_EV --> A_END
-  A_W_CXL_VAC --> A_CXL_VAC
-  A_CXL_VAC -->|"measured clear"| A_CXL_VAC_R --> A_END
-  A_CXL_VAC -->|"still on a runway"| A_VAC_NEG
-  A_EMER -->|"enrolled: first in the runway order"| A_EMER_R
-  A_EMER_R -.->|"RETURN to the current step"| A_ANY
-  A_EMER -->|"no session: priority arrival opened"| A_EMER_NEW_R --> A_ARR_RB
-  A_EMER_NEW_R -->|"sampled on the ground here, never airborne"| A_EMER_GROUND --> A_W_VACATE
-  A_CANCEL_EMER --> A_CANCEL_EMER_R
-  A_CANCEL_EMER_R -.->|"RETURN, priority removed"| A_ANY
 
-  subgraph A_SG_LIFE["Lifecycle closures: RETURN to a fresh call"]
+  %% Lifecycle closures: RETURN to a fresh call
     A_L_SILENT{{"NO TRANSMISSION: dead, eject, disconnect or birth event — new incarnation or coalition — airfield or frequency no longer served — new mission epoch — session moved to a carrier"}}
     A_L_ELSE(["ATC event: landing not observed at [FIELD], arrival closed"])
     A_L_AIR(["ATC event: airborne, arrival closed"])
     A_L_LOST(["ATC event: radar contact lost, airfield session closed, call again"])
     A_L_BAD(["ATC event: tracking data invalid, airfield session closed, call again"])
-  end
-  A_ANY --> A_L_SILENT & A_L_LOST & A_L_BAD
-  A_W_TOUCH -->|"lands at, or is sampled on the ground at, another airfield"| A_L_ELSE
-  A_W_PARK -->|"takes off again after vacating"| A_L_AIR
-  A_L_SILENT & A_L_ELSE & A_L_AIR & A_L_LOST & A_L_BAD -.->|"RETURN: start again with a valid call"| A_START
+
+  %% Stable edge IDs keep path colors attached to their transitions.
+  A_START edge_A_START__A_G_HUB@--> A_G_HUB
+  A_G_HUB edge_A_G_HUB__A_G_ID@--> A_G_ID
+  A_G_HUB edge_A_G_HUB__A_G_WHICH@--> A_G_WHICH
+  A_G_HUB edge_A_G_HUB__A_G_ROLE@--> A_G_ROLE
+  A_G_HUB edge_A_G_HUB__A_G_COAL@--> A_G_COAL
+  A_G_HUB edge_A_G_HUB__A_G_STALE@--> A_G_STALE
+  A_G_HUB edge_A_G_HUB__A_G_BUSY@--> A_G_BUSY
+  A_G_HUB edge_A_G_HUB__A_G_NONE@--> A_G_NONE
+  A_G_HUB edge_A_G_HUB__A_G_SILENT@--> A_G_SILENT
+  A_G_ID edge_A_G_ID__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_WHICH edge_A_G_WHICH__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_ROLE edge_A_G_ROLE__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_COAL edge_A_G_COAL__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_STALE edge_A_G_STALE__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_BUSY edge_A_G_BUSY__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_NONE edge_A_G_NONE__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_G_SILENT edge_A_G_SILENT__A_START@-.->|"RETRY: fix name, role,<br/>frequency, callsign or wait for<br/>link, then repeat the call"| A_START
+  A_START edge_A_START__A_INFO@--> A_INFO
+  A_START edge_A_START__A_RCHECK@--> A_RCHECK
+  A_INFO edge_A_INFO__A_INFO_R@--> A_INFO_R
+  A_RCHECK edge_A_RCHECK__A_INFO_R@--> A_INFO_R
+  A_INFO_R edge_A_INFO_R__A_START@-.->|"RETURN to your current step"| A_START
+  A_START edge_A_START__A_INBOUND@--> A_INBOUND
+  A_FROM_DEP edge_A_FROM_DEP__A_INBOUND@--> A_INBOUND
+  A_INBOUND edge_A_INBOUND__A_BRIEF@-->|"runway and altimeter known:<br/>enrolled"| A_BRIEF
+  A_INBOUND edge_A_INBOUND__A_STANDBY@-->|"runway or altimeter unavailable:<br/>enrolled"| A_STANDBY
+  A_STANDBY edge_A_STANDBY__A_W_STANDBY@--> A_W_STANDBY
+  A_W_STANDBY edge_A_W_STANDBY__A_BRIEF@-->|"facts available: event"| A_BRIEF
+  A_INBOUND edge_A_INBOUND__A_INB_GROUND@-->|"you hold a departure session and<br/>are on the ground"| A_INB_GROUND
+  A_INBOUND edge_A_INBOUND__A_NOT_AIR@-->|"enrolled, then sampled on the<br/>ground here without having flown"| A_NOT_AIR
+  A_NOT_AIR edge_A_NOT_AIR__A_START@-.->|"RETURN"| A_START
+  A_BRIEF edge_A_BRIEF__A_ARR_RB@--> A_ARR_RB
+  A_ARR_RB edge_A_ARR_RB__A_ARR_OK@-->|"exact runway and altimeter"| A_ARR_OK
+  A_BRIEF edge_A_BRIEF__A_W_STANDBY@-.->|"bridge stale: back to standby,<br/>no transmission"| A_W_STANDBY
+  A_REBRIEF edge_A_REBRIEF__A_ARR_RB@--> A_ARR_RB
+  A_ARR_RB edge_A_ARR_RB__A_RB_BAD@-->|"wrong or missing value, extra<br/>runway, cleared word in briefing<br/>readback, negation, cancel word"| A_RB_BAD
+  A_LAND_RB edge_A_LAND_RB__A_RB_BAD@-->|"wrong or missing value, extra<br/>runway, cleared word in briefing<br/>readback, negation, cancel word"| A_RB_BAD
+  A_CROSS_RB edge_A_CROSS_RB__A_RB_BAD@-->|"wrong or missing value, extra<br/>runway, cleared word in briefing<br/>readback, negation, cancel word"| A_RB_BAD
+  A_TAXIIN_RB edge_A_TAXIIN_RB__A_RB_BAD@-->|"wrong or missing value, extra<br/>runway, cleared word in briefing<br/>readback, negation, cancel word"| A_RB_BAD
+  A_RB_BAD edge_A_RB_BAD__A_ARR_RB@-.->|"RETRY briefing readback"| A_ARR_RB
+  A_RB_BAD edge_A_RB_BAD__A_LAND_RB@-.->|"RETRY landing readback"| A_LAND_RB
+  A_RB_BAD edge_A_RB_BAD__A_CROSS_RB@-.->|"RETRY crossing readback"| A_CROSS_RB
+  A_RB_BAD edge_A_RB_BAD__A_TAXIIN_RB@-.->|"RETRY parking readback"| A_TAXIIN_RB
+  A_LAND_RB edge_A_LAND_RB__A_RB_NONE@-->|"clearance already lapsed or<br/>revoked"| A_RB_NONE
+  A_CROSS_RB edge_A_CROSS_RB__A_RB_NONE@-->|"clearance already lapsed or<br/>revoked"| A_RB_NONE
+  A_ARR_OK edge_A_ARR_OK__A_W_PATTERN@-->|"pattern published"| A_W_PATTERN
+  A_W_PATTERN edge_A_W_PATTERN__A_DOWNWIND@--> A_DOWNWIND
+  A_DOWNWIND edge_A_DOWNWIND__A_DOWNWIND_R@-->|"measured in the pattern"| A_DOWNWIND_R
+  A_DOWNWIND_R edge_A_DOWNWIND_R__A_W_BASE@--> A_W_BASE
+  A_W_BASE edge_A_W_BASE__A_BASE@--> A_BASE
+  A_BASE edge_A_BASE__A_BASE_R@-->|"measured in the pattern, after<br/>downwind"| A_BASE_R
+  A_DOWNWIND edge_A_DOWNWIND__A_POS_NEG@-->|"outside 6 NM or 3000 ft"| A_POS_NEG
+  A_BASE edge_A_BASE__A_POS_NEG@-->|"outside 6 NM or 3000 ft"| A_POS_NEG
+  A_POS_NEG edge_A_POS_NEG__A_W_PATTERN@-.->|"RETRY in position"| A_W_PATTERN
+  A_DOWNWIND edge_A_DOWNWIND__A_NOPATTERN@-->|"no published pattern"| A_NOPATTERN
+  A_BASE edge_A_BASE__A_NOPATTERN@-->|"no published pattern"| A_NOPATTERN
+  A_BASE edge_A_BASE__A_ORDER@-->|"before downwind"| A_ORDER
+  A_ORDER edge_A_ORDER__A_W_PATTERN@-.->|"RETURN"| A_W_PATTERN
+  A_DOWNWIND edge_A_DOWNWIND__A_BRIEF_FIRST@-->|"briefing readback still owed"| A_BRIEF_FIRST
+  A_BASE edge_A_BASE__A_BRIEF_FIRST@-->|"briefing readback still owed"| A_BRIEF_FIRST
+  A_FINAL edge_A_FINAL__A_BRIEF_FIRST@-->|"briefing readback still owed"| A_BRIEF_FIRST
+  A_BRIEF_FIRST edge_A_BRIEF_FIRST__A_ARR_RB@-.->|"RETRY"| A_ARR_RB
+  A_ARR_OK edge_A_ARR_OK__A_W_FINAL@-->|"no pattern: straight-in"| A_W_FINAL
+  A_BASE_R edge_A_BASE_R__A_W_FINAL@--> A_W_FINAL
+  A_NOPATTERN edge_A_NOPATTERN__A_W_FINAL@--> A_W_FINAL
+  A_DOWNWIND_R edge_A_DOWNWIND_R__A_W_FINAL@-->|"base report optional: when<br/>measured on final"| A_W_FINAL
+  A_W_PATTERN edge_A_W_PATTERN__A_W_FINAL@-->|"straight-in also allowed with a<br/>pattern"| A_W_FINAL
+  A_W_FINAL edge_A_W_FINAL__A_FINAL@--> A_FINAL
+  A_FINAL edge_A_FINAL__A_FINAL_NEG@-->|"not measured on final"| A_FINAL_NEG
+  A_FINAL_NEG edge_A_FINAL_NEG__A_W_FINAL@-.->|"RETRY on final"| A_W_FINAL
+  A_FINAL edge_A_FINAL__A_FINAL_Q@-->|"queued, or a runway occupied"| A_FINAL_Q
+  A_FINAL edge_A_FINAL__A_FINAL_TWR@-->|"no tower on this frequency"| A_FINAL_TWR
+  A_FINAL_TWR edge_A_FINAL_TWR__A_FINAL@-.->|"retune to tower, RETRY the final<br/>call"| A_FINAL
+  A_FINAL edge_A_FINAL__A_LAND_CLR@-->|"first, lane free, runways clear,<br/>tower here"| A_LAND_CLR
+  A_FINAL_Q edge_A_FINAL_Q__A_LAND_CLR@-->|"WAIT — granted as an event when<br/>eligible"| A_LAND_CLR
+  A_LAND_CLR edge_A_LAND_CLR__A_LAND_RB@--> A_LAND_RB
+  A_LAND_RB edge_A_LAND_RB__A_LAND_OK@-->|"exact"| A_LAND_OK
+  A_LAND_CLR edge_A_LAND_CLR__A_X_GA@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost"| A_X_GA
+  A_LAND_OK edge_A_LAND_OK__A_X_GA@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost"| A_X_GA
+  A_X_GA edge_A_X_GA__A_W_PATTERN@-.->|"after no readback: fly the<br/>circuit and report again"| A_W_PATTERN
+  A_X_GA edge_A_X_GA__A_W_FINAL@-.->|"straight-in"| A_W_FINAL
+  A_LAND_CLR edge_A_LAND_CLR__A_X_STALE@-->|"bridge goes stale"| A_X_STALE
+  A_LAND_OK edge_A_LAND_OK__A_X_STALE@-->|"bridge goes stale"| A_X_STALE
+  A_CROSS_CLR edge_A_CROSS_CLR__A_X_STALE@-->|"bridge goes stale"| A_X_STALE
+  A_X_STALE edge_A_X_STALE__A_SAYAGAIN@-.->|"after the link returns: check<br/>what is current"| A_SAYAGAIN
+  A_ARR_OK edge_A_ARR_OK__A_REBRIEF@-->|"wind selects another runway, or<br/>altimeter changes during the<br/>briefing"| A_REBRIEF
+  A_FINAL_Q edge_A_FINAL_Q__A_REBRIEF@-->|"wind selects another runway, or<br/>altimeter changes during the<br/>briefing"| A_REBRIEF
+  A_LAND_OK edge_A_LAND_OK__A_REBRIEF@-->|"wind selects another runway, or<br/>altimeter changes during the<br/>briefing"| A_REBRIEF
+  A_W_PATTERN edge_A_W_PATTERN__A_GOAROUND@--> A_GOAROUND
+  A_W_FINAL edge_A_W_FINAL__A_GOAROUND@--> A_GOAROUND
+  A_FINAL_Q edge_A_FINAL_Q__A_GOAROUND@--> A_GOAROUND
+  A_LAND_OK edge_A_LAND_OK__A_GOAROUND@--> A_GOAROUND
+  A_GOAROUND edge_A_GOAROUND__A_GA_R@-->|"airborne arrival phase"| A_GA_R
+  A_GA_R edge_A_GA_R__A_W_PATTERN@-.->|"pattern"| A_W_PATTERN
+  A_GA_R edge_A_GA_R__A_W_FINAL@-.->|"straight-in"| A_W_FINAL
+  A_GOAROUND edge_A_GOAROUND__A_GA_NORWY@-->|"no runway in use"| A_GA_NORWY
+  A_GA_NORWY edge_A_GA_NORWY__A_W_STANDBY@--> A_W_STANDBY
+  A_GOAROUND edge_A_GOAROUND__A_GA_WAIT@-->|"touched down, still on the<br/>ground"| A_GA_WAIT
+  A_GOAROUND edge_A_GOAROUND__A_GA_UNABLE@-->|"rolled out, vacated, or taxiing"| A_GA_UNABLE
+  A_TNG_EV edge_A_TNG_EV__A_W_PATTERN@-.->|"pattern"| A_W_PATTERN
+  A_TNG_EV edge_A_TNG_EV__A_W_FINAL@-.->|"straight-in"| A_W_FINAL
+  A_LAND_OK edge_A_LAND_OK__A_W_TOUCH@--> A_W_TOUCH
+  A_W_TOUCH edge_A_W_TOUCH__A_W_ROLLOUT@-->|"land event here, landing lane<br/>held"| A_W_ROLLOUT
+  A_W_TOUCH edge_A_W_TOUCH__A_UNCLR_LAND@-->|"land event here without a<br/>landing clearance"| A_UNCLR_LAND
+  A_UNCLR_LAND edge_A_UNCLR_LAND__A_W_ROLLOUT@--> A_W_ROLLOUT
+  A_FINAL_Q edge_A_FINAL_Q__A_W_TOUCH@-->|"lands without clearance"| A_W_TOUCH
+  A_W_FINAL edge_A_W_FINAL__A_W_TOUCH@-->|"lands without clearance"| A_W_TOUCH
+  A_W_ROLLOUT edge_A_W_ROLLOUT__A_LANDED_EV@-->|"on-ground sample here"| A_LANDED_EV
+  A_LANDED_EV edge_A_LANDED_EV__A_W_VACATE@--> A_W_VACATE
+  A_W_ROLLOUT edge_A_W_ROLLOUT__A_TNG_EV@-->|"airborne again"| A_TNG_EV
+  A_W_ROLLOUT edge_A_W_ROLLOUT__A_LANDED@--> A_LANDED
+  A_W_VACATE edge_A_W_VACATE__A_LANDED@--> A_LANDED
+  A_LANDED edge_A_LANDED__A_LANDED_R@-->|"touchdown, landed or vacated<br/>phase"| A_LANDED_R
+  A_W_TOUCH edge_A_W_TOUCH__A_LANDED_NEG_CALL@--> A_LANDED_NEG_CALL
+  A_LANDED_NEG_CALL edge_A_LANDED_NEG_CALL__A_LANDED_NEG@-->|"still airborne: no touchdown<br/>observed"| A_LANDED_NEG
+  A_LANDED_NEG edge_A_LANDED_NEG__A_W_TOUCH@-.->|"RETURN"| A_W_TOUCH
+  A_W_VACATE edge_A_W_VACATE__A_VAC_EV@-->|"measured clear: no call needed"| A_VAC_EV
+  A_W_VACATE edge_A_W_VACATE__A_VAC@--> A_VAC
+  A_VAC edge_A_VAC__A_VAC_R@-->|"measured clear"| A_VAC_R
+  A_VAC edge_A_VAC__A_VAC_NEG@-->|"still on a runway, in the air,<br/>or no current sample"| A_VAC_NEG
+  A_VAC_NEG edge_A_VAC_NEG__A_W_VACATE@-.->|"RETRY when clear"| A_W_VACATE
+  A_VAC_EV edge_A_VAC_EV__A_TAXIIN@--> A_TAXIIN
+  A_VAC_EV edge_A_VAC_EV__A_TAXI_VAC@--> A_TAXI_VAC
+  A_VAC_R edge_A_VAC_R__A_TAXIIN@--> A_TAXIIN
+  A_VAC_R edge_A_VAC_R__A_TAXI_VAC@--> A_TAXI_VAC
+  A_LANDED_EV edge_A_LANDED_EV__A_TAXIIN@-->|"may ask before vacating"| A_TAXIIN
+  A_TAXIIN edge_A_TAXIIN__A_TAXIIN_CLR@-->|"on the ground here, off the<br/>runway"| A_TAXIIN_CLR
+  A_TAXI_VAC edge_A_TAXI_VAC__A_TAXIIN_CLR@-->|"on the ground here, off the<br/>runway"| A_TAXIIN_CLR
+  A_TAXIIN_CLR edge_A_TAXIIN_CLR__A_TAXIIN_RB@--> A_TAXIIN_RB
+  A_TAXIIN edge_A_TAXIIN__A_TAXIIN_NEG@-->|"still on the runway or holding<br/>the lane, or no ground sample"| A_TAXIIN_NEG
+  A_TAXIIN_NEG edge_A_TAXIIN_NEG__A_W_VACATE@-.->|"RETRY after vacating"| A_W_VACATE
+  A_TAXIIN_RB edge_A_TAXIIN_RB__A_TAXIIN_OK@-->|"exact"| A_TAXIIN_OK
+  A_TAXIIN_OK edge_A_TAXIIN_OK__A_W_PARK@--> A_W_PARK
+  A_W_PARK edge_A_W_PARK__A_W_CROSSPT@-->|"route crosses a runway"| A_W_CROSSPT
+  A_W_CROSSPT edge_A_W_CROSSPT__A_CROSS@--> A_CROSS
+  A_CROSS edge_A_CROSS__A_CROSS_NEG@-->|"not measured at that crossing,<br/>or no valid runway named"| A_CROSS_NEG
+  A_CROSS_NEG edge_A_CROSS_NEG__A_CROSS@-.->|"RETRY"| A_CROSS
+  A_CROSS edge_A_CROSS__A_CROSS_Q@-->|"queued, or no tower on this<br/>frequency"| A_CROSS_Q
+  A_CROSS_Q edge_A_CROSS_Q__A_CROSS@-.->|"retune to tower and RETRY, or<br/>WAIT for the event"| A_CROSS
+  A_CROSS edge_A_CROSS__A_CROSS_CLR@-->|"first, lane free, runways clear,<br/>tower here"| A_CROSS_CLR
+  A_CROSS_Q edge_A_CROSS_Q__A_CROSS_CLR@-->|"WAIT — granted as an event when<br/>eligible"| A_CROSS_CLR
+  A_CROSS_CLR edge_A_CROSS_CLR__A_CROSS_RB@--> A_CROSS_RB
+  A_CROSS_RB edge_A_CROSS_RB__A_CROSS_OK@-->|"exact"| A_CROSS_OK
+  A_CROSS_OK edge_A_CROSS_OK__A_W_CROSSING@--> A_W_CROSSING
+  A_CROSS_CLR edge_A_CROSS_CLR__A_CROSS_REV@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| A_CROSS_REV
+  A_CROSS_OK edge_A_CROSS_OK__A_CROSS_REV@-->|"clearance unread after 60 s, or<br/>another aircraft on a runway, or<br/>tower lost — not yet on the<br/>runway"| A_CROSS_REV
+  A_CROSS_REV edge_A_CROSS_REV__A_CROSS@-.->|"after no readback: RETRY the<br/>request — otherwise WAIT"| A_CROSS
+  A_W_CROSSING edge_A_W_CROSSING__A_CROSS_EV@-->|"measured clear: no call needed"| A_CROSS_EV
+  A_CROSS_EV edge_A_CROSS_EV__A_W_PARK@--> A_W_PARK
+  A_W_CROSSING edge_A_W_CROSSING__A_CROSS_VAC@--> A_CROSS_VAC
+  A_CROSS_VAC edge_A_CROSS_VAC__A_CROSS_DONE@-->|"entered and now measured clear"| A_CROSS_DONE
+  A_CROSS_DONE edge_A_CROSS_DONE__A_W_PARK@--> A_W_PARK
+  A_CROSS_VAC edge_A_CROSS_VAC__A_VAC_NEG@-->|"still on a runway"| A_VAC_NEG
+  A_W_PARK edge_A_W_PARK__A_CHECKOUT@--> A_CHECKOUT
+  A_CHECKOUT edge_A_CHECKOUT__A_CHECKOUT_R@--> A_CHECKOUT_R
+  A_CHECKOUT_R edge_A_CHECKOUT_R__A_END@--> A_END
+  A_W_PARK edge_A_W_PARK__A_REDEP_TAXI@--> A_REDEP_TAXI
+  A_REDEP_TAXI edge_A_REDEP_TAXI__A_TO_DEP@-->|"taxi-in phase, on the ground<br/>here: new departure with taxi<br/>clearance"| A_TO_DEP
+  A_VAC_R edge_A_VAC_R__A_REDEP_START@--> A_REDEP_START
+  A_W_PARK edge_A_W_PARK__A_REDEP_START@--> A_REDEP_START
+  A_REDEP_START edge_A_REDEP_START__A_TO_DEP@-->|"vacated or taxi-in, on the<br/>ground here: new departure,<br/>startup approved"| A_TO_DEP
+  A_ARR_OK edge_A_ARR_OK__A_ANY@--> A_ANY
+  A_W_STANDBY edge_A_W_STANDBY__A_ANY@--> A_ANY
+  A_FINAL_Q edge_A_FINAL_Q__A_ANY@--> A_ANY
+  A_LAND_OK edge_A_LAND_OK__A_ANY@--> A_ANY
+  A_LANDED_EV edge_A_LANDED_EV__A_ANY@--> A_ANY
+  A_TAXIIN_OK edge_A_TAXIIN_OK__A_ANY@--> A_ANY
+  A_ANY edge_A_ANY__A_SAYAGAIN@--> A_SAYAGAIN
+  A_ANY edge_A_ANY__A_CANCEL@--> A_CANCEL
+  A_ANY edge_A_ANY__A_EMER@--> A_EMER
+  A_ANY edge_A_ANY__A_CANCEL_EMER@--> A_CANCEL_EMER
+  A_START edge_A_START__A_EMER@--> A_EMER
+  A_FROM_DEP edge_A_FROM_DEP__A_EMER@--> A_EMER
+  A_START edge_A_START__A_SAYAGAIN@--> A_SAYAGAIN
+  A_START edge_A_START__A_CANCEL@--> A_CANCEL
+  A_SAYAGAIN edge_A_SAYAGAIN__A_SAYAGAIN_R@-->|"enrolled"| A_SAYAGAIN_R
+  A_SAYAGAIN_R edge_A_SAYAGAIN_R__A_ANY@-.->|"RETURN to the current step"| A_ANY
+  A_SAYAGAIN edge_A_SAYAGAIN__A_NOSESSION@-->|"no session"| A_NOSESSION
+  A_NOSESSION edge_A_NOSESSION__A_START@-.->|"RETURN"| A_START
+  A_RB_NONE edge_A_RB_NONE__A_SAYAGAIN@-.->|"check what is current"| A_SAYAGAIN
+  A_CANCEL edge_A_CANCEL__A_CANCEL_R@-->|"not on a runway"| A_CANCEL_R
+  A_CANCEL_R edge_A_CANCEL_R__A_END@--> A_END
+  A_CANCEL edge_A_CANCEL__A_CANCEL_NONE@-->|"no session"| A_CANCEL_NONE
+  A_CANCEL edge_A_CANCEL__A_CANCEL_OCC@-->|"touched down or on a runway"| A_CANCEL_OCC
+  A_CANCEL_OCC edge_A_CANCEL_OCC__A_W_CXL_VAC@--> A_W_CXL_VAC
+  A_W_CXL_VAC edge_A_W_CXL_VAC__A_CXL_VAC_EV@-->|"measured clear"| A_CXL_VAC_EV
+  A_CXL_VAC_EV edge_A_CXL_VAC_EV__A_END@--> A_END
+  A_W_CXL_VAC edge_A_W_CXL_VAC__A_CXL_VAC@--> A_CXL_VAC
+  A_CXL_VAC edge_A_CXL_VAC__A_CXL_VAC_R@-->|"measured clear"| A_CXL_VAC_R
+  A_CXL_VAC_R edge_A_CXL_VAC_R__A_END@--> A_END
+  A_CXL_VAC edge_A_CXL_VAC__A_VAC_NEG@-->|"still on a runway"| A_VAC_NEG
+  A_EMER edge_A_EMER__A_EMER_R@-->|"enrolled: first in the runway<br/>order"| A_EMER_R
+  A_EMER_R edge_A_EMER_R__A_ANY@-.->|"RETURN to the current step"| A_ANY
+  A_EMER edge_A_EMER__A_EMER_NEW_R@-->|"no session: priority arrival<br/>opened"| A_EMER_NEW_R
+  A_EMER_NEW_R edge_A_EMER_NEW_R__A_ARR_RB@--> A_ARR_RB
+  A_EMER_NEW_R edge_A_EMER_NEW_R__A_EMER_GROUND@-->|"sampled on the ground here,<br/>never airborne"| A_EMER_GROUND
+  A_EMER_GROUND edge_A_EMER_GROUND__A_W_VACATE@--> A_W_VACATE
+  A_CANCEL_EMER edge_A_CANCEL_EMER__A_CANCEL_EMER_R@--> A_CANCEL_EMER_R
+  A_CANCEL_EMER_R edge_A_CANCEL_EMER_R__A_ANY@-.->|"RETURN, priority removed"| A_ANY
+  A_ANY edge_A_ANY__A_L_SILENT@--> A_L_SILENT
+  A_ANY edge_A_ANY__A_L_LOST@--> A_L_LOST
+  A_ANY edge_A_ANY__A_L_BAD@--> A_L_BAD
+  A_W_TOUCH edge_A_W_TOUCH__A_L_ELSE@-->|"lands at, or is sampled on the<br/>ground at, another airfield"| A_L_ELSE
+  A_W_PARK edge_A_W_PARK__A_L_AIR@-->|"takes off again after vacating"| A_L_AIR
+  A_L_SILENT edge_A_L_SILENT__A_START@-.->|"RETURN: start again with a valid<br/>call"| A_START
+  A_L_ELSE edge_A_L_ELSE__A_START@-.->|"RETURN: start again with a valid<br/>call"| A_START
+  A_L_AIR edge_A_L_AIR__A_START@-.->|"RETURN: start again with a valid<br/>call"| A_START
+  A_L_LOST edge_A_L_LOST__A_START@-.->|"RETURN: start again with a valid<br/>call"| A_START
+  A_L_BAD edge_A_L_BAD__A_START@-.->|"RETURN: start again with a valid<br/>call"| A_START
+
+  classDef normalFlow stroke:#15803d,stroke-width:3px,stroke-dasharray:0
+  classDef errorFlow stroke:#b91c1c,stroke-width:2.5px,stroke-dasharray:0
+  classDef recoveryFlow stroke:#92400e,stroke-width:2px,stroke-dasharray:7 4
+  classDef neutralFlow stroke:#64748b,stroke-width:1px,stroke-dasharray:0
+  classDef pilotCall fill:#eff6ff,stroke:#1d4ed8,color:#172554
+  classDef errorNode fill:#fef2f2,stroke:#b91c1c,color:#450a0a
+  classDef recoveryNode fill:#fffbeb,stroke:#92400e,color:#451a03
+  class edge_A_START__A_G_HUB,edge_A_START__A_INFO,edge_A_START__A_RCHECK,edge_A_INFO__A_INFO_R,edge_A_RCHECK__A_INFO_R,edge_A_INFO_R__A_START,edge_A_ARR_OK__A_ANY,edge_A_W_STANDBY__A_ANY,edge_A_FINAL_Q__A_ANY,edge_A_LAND_OK__A_ANY,edge_A_LANDED_EV__A_ANY,edge_A_TAXIIN_OK__A_ANY,edge_A_ANY__A_SAYAGAIN,edge_A_START__A_SAYAGAIN,edge_A_SAYAGAIN__A_SAYAGAIN_R,edge_A_SAYAGAIN_R__A_ANY,edge_A_NOSESSION__A_START neutralFlow
+  class edge_A_G_HUB__A_G_ID,edge_A_G_HUB__A_G_WHICH,edge_A_G_HUB__A_G_ROLE,edge_A_G_HUB__A_G_COAL,edge_A_G_HUB__A_G_STALE,edge_A_G_HUB__A_G_BUSY,edge_A_G_HUB__A_G_NONE,edge_A_G_HUB__A_G_SILENT,edge_A_INBOUND__A_INB_GROUND,edge_A_INBOUND__A_NOT_AIR,edge_A_BRIEF__A_W_STANDBY,edge_A_ARR_RB__A_RB_BAD,edge_A_LAND_RB__A_RB_BAD,edge_A_CROSS_RB__A_RB_BAD,edge_A_TAXIIN_RB__A_RB_BAD,edge_A_LAND_RB__A_RB_NONE,edge_A_CROSS_RB__A_RB_NONE,edge_A_DOWNWIND__A_POS_NEG,edge_A_BASE__A_POS_NEG,edge_A_DOWNWIND__A_NOPATTERN,edge_A_BASE__A_NOPATTERN,edge_A_BASE__A_ORDER,edge_A_DOWNWIND__A_BRIEF_FIRST,edge_A_BASE__A_BRIEF_FIRST,edge_A_FINAL__A_BRIEF_FIRST,edge_A_FINAL__A_FINAL_NEG,edge_A_FINAL__A_FINAL_TWR,edge_A_LAND_CLR__A_X_GA,edge_A_LAND_OK__A_X_GA,edge_A_LAND_CLR__A_X_STALE,edge_A_LAND_OK__A_X_STALE,edge_A_CROSS_CLR__A_X_STALE,edge_A_ARR_OK__A_REBRIEF,edge_A_FINAL_Q__A_REBRIEF,edge_A_LAND_OK__A_REBRIEF,edge_A_GOAROUND__A_GA_NORWY,edge_A_GOAROUND__A_GA_UNABLE,edge_A_W_TOUCH__A_UNCLR_LAND,edge_A_FINAL_Q__A_W_TOUCH,edge_A_W_FINAL__A_W_TOUCH,edge_A_LANDED_NEG_CALL__A_LANDED_NEG,edge_A_VAC__A_VAC_NEG,edge_A_TAXIIN__A_TAXIIN_NEG,edge_A_CROSS__A_CROSS_NEG,edge_A_CROSS_CLR__A_CROSS_REV,edge_A_CROSS_OK__A_CROSS_REV,edge_A_CROSS_VAC__A_VAC_NEG,edge_A_SAYAGAIN__A_NOSESSION,edge_A_CXL_VAC__A_VAC_NEG,edge_A_ANY__A_L_SILENT,edge_A_ANY__A_L_LOST,edge_A_ANY__A_L_BAD,edge_A_W_TOUCH__A_L_ELSE,edge_A_W_PARK__A_L_AIR,edge_A_W_TOUCH__A_LANDED_NEG_CALL errorFlow
+  class edge_A_G_ID__A_START,edge_A_G_WHICH__A_START,edge_A_G_ROLE__A_START,edge_A_G_COAL__A_START,edge_A_G_STALE__A_START,edge_A_G_BUSY__A_START,edge_A_G_NONE__A_START,edge_A_G_SILENT__A_START,edge_A_NOT_AIR__A_START,edge_A_RB_BAD__A_ARR_RB,edge_A_RB_BAD__A_LAND_RB,edge_A_RB_BAD__A_CROSS_RB,edge_A_RB_BAD__A_TAXIIN_RB,edge_A_POS_NEG__A_W_PATTERN,edge_A_ORDER__A_W_PATTERN,edge_A_BRIEF_FIRST__A_ARR_RB,edge_A_NOPATTERN__A_W_FINAL,edge_A_FINAL_NEG__A_W_FINAL,edge_A_FINAL_TWR__A_FINAL,edge_A_X_GA__A_W_PATTERN,edge_A_X_GA__A_W_FINAL,edge_A_X_STALE__A_SAYAGAIN,edge_A_W_PATTERN__A_GOAROUND,edge_A_W_FINAL__A_GOAROUND,edge_A_FINAL_Q__A_GOAROUND,edge_A_LAND_OK__A_GOAROUND,edge_A_GOAROUND__A_GA_R,edge_A_GA_R__A_W_PATTERN,edge_A_GA_R__A_W_FINAL,edge_A_GA_NORWY__A_W_STANDBY,edge_A_GOAROUND__A_GA_WAIT,edge_A_TNG_EV__A_W_PATTERN,edge_A_TNG_EV__A_W_FINAL,edge_A_UNCLR_LAND__A_W_ROLLOUT,edge_A_W_ROLLOUT__A_TNG_EV,edge_A_LANDED_NEG__A_W_TOUCH,edge_A_VAC_NEG__A_W_VACATE,edge_A_TAXIIN_NEG__A_W_VACATE,edge_A_CROSS_NEG__A_CROSS,edge_A_CROSS_Q__A_CROSS,edge_A_CROSS_REV__A_CROSS,edge_A_ANY__A_CANCEL,edge_A_ANY__A_EMER,edge_A_ANY__A_CANCEL_EMER,edge_A_START__A_EMER,edge_A_FROM_DEP__A_EMER,edge_A_START__A_CANCEL,edge_A_RB_NONE__A_SAYAGAIN,edge_A_CANCEL__A_CANCEL_R,edge_A_CANCEL_R__A_END,edge_A_CANCEL__A_CANCEL_NONE,edge_A_CANCEL__A_CANCEL_OCC,edge_A_CANCEL_OCC__A_W_CXL_VAC,edge_A_W_CXL_VAC__A_CXL_VAC_EV,edge_A_CXL_VAC_EV__A_END,edge_A_W_CXL_VAC__A_CXL_VAC,edge_A_CXL_VAC__A_CXL_VAC_R,edge_A_CXL_VAC_R__A_END,edge_A_EMER__A_EMER_R,edge_A_EMER_R__A_ANY,edge_A_EMER__A_EMER_NEW_R,edge_A_EMER_NEW_R__A_ARR_RB,edge_A_EMER_NEW_R__A_EMER_GROUND,edge_A_EMER_GROUND__A_W_VACATE,edge_A_CANCEL_EMER__A_CANCEL_EMER_R,edge_A_CANCEL_EMER_R__A_ANY,edge_A_L_SILENT__A_START,edge_A_L_ELSE__A_START,edge_A_L_AIR__A_START,edge_A_L_LOST__A_START,edge_A_L_BAD__A_START recoveryFlow
+  class edge_A_START__A_INBOUND,edge_A_FROM_DEP__A_INBOUND,edge_A_INBOUND__A_BRIEF,edge_A_INBOUND__A_STANDBY,edge_A_STANDBY__A_W_STANDBY,edge_A_W_STANDBY__A_BRIEF,edge_A_BRIEF__A_ARR_RB,edge_A_ARR_RB__A_ARR_OK,edge_A_REBRIEF__A_ARR_RB,edge_A_ARR_OK__A_W_PATTERN,edge_A_W_PATTERN__A_DOWNWIND,edge_A_DOWNWIND__A_DOWNWIND_R,edge_A_DOWNWIND_R__A_W_BASE,edge_A_W_BASE__A_BASE,edge_A_BASE__A_BASE_R,edge_A_ARR_OK__A_W_FINAL,edge_A_BASE_R__A_W_FINAL,edge_A_DOWNWIND_R__A_W_FINAL,edge_A_W_PATTERN__A_W_FINAL,edge_A_W_FINAL__A_FINAL,edge_A_FINAL__A_FINAL_Q,edge_A_FINAL__A_LAND_CLR,edge_A_FINAL_Q__A_LAND_CLR,edge_A_LAND_CLR__A_LAND_RB,edge_A_LAND_RB__A_LAND_OK,edge_A_LAND_OK__A_W_TOUCH,edge_A_W_TOUCH__A_W_ROLLOUT,edge_A_W_ROLLOUT__A_LANDED_EV,edge_A_LANDED_EV__A_W_VACATE,edge_A_W_ROLLOUT__A_LANDED,edge_A_W_VACATE__A_LANDED,edge_A_LANDED__A_LANDED_R,edge_A_W_VACATE__A_VAC_EV,edge_A_W_VACATE__A_VAC,edge_A_VAC__A_VAC_R,edge_A_VAC_EV__A_TAXIIN,edge_A_VAC_EV__A_TAXI_VAC,edge_A_VAC_R__A_TAXIIN,edge_A_VAC_R__A_TAXI_VAC,edge_A_LANDED_EV__A_TAXIIN,edge_A_TAXIIN__A_TAXIIN_CLR,edge_A_TAXI_VAC__A_TAXIIN_CLR,edge_A_TAXIIN_CLR__A_TAXIIN_RB,edge_A_TAXIIN_RB__A_TAXIIN_OK,edge_A_TAXIIN_OK__A_W_PARK,edge_A_W_PARK__A_W_CROSSPT,edge_A_W_CROSSPT__A_CROSS,edge_A_CROSS__A_CROSS_Q,edge_A_CROSS__A_CROSS_CLR,edge_A_CROSS_Q__A_CROSS_CLR,edge_A_CROSS_CLR__A_CROSS_RB,edge_A_CROSS_RB__A_CROSS_OK,edge_A_CROSS_OK__A_W_CROSSING,edge_A_W_CROSSING__A_CROSS_EV,edge_A_CROSS_EV__A_W_PARK,edge_A_W_CROSSING__A_CROSS_VAC,edge_A_CROSS_VAC__A_CROSS_DONE,edge_A_CROSS_DONE__A_W_PARK,edge_A_W_PARK__A_CHECKOUT,edge_A_CHECKOUT__A_CHECKOUT_R,edge_A_CHECKOUT_R__A_END,edge_A_W_PARK__A_REDEP_TAXI,edge_A_REDEP_TAXI__A_TO_DEP,edge_A_VAC_R__A_REDEP_START,edge_A_W_PARK__A_REDEP_START,edge_A_REDEP_START__A_TO_DEP normalFlow
+  class A_INFO,A_RCHECK,A_INBOUND,A_ARR_RB,A_LAND_RB,A_CROSS_RB,A_TAXIIN_RB,A_DOWNWIND,A_BASE,A_FINAL,A_SAYAGAIN,A_GOAROUND,A_LANDED,A_LANDED_NEG_CALL,A_VAC,A_TAXIIN,A_TAXI_VAC,A_CROSS,A_CROSS_VAC,A_CHECKOUT,A_REDEP_TAXI,A_REDEP_START,A_CANCEL,A_CXL_VAC,A_EMER,A_CANCEL_EMER pilotCall
+  class A_G_ID,A_G_WHICH,A_G_ROLE,A_G_COAL,A_G_STALE,A_G_BUSY,A_G_NONE,A_G_SILENT,A_INB_GROUND,A_NOT_AIR,A_RB_BAD,A_RB_NONE,A_POS_NEG,A_NOPATTERN,A_ORDER,A_BRIEF_FIRST,A_FINAL_NEG,A_FINAL_TWR,A_X_GA,A_X_STALE,A_REBRIEF,A_GA_NORWY,A_GA_UNABLE,A_UNCLR_LAND,A_LANDED_NEG,A_VAC_NEG,A_TAXIIN_NEG,A_CROSS_NEG,A_CROSS_REV,A_NOSESSION,A_L_SILENT,A_L_LOST,A_L_BAD,A_L_ELSE,A_L_AIR errorNode
+  class A_GOAROUND,A_GA_R,A_GA_WAIT,A_CANCEL,A_CANCEL_R,A_CANCEL_NONE,A_CANCEL_OCC,A_W_CXL_VAC,A_CXL_VAC_EV,A_CXL_VAC,A_CXL_VAC_R,A_EMER,A_EMER_R,A_EMER_NEW_R,A_CANCEL_EMER,A_CANCEL_EMER_R,A_EMER_GROUND recoveryNode
 ```
 
 ## Readback dictionary
