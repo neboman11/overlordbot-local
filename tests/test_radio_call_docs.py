@@ -18,9 +18,9 @@ def call_labels(chart):
     result = {}
     for ident, raw in LABELS.findall(chart):
         label = html.unescape(raw.replace('\\"', '"'))
-        if label.startswith('YOU:'):
-            call = re.split(r'<br\s*/?>|\n', label[4:].strip(), maxsplit=1)[0].strip()
-            result[ident] = call
+        spoken = re.fullmatch(r'`YOU:\s+\*\*(.+)\*\*`', label)
+        if spoken:
+            result[ident] = spoken[1]
     return result
 
 

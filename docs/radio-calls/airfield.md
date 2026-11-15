@@ -15,7 +15,7 @@ Validation manifest: [`airfield-calls.json`](airfield-calls.json). It gives samp
 
 | Shape | Meaning |
 |---|---|
-| `ID["YOU: …"]` (rectangle) | The complete transmission you make, with placeholders. Say it as written. |
+| `YOU:` followed by **bold words** (rectangle) | **Your transmission.** Say only the words after `YOU:`, replacing placeholders. Do not say `YOU:` or the brackets. |
 | `ID(["ATC: …"])` (stadium) | The controller's reply, or an `ATC event` it transmits unprompted. Replies arrive as `[CALLSIGN], [FIELD] [role], <message>`. |
 | `ID{{"WAIT/FLY/TAXI — NO CALL: …"}}` (hexagon) | Nothing to say. Mission telemetry (the bridge), not your words, moves the procedure on. |
 | `ID(("…"))` (circle) | Entry, exit, or hand-over to the other chart. |
@@ -98,12 +98,12 @@ flowchart TD
     D_G_SILENT{{"NO REPLY: call not opened with an airfield receiver, named airfield not on this frequency, or frequency not an airfield radio"}}
 
   %% Facts: any time, before or during a session — never enrols, never moves the session
-    D_INFO["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request information"]
-    D_RCHECK["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], radio check"]
+    D_INFO["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request information**`"]
+    D_RCHECK["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], radio check**`"]
     D_INFO_R(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], [PATTERN] traffic"])
 
   %% 1 · Ground: startup
-    D_STARTUP["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request startup"]
+    D_STARTUP["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request startup**`"]
     D_STARTUP_OK(["ATC: startup approved, altimeter [ALTIMETER], report ready to taxi"])
     D_STARTUP_SB(["ATC: standby, not yet observed on the ground at [FIELD]"])
     D_W_GROUND{{"WAIT — NO CALL: next bridge sample must show you on the ground at [FIELD]"}}
@@ -112,11 +112,11 @@ flowchart TD
     D_STARTUP_ARR(["ATC: unable, departure requires the aircraft on the ground clear of the runway"])
 
   %% 2 · Ground: taxi clearance — the startup call is optional
-    D_TAXI["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
+    D_TAXI["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi**`"]
     D_TAXI_CLR(["ATC: taxi to holding point runway [RUNWAY] via [TAXI_ROUTE], hold short of all runways, altimeter [ALTIMETER], read back"])
     D_TAXI_NORWY(["ATC: [RUNWAY_REASON], hold position"])
     D_TAXI_NOTGND(["ATC: unable, not observed on the ground here — or — standby, not yet observed on the ground at [FIELD]"])
-    D_TAXI_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi holding point runway [RUNWAY], hold short of all runways"]
+    D_TAXI_RB["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi holding point runway [RUNWAY], hold short of all runways**`"]
     D_TAXI_OK(["ATC: readback correct, taxi to holding point runway [RUNWAY], hold short of all runways, report holding short"])
 
   %% Readback outcomes shared by every readback in this chart
@@ -125,37 +125,37 @@ flowchart TD
 
   %% 3 · Runway crossing: taxi out or taxi back to parking
     D_W_CROSSPT{{"TAXI — NO CALL: stop beside runway [CROSS_RUNWAY], off every runway, within 400 m of its edge"}}
-    D_CROSS["YOU: [FIELD] tower, [CALLSIGN], request crossing runway [CROSS_RUNWAY]"]
+    D_CROSS["`YOU: **[FIELD] tower, [CALLSIGN], request crossing runway [CROSS_RUNWAY]**`"]
     D_CROSS_NEG(["ATC: negative, not observed holding short runway [CROSS_RUNWAY] — or — unable, say the runway to cross"])
     D_CROSS_Q(["ATC: hold short runway [CROSS_RUNWAY], number [N] for crossing"])
     D_CROSS_TWR(["ATC: hold short runway [CROSS_RUNWAY], contact [FIELD] tower [TOWER_FREQ] — or — hold short runway [CROSS_RUNWAY], unable, no tower service at [FIELD], runway clearances not available"])
     D_CROSS_CLR(["ATC: cross runway [CROSS_RUNWAY], report vacated, read back"])
-    D_CROSS_RB["YOU: [FIELD] tower, [CALLSIGN], readback cross runway [CROSS_RUNWAY]"]
+    D_CROSS_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback cross runway [CROSS_RUNWAY]**`"]
     D_CROSS_OK(["ATC: readback correct, cross runway [CROSS_RUNWAY], report vacated"])
     D_CROSS_REV(["ATC event: no readback, hold short runway [CROSS_RUNWAY], crossing clearance cancelled, clearance cancelled — or — hold short runway [CROSS_RUNWAY], crossing clearance cancelled, [REVOKE_REASON]"])
     D_W_CROSSING{{"TAXI — NO CALL: cross — telemetry must see you enter runway [CROSS_RUNWAY] and then clear of every runway"}}
     D_CROSS_EV(["ATC event: runway vacated, continue taxi to holding point runway [RUNWAY], hold short of all runways — returning to parking: runway vacated, continue taxi to parking, hold short of all runways"])
-    D_CROSS_VAC["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], vacated runway [CROSS_RUNWAY]"]
+    D_CROSS_VAC["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], vacated runway [CROSS_RUNWAY]**`"]
     D_CROSS_DONE(["ATC: roger, runway vacated, continue taxi to holding point runway [RUNWAY], hold short of all runways — returning to parking: roger, runway vacated, continue taxi to parking, hold short of all runways"])
 
   %% 4 · Tower: holding point, line up, takeoff
     D_W_HOLD{{"TAXI — NO CALL: stop at holding point runway [RUNWAY], 400 m before to 900 m past the threshold, off every runway"}}
-    D_HOLD["YOU: [FIELD] tower, [CALLSIGN], holding short runway [RUNWAY]"]
+    D_HOLD["`YOU: **[FIELD] tower, [CALLSIGN], holding short runway [RUNWAY]**`"]
     D_HOLD_NEG(["ATC: negative, not observed at the holding point runway [RUNWAY], report holding short"])
     D_HOLD_RBFIRST(["ATC: unable, read back taxi clearance first"])
     D_HOLD_Q(["ATC: hold short runway [RUNWAY], number [N] for departure"])
     D_HOLD_TWR(["ATC: hold short runway [RUNWAY], contact [FIELD] tower [TOWER_FREQ] — or — hold short runway [RUNWAY], unable, no tower service at [FIELD], runway clearances not available"])
-    D_READY_DEP["YOU: [FIELD] tower, [CALLSIGN], ready for departure runway [RUNWAY]"]
+    D_READY_DEP["`YOU: **[FIELD] tower, [CALLSIGN], ready for departure runway [RUNWAY]**`"]
     D_LU_CLR(["ATC: runway [RUNWAY], line up and wait, read back"])
-    D_LU_RB["YOU: [FIELD] tower, [CALLSIGN], readback runway [RUNWAY], line up and wait"]
+    D_LU_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback runway [RUNWAY], line up and wait**`"]
     D_LU_OK(["ATC: readback correct, line up and wait runway [RUNWAY], report lined up"])
     D_W_LINEUP{{"TAXI — NO CALL: line up on runway [RUNWAY] within 900 m of the threshold, heading within 30 degrees"}}
-    D_LINEDUP["YOU: [FIELD] tower, [CALLSIGN], lined up runway [RUNWAY]"]
+    D_LINEDUP["`YOU: **[FIELD] tower, [CALLSIGN], lined up runway [RUNWAY]**`"]
     D_LINEDUP_NEG(["ATC: negative, not observed lined up runway [RUNWAY]"])
     D_LINEDUP_HOLD(["ATC: hold position runway [RUNWAY], stand by for takeoff clearance"])
-    D_READY_TO["YOU: [FIELD] tower, [CALLSIGN], ready for takeoff runway [RUNWAY]"]
+    D_READY_TO["`YOU: **[FIELD] tower, [CALLSIGN], ready for takeoff runway [RUNWAY]**`"]
     D_TO_CLR(["ATC: runway [RUNWAY], [WIND], cleared for takeoff, read back"])
-    D_TO_RB["YOU: [FIELD] tower, [CALLSIGN], readback runway [RUNWAY], cleared for takeoff"]
+    D_TO_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback runway [RUNWAY], cleared for takeoff**`"]
     D_TO_OK(["ATC: readback correct"])
     D_W_ROLL{{"FLY — NO CALL: take off — the mission takeoff event or an in-air sample ends your runway lane"}}
 
@@ -169,44 +169,44 @@ flowchart TD
   %% 5 · Airborne and leaving the zone
     D_AIR_EV(["ATC event: airborne, contact [FIELD] approach [APPROACH_FREQ], report leaving the zone — or, approach on this frequency or none published — airborne, report leaving the zone"])
     D_AIR_UNCLR(["ATC event: takeoff not cleared, airborne observed, report leaving the zone"])
-    D_AIRBORNE["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], airborne"]
+    D_AIRBORNE["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], airborne**`"]
     D_AIRBORNE_R(["ATC: airborne, report leaving the zone — confirms the observed takeoff, authorises nothing"])
     D_AIRBORNE_NEG(["ATC: negative, airborne not observed"])
-    D_HANDOFF["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], switching"]
+    D_HANDOFF["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], switching**`"]
     D_HANDOFF_R(["ATC: frequency change approved, good day"])
     D_HANDOFF_EARLY(["ATC: unable, [CURRENT_INSTRUCTION]"])
     D_W_10NM{{"FLY — NO CALL: beyond 10 NM from [FIELD]"}}
     D_10NM_R(["ATC event: leaving the zone, frequency change approved"])
-    D_RETURN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing"]
+    D_RETURN["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing**`"]
 
   %% Return to parking, re-departure, check-out
-    D_TAXIIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking"]
+    D_TAXIIN["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking**`"]
     D_TAXIIN_NEG(["ATC: vacate the runway first, report vacated — or — unable, not observed on the ground here — or — unable, [CURRENT_INSTRUCTION]"])
     D_TAXIIN_CLR(["ATC: taxi to parking via [TAXI_ROUTE], hold short of all runways, read back"])
-    D_TAXIIN_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi to parking, hold short all runways"]
+    D_TAXIIN_RB["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi to parking, hold short all runways**`"]
     D_TAXIIN_OK(["ATC: readback correct, taxi to parking, hold short of all runways, report parked"])
     D_W_PARK{{"TAXI — NO CALL: to parking — cross any runway only after crossing clearance and readback"}}
-    D_CHECKOUT["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], checking out"]
+    D_CHECKOUT["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], checking out**`"]
     D_CHECKOUT_R(["ATC: copy, checked out"])
 
   %% Any enrolled point: status, cancel, emergency
     D_ANY{{"At any enrolled point of this chart"}}
-    D_SAYAGAIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], say again"]
+    D_SAYAGAIN["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], say again**`"]
     D_SAYAGAIN_R(["ATC: [CURRENT_INSTRUCTION] — rebuilt from present state, never a lapsed or revoked clearance"])
     D_NOSESSION(["ATC: unable, no active session, state your request"])
-    D_CANCEL["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], cancel"]
+    D_CANCEL["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], cancel**`"]
     D_CANCEL_R(["ATC: copy, departure cancelled, checked out"])
     D_CANCEL_NONE(["ATC: copy, no active airfield session"])
     D_CANCEL_OCC(["ATC: clearance cancelled, vacate the runway, report vacated"])
-    D_EMER["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], mayday mayday mayday, low fuel"]
+    D_EMER["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], mayday mayday mayday, low fuel**`"]
     D_EMER_R(["ATC: copy emergency, you have priority, [CURRENT_INSTRUCTION]"])
     D_EMER_NEW(["ATC: copy emergency, you have priority, runway [RUNWAY] in use, … read back runway and altimeter — opens an ARRIVAL session"])
-    D_ABORT["YOU: [FIELD] tower, [CALLSIGN], mayday, aborting takeoff"]
+    D_ABORT["`YOU: **[FIELD] tower, [CALLSIGN], mayday, aborting takeoff**`"]
     D_ABORT_R(["ATC: copy emergency, takeoff aborted, vacate the runway when able, report vacated"])
-    D_CANCEL_EMER["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], cancel emergency"]
+    D_CANCEL_EMER["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], cancel emergency**`"]
     D_CANCEL_EMER_R(["ATC: roger, emergency cancelled, [CURRENT_INSTRUCTION] — or — roger, no emergency on record"])
     D_W_VAC{{"TAXI — NO CALL: leave every runway footprint"}}
-    D_VAC["YOU: [FIELD] tower, [CALLSIGN], vacated"]
+    D_VAC["`YOU: **[FIELD] tower, [CALLSIGN], vacated**`"]
     D_VAC_NEG(["ATC: negative, not observed clear of the runway"])
     D_VAC_CXL(["ATC: roger, runway vacated, checked out"])
     D_VAC_CXL_EV(["ATC event: runway vacated, checked out"])
@@ -489,18 +489,18 @@ flowchart TD
     A_G_SILENT{{"NO REPLY: call not opened with an airfield receiver, named airfield not on this frequency, or frequency not an airfield radio"}}
 
   %% Facts: any time, before or during a session — never enrols, never moves the session
-    A_INFO["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request information"]
-    A_RCHECK["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], radio check"]
+    A_INFO["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request information**`"]
+    A_RCHECK["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], radio check**`"]
     A_INFO_R(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], [PATTERN] traffic"])
 
   %% 1 · Approach: check-in and arrival briefing
-    A_INBOUND["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing"]
+    A_INBOUND["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], inbound landing**`"]
     A_BRIEF(["ATC: runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], no published approach available, make a visual approach, [VISUAL_INSTRUCTION], read back runway and altimeter"])
     A_STANDBY(["ATC: [RUNWAY_REASON], remain clear of the airfield, stand by"])
     A_W_STANDBY{{"FLY — NO CALL: remain clear of the airfield — ATC transmits the briefing once runway and altimeter are known"}}
     A_INB_GROUND(["ATC: unable, you are on the ground"])
     A_NOT_AIR(["ATC event: you are not airborne, arrival not required, report inbound when airborne"])
-    A_ARR_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback runway [RUNWAY], altimeter [ALTIMETER]"]
+    A_ARR_RB["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], readback runway [RUNWAY], altimeter [ALTIMETER]**`"]
     A_ARR_OK(["ATC: readback correct, report [PATTERN] downwind runway [RUNWAY] — or, no published pattern — readback correct, report final runway [RUNWAY]"])
     A_REBRIEF(["ATC event: runway changed, runway [RUNWAY] in use, … read back runway and altimeter — or, if cleared to land — go around, runway changed, runway [RUNWAY] in use, … — or, altimeter changed during the briefing — runway [RUNWAY] in use, … read back runway and altimeter"])
 
@@ -510,10 +510,10 @@ flowchart TD
 
   %% 2 · Published pattern — skip to final for a straight-in
     A_W_PATTERN{{"FLY — NO CALL: enter [PATTERN] downwind, within 6 NM of [FIELD] and below 3000 ft above the field"}}
-    A_DOWNWIND["YOU: [FIELD] tower, [CALLSIGN], downwind runway [RUNWAY]"]
+    A_DOWNWIND["`YOU: **[FIELD] tower, [CALLSIGN], downwind runway [RUNWAY]**`"]
     A_DOWNWIND_R(["ATC: roger downwind, report base"])
     A_W_BASE{{"FLY — NO CALL: turn base, still within 6 NM and below 3000 ft above the field"}}
-    A_BASE["YOU: [FIELD] tower, [CALLSIGN], base runway [RUNWAY]"]
+    A_BASE["`YOU: **[FIELD] tower, [CALLSIGN], base runway [RUNWAY]**`"]
     A_BASE_R(["ATC: roger base, report final runway [RUNWAY]"])
     A_POS_NEG(["ATC: negative, position not confirmed, [CURRENT_INSTRUCTION]"])
     A_NOPATTERN(["ATC: unable, no published traffic pattern, [CURRENT_INSTRUCTION]"])
@@ -522,18 +522,18 @@ flowchart TD
 
   %% 3 · Tower: final and landing clearance
     A_W_FINAL{{"FLY — NO CALL: on the extended centreline of runway [RUNWAY] inside 10 NM, below 3000 ft above the field, heading within 45 degrees"}}
-    A_FINAL["YOU: [FIELD] tower, [CALLSIGN], final runway [RUNWAY]"]
+    A_FINAL["`YOU: **[FIELD] tower, [CALLSIGN], final runway [RUNWAY]**`"]
     A_FINAL_NEG(["ATC: negative, not observed on final runway [RUNWAY], [CURRENT_INSTRUCTION]"])
     A_FINAL_Q(["ATC: roger final, number [N], continue approach runway [RUNWAY]"])
     A_FINAL_TWR(["ATC: roger final, contact [FIELD] tower [TOWER_FREQ] — or — roger final, unable, no tower service at [FIELD], runway clearances not available"])
     A_LAND_CLR(["ATC, appended to the final reply or as an event: runway [RUNWAY], [WIND], cleared to land, read back"])
-    A_LAND_RB["YOU: [FIELD] tower, [CALLSIGN], readback runway [RUNWAY], cleared to land"]
+    A_LAND_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback runway [RUNWAY], cleared to land**`"]
     A_LAND_OK(["ATC: readback correct"])
     A_X_STALE{{"NO TRANSMISSION: bridge stale — an unstarted landing or crossing clearance is revoked, a cleared arrival falls back to re-entry, an unread briefing falls back to standby, every earlier reply becomes invalid"}}
     A_X_GA(["ATC event: no readback, go around, clearance cancelled, fly runway heading, … — or — go around, [REVOKE_REASON], fly runway heading, re-enter [PATTERN] downwind runway [RUNWAY], report downwind — or — …, fly runway heading, report final runway [RUNWAY]"])
 
   %% Go-around and touch-and-go
-    A_GOAROUND["YOU: [FIELD] tower, [CALLSIGN], going around"]
+    A_GOAROUND["`YOU: **[FIELD] tower, [CALLSIGN], going around**`"]
     A_GA_R(["ATC: roger going around, fly runway heading, re-enter [PATTERN] downwind runway [RUNWAY], report downwind — or, no pattern — roger going around, fly runway heading, report final runway [RUNWAY]"])
     A_GA_NORWY(["ATC: roger going around, runway in use not available, remain clear of the airfield, stand by"])
     A_GA_WAIT(["ATC: stand by for landing confirmation"])
@@ -545,59 +545,59 @@ flowchart TD
     A_UNCLR_LAND(["ATC event: landing without clearance observed"])
     A_W_ROLLOUT{{"ROLL OUT — NO CALL: an on-ground sample at [FIELD] confirms the landing"}}
     A_LANDED_EV(["ATC event: landing observed, vacate the runway, report vacated"])
-    A_LANDED["YOU: [FIELD] tower, [CALLSIGN], landed"]
+    A_LANDED["`YOU: **[FIELD] tower, [CALLSIGN], landed**`"]
     A_LANDED_R(["ATC: stand by for landing confirmation — or — vacate the runway, report vacated — or — request taxi to parking — confirms telemetry only"])
-    A_LANDED_NEG_CALL["YOU: [FIELD] tower, [CALLSIGN], landed"]
+    A_LANDED_NEG_CALL["`YOU: **[FIELD] tower, [CALLSIGN], landed**`"]
     A_LANDED_NEG(["ATC: negative, touchdown not observed"])
     A_W_VACATE{{"TAXI — NO CALL: leave every runway footprint"}}
     A_VAC_EV(["ATC event: runway vacated, request taxi to parking"])
-    A_VAC["YOU: [FIELD] tower, [CALLSIGN], vacated runway [RUNWAY]"]
+    A_VAC["`YOU: **[FIELD] tower, [CALLSIGN], vacated runway [RUNWAY]**`"]
     A_VAC_R(["ATC: roger, request taxi to parking"])
     A_VAC_NEG(["ATC: negative, not observed clear of the runway"])
 
   %% 5 · Ground: taxi to parking with runway crossings, check-out, re-departure
-    A_TAXIIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking"]
-    A_TAXI_VAC["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
+    A_TAXIIN["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi to parking**`"]
+    A_TAXI_VAC["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi**`"]
     A_TAXIIN_NEG(["ATC: vacate the runway first, report vacated — or — unable, not observed on the ground here — or — unable, [CURRENT_INSTRUCTION]"])
     A_TAXIIN_CLR(["ATC: taxi to parking via [TAXI_ROUTE], hold short of all runways, read back"])
-    A_TAXIIN_RB["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi to parking, hold short all runways"]
+    A_TAXIIN_RB["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], readback taxi to parking, hold short all runways**`"]
     A_TAXIIN_OK(["ATC: readback correct, taxi to parking, hold short of all runways, report parked"])
     A_W_PARK{{"TAXI — NO CALL: to parking — holds short of every runway"}}
     A_W_CROSSPT{{"TAXI — NO CALL: stop beside runway [CROSS_RUNWAY], off every runway, within 400 m of its edge"}}
-    A_CROSS["YOU: [FIELD] tower, [CALLSIGN], request crossing runway [CROSS_RUNWAY]"]
+    A_CROSS["`YOU: **[FIELD] tower, [CALLSIGN], request crossing runway [CROSS_RUNWAY]**`"]
     A_CROSS_NEG(["ATC: negative, not observed holding short runway [CROSS_RUNWAY] — or — unable, say the runway to cross"])
     A_CROSS_Q(["ATC: hold short runway [CROSS_RUNWAY], number [N] for crossing — or, no tower here — hold short runway [CROSS_RUNWAY], contact [FIELD] tower [TOWER_FREQ]"])
     A_CROSS_CLR(["ATC: cross runway [CROSS_RUNWAY], report vacated, read back"])
-    A_CROSS_RB["YOU: [FIELD] tower, [CALLSIGN], readback cross runway [CROSS_RUNWAY]"]
+    A_CROSS_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback cross runway [CROSS_RUNWAY]**`"]
     A_CROSS_OK(["ATC: readback correct, cross runway [CROSS_RUNWAY], report vacated"])
     A_CROSS_REV(["ATC event: no readback, hold short runway [CROSS_RUNWAY], crossing clearance cancelled, clearance cancelled — or — hold short runway [CROSS_RUNWAY], crossing clearance cancelled, [REVOKE_REASON]"])
     A_W_CROSSING{{"TAXI — NO CALL: cross — telemetry must see you enter runway [CROSS_RUNWAY] and then clear of every runway"}}
     A_CROSS_EV(["ATC event: runway vacated, continue taxi to parking, hold short of all runways"])
-    A_CROSS_VAC["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], vacated runway [CROSS_RUNWAY]"]
+    A_CROSS_VAC["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], vacated runway [CROSS_RUNWAY]**`"]
     A_CROSS_DONE(["ATC: roger, runway vacated, continue taxi to parking, hold short of all runways"])
-    A_CHECKOUT["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], checking out"]
+    A_CHECKOUT["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], checking out**`"]
     A_CHECKOUT_R(["ATC: copy, checked out"])
-    A_REDEP_TAXI["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi"]
-    A_REDEP_START["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], request startup"]
+    A_REDEP_TAXI["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request taxi**`"]
+    A_REDEP_START["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], request startup**`"]
 
   %% Any enrolled point: status, cancel, emergency
     A_ANY{{"At any enrolled point of this chart"}}
-    A_SAYAGAIN["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], say again"]
+    A_SAYAGAIN["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], say again**`"]
     A_SAYAGAIN_R(["ATC: [CURRENT_INSTRUCTION] — rebuilt from present state, never a lapsed or revoked clearance"])
     A_NOSESSION(["ATC: unable, no active session, state your request"])
-    A_CANCEL["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], cancel"]
+    A_CANCEL["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], cancel**`"]
     A_CANCEL_R(["ATC: copy, arrival cancelled, checked out"])
     A_CANCEL_NONE(["ATC: copy, no active airfield session"])
     A_CANCEL_OCC(["ATC: clearance cancelled, vacate the runway, report vacated"])
     A_W_CXL_VAC{{"TAXI — NO CALL: leave every runway footprint"}}
     A_CXL_VAC_EV(["ATC event: runway vacated, checked out"])
-    A_CXL_VAC["YOU: [FIELD] tower, [CALLSIGN], vacated"]
+    A_CXL_VAC["`YOU: **[FIELD] tower, [CALLSIGN], vacated**`"]
     A_CXL_VAC_R(["ATC: roger, runway vacated, checked out"])
-    A_EMER["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], mayday mayday mayday, low fuel"]
+    A_EMER["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], mayday mayday mayday, low fuel**`"]
     A_EMER_R(["ATC: copy emergency, you have priority, [CURRENT_INSTRUCTION]"])
     A_EMER_NEW_R(["ATC: copy emergency, you have priority, runway [RUNWAY] in use, [WIND], altimeter [ALTIMETER], no published approach available, make a visual approach, [VISUAL_INSTRUCTION], read back runway and altimeter"])
     A_EMER_GROUND(["ATC event: emergency on the ground, vacate any runway, report vacated"])
-    A_CANCEL_EMER["YOU: [FIELD] [CURRENT_ROLE], [CALLSIGN], cancel emergency"]
+    A_CANCEL_EMER["`YOU: **[FIELD] [CURRENT_ROLE], [CALLSIGN], cancel emergency**`"]
     A_CANCEL_EMER_R(["ATC: roger, emergency cancelled, [CURRENT_INSTRUCTION] — or — roger, no emergency on record"])
 
   %% Lifecycle closures: RETURN to a fresh call
