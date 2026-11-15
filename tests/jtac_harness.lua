@@ -250,8 +250,9 @@ local function newMission()
     world = { event = { S_EVENT_MISSION_END = 12, S_EVENT_DEAD = 8, S_EVENT_CRASH = 5,
                         S_EVENT_KILL = 28, S_EVENT_UNIT_LOST = 30 },
               addEventHandler = function(h) W.handlers[#W.handlers + 1] = h end },
-    -- No net here: the server state only gets JSON as OverlordJSON from the hook (newHook removes
-    -- this stand-in so the hook must install it from the native JSON.lua fixture).
+    -- No net here (newHook adds the mission environment's stock net.dostring_in to "mission" only).
+    -- JSON arrives as OverlordJSON from the hook (newHook removes this stand-in so the hook must
+    -- install it from the native JSON.lua fixture).
     OverlordJSON = { encode = encode, decode = decode },
     -- The scripting state keeps loadstring; chunks bind to the mission globals.
     loadstring = function(source, name)
@@ -501,6 +502,51 @@ end)
 
 -- Server hook ---------------------------------------------------------------------
 
+-- DCS Lua states as observed through net.dostring_in from a hook on a real server:
+--  * "mission": the trigger state; no world, but a_do_script, which runs a chunk in the real
+--    mission scripting environment (W.env) and returns nothing.  The mission environment's own
+--    net.dostring_in reaches only this state.
+--  * "server"/"scripting": a separate VM with a world API but none of the mission's globals; its
+--    stale companion modules answer marked snapshots, so a hook that calls it cannot pass.
+local RELAY_BODY = '^local ok, r = pcall%(function%(%) (.-)\nend%)\nlocal t\n'
+
+local function dcsStates(H, W)
+  H.serverCalls = {}
+  local mission = setmetatable({}, { __index = {
+    type = type,
+    a_do_script = function(source)
+      local body = assert(source:match(RELAY_BODY), 'hook relay shape')
+      -- JSON codec installs are recorded apart from bridge/auto-load calls.
+      local calls = body:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
+      calls[#calls + 1] = { state = 'a_do_script', code = body }
+      pcall(compile(source, '=a_do_script', W.env))
+    end,
+  } })
+  H.missionState = mission
+  local function run(target, code)
+    local ok, result = pcall(compile(code, '=dostring', target))
+    if result == nil then result = '' end
+    return tostring(result), ok
+  end
+  rawset(W.env, 'net', { dostring_in = function(state, code)
+    if state ~= 'mission' then return 'Access to this state is blocked (exploit mitigation)', false end
+    return run(mission, code)
+  end })
+  local stale = setmetatable({ world = {}, type = type, pcall = pcall, string = string,
+                               OverlordJSON = { encode = encode, decode = decode } }, { __index = function() end })
+  for _, module in ipairs({ 'OverlordJTAC', 'OverlordCarrier', 'OverlordAirfield' }) do
+    stale[module] = { bridge = function() return '{"version":1,"stale":"' .. module .. '"}' end }
+  end
+  return function(state, code)
+    if state == 'mission' then return run(mission, code) end
+    if state == 'server' or state == 'scripting' then
+      H.serverCalls[#H.serverCalls + 1] = code
+      return run(stale, code)
+    end
+    return '', false
+  end
+end
+
 local function newHook(W, opts)
   opts = opts or {}
   local H = { real = 0, requests = {}, calls = {}, logs = {}, mode = opts.mode or 'up', replies = {},
@@ -511,7 +557,7 @@ local function newHook(W, opts)
   os.execute('mkdir -p "' .. cfgDir .. '"')
   local f = assert(io.open(cfgDir .. 'overlord-hook.lua', 'w'))
   f:write(opts.config or 'return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret",'
-    .. 'apiToken = "api-secret", interval = 1, timeout = 3, state = "server" }')
+    .. 'apiToken = "api-secret", interval = 1, timeout = 3 }')
   f:close()
   H.dir = dir
   -- Native engine JSON.lua under the install dir; the scripting state starts without OverlordJSON.
@@ -570,13 +616,7 @@ local function newHook(W, opts)
       getRealTime = function() return H.real end,
       setUserCallbacks = function(cb) H.callbacks = cb end,
     },
-    net = { dostring_in = function(state, code)
-      -- JSON codec installs are recorded apart from bridge/auto-load calls.
-      local calls = code:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
-      calls[#calls + 1] = { state = state, code = code }
-      local ok, result = pcall(compile(code, '=dostring', W.env))
-      return tostring(result), ok
-    end },
+    net = { dostring_in = dcsStates(H, W) },
     log = { write = function(_, _, m) H.logs[#H.logs + 1] = m end, ERROR = 1, WARNING = 2, INFO = 3 },
     lfs = { writedir = function() return dir .. '/' end, currentdir = function() return dir .. '/dcs' end },
     package = { path = '', cpath = '' },
@@ -616,9 +656,10 @@ check('hook relays snapshots with both auth headers through the fixed entry poin
   eq(request.body.version, 1)
   eq(request.body.seq, 1)
   assert(request.body.epoch:match('^%d+%-%d+$'), 'hook epoch')
-  eq(H.calls[1].state, 'server')
+  eq(H.calls[1].state, 'a_do_script')
+  eq(#H.serverCalls, 0, 'the separate server VM is never called')
   assert(H.calls[1].code:match('^return OverlordJTAC and OverlordJTAC%.bridge%(".-",""%)$'), 'fixed call')
-  eq(rawget(W.env, 'net'), nil, 'no net in the scripting state')
+  eq(rawget(W.env.net, 'lua2json'), nil, 'the companion relies on the installed codec, not net.lua2json')
   eq(#H.codecCalls, 1, 'native JSON codec installed before the bridge')
   eq(type(rawget(W.env, 'OverlordJSON')), 'table', 'OverlordJSON from the hook')
   for _, line in ipairs(H.logs) do assert(not line:find('secret'), 'token logged') end
@@ -726,7 +767,7 @@ end)
 check('enabling carriers keeps JTAC commands working when no carrier script is loaded', function()
   local W = standardMission()
   local H = newHook(W, { config = 'return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret",'
-    .. ' interval = 1, timeout = 3, state = "server", features = { "jtac", "carriers" } }' })
+    .. ' interval = 1, timeout = 3, features = { "jtac", "carriers" } }' })
   H.callbacks.onSimulationStart()
   H.exchange()
   H.replies[1] = function(request)

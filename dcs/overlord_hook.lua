@@ -13,7 +13,7 @@ mission and therefore never downloaded by clients:
     apiToken = "<API_TOKEN>",    -- only when the brain has API_TOKEN set (Authorization: Bearer)
     interval = 1,                -- seconds between exchanges (0.5-10)
     timeout = 3,                 -- absolute seconds per exchange (1-10)
-    state = "server",            -- optional; the only accepted value (see below)
+    -- (no "state" key: the bridge always runs in the real mission scripting environment, see below)
     features = { "jtac" },       -- optional; any of "jtac", "carriers", "airfields" (default { "jtac" })
     autoLoad = false,            -- optional; true loads the fixed static companions (see below)
     airfieldRadioFiles = {       -- optional, airfields only: theatre -> installed native Radio.lua
@@ -28,26 +28,48 @@ Each feature is a fixed pair of mission entry point and brain route:
   airfields  OverlordAirfield.bridge(<epoch>, <last brain response>, <native radio context>)
                                                                      -> POST /airfield/exchange
 
-JSON codec: the mission scripting state has no net.lua2json/json2lua, so before
-any exchange or auto-load in an epoch (also with autoLoad = false, for companions
-the mission loads itself) the hook reads the engine's own JSON library from the
-fixed path <DCS install>/Scripts/JSON.lua (bounded, read once per epoch) and
-installs it there as OverlordJSON = { encode, decode }, closures over the codec
-object the file returns; the source travels as one %q literal, never with a
-token or path, and an OverlordJSON already present is kept.  The companions use
-only OverlordJSON.  While it is unavailable (missing, unreadable, oversized or
-invalid file: up to 3 install attempts per epoch, one per interval) no feature
+Mission scripting environment: DCS runs mission scripts (DO SCRIPT triggers, the
+mission's config globals such as OverlordJTACConfig, world, coalition, ...) in a
+Lua environment that net.dostring_in cannot name.  The "mission" state is the
+trigger/mission-description state: it has no world, but it has a_do_script, the
+DO SCRIPT trigger action, which runs a chunk in the real mission scripting
+environment.  The "server" and "scripting" states are a different Lua VM: it has
+a world API but none of the mission's MISSION START globals, and it is never
+called.  Every hook call into the mission is therefore
+
+  net.dostring_in("mission", <relay>)   -- relay = a_do_script(<call>) + return read-back
+
+a_do_script returns nothing, so <call> runs a fixed hook-built body in pcall and
+hands its result back through the stock net.dostring_in("mission", ...) of the
+mission scripting environment, which stores it in the "mission" state global
+OverlordBridgeReturn; the relay clears that global before the call, reads and
+clears it right after, and returns it.  The result is one tagged string: "R" ..
+<string result> (bounded per call: 256 KiB snapshots, 16 bytes otherwise), "N"
+for a non-string result, "L" for an oversized one, "E" for a raised error (the
+message is never carried); the relay answers "U" when the "mission" state has no
+a_do_script.  No reply at all means the mission environment has no
+net.dostring_in("mission") (gated DCS build): every feature then logs that and
+stays unbridged.  The mission side needs neither io, lfs, os nor a temp file, and
+the configuration cannot select a Lua state (any "state" key is rejected).
+
+JSON codec: before any exchange or auto-load in an epoch (also with autoLoad =
+false, for companions the mission loads itself) the hook reads the engine's own
+JSON library from the fixed path <DCS install>/Scripts/JSON.lua (bounded, read
+once per epoch) and installs it in the mission scripting environment as
+OverlordJSON = { encode, decode }, closures over the codec object the file
+returns; the source travels as one %q literal, never with a token or path, and
+an OverlordJSON already present is kept.  The companions use only OverlordJSON.
+While it is unavailable (missing, unreadable, oversized or invalid file, or no
+mission reply: up to 3 install attempts per epoch, one per interval) no feature
 bridges, and each feature logs the reason.
 
-Every interval the hook calls each enabled feature's entry point through
-net.dostring_in("server", ...) - the Lua state that runs mission scripts (the
-"mission" state only holds the mission description; world is nil there and the
-hook refuses state = "mission") - with every argument passed as a %q-escaped string literal, so no
-brain or mission data is ever executed as code, then POSTs the returned
-snapshot to that feature's route.  Features share the configuration, tokens,
-epoch and transport code, but each has its own pending response, in-flight
-request, schedule and error state: a feature whose mission script is missing,
-fails or whose exchange stalls never delays the other.  Networking is a
+Every interval the hook calls each enabled feature's entry point in the mission
+scripting environment with every argument passed as a %q-escaped string
+literal, so no brain or mission data is ever executed as code, then POSTs the
+returned snapshot to that feature's route.  Features share the configuration,
+tokens, epoch and transport code, but each has its own pending response,
+in-flight request, schedule and error state: a feature whose mission script is
+missing, fails or whose exchange stalls never delays the other.  Networking is a
 non-blocking LuaSocket state machine: each simulation frame does at most a few
 zero-timeout socket calls per feature, an offline brain costs nothing but a
 failed connect, and every exchange has an absolute deadline.  Tokens are never
@@ -65,8 +87,8 @@ reads that feature's fixed companion file, and only it:
 Names come from the fixed feature table; configuration, the brain and the mission
 never supply a path or code.  Each file is read at most once per epoch, must be
 non-empty source text (precompiled chunks refused) of at most 1 MiB, and is
-handed to the sanitized mission as one %q string literal; the mission compiles it
-with loadstring only if the module is still undefined, in the same net.dostring_in
+handed to the mission as one %q string literal; the mission compiles it
+with loadstring only if the module is still undefined, in the same mission
 call, so a module the mission configured itself is never replaced.  Mission
 config globals (OverlordJTACConfig, ...) keep working; without them each companion
 uses its defaults.  The .miz is never modified.  A missing or failing companion
@@ -92,12 +114,13 @@ nothing from the brain or the mission ever selects a file.  The mission rejects
 a context for another theatre.  MissionScripting.lua sanitization stays
 untouched.
 
-Version sensitivity: net.dostring_in from hooks is the only bridge into the
-sanitized mission environment.  Eagle Dynamics changed its permissions in July
-2025 (then reverted, with a future GUI toggle announced).  If your DCS build
-gates net.dostring_in, enable it for this hook through the official setting;
-do not desanitize MissionScripting.lua - the mission scripts need no io, lfs,
-os or socket access.
+Version sensitivity: net.dostring_in("mission") plus a_do_script from hooks, and
+net.dostring_in("mission") from mission scripts, are the only bridge into the
+sanitized mission environment.  Eagle Dynamics changed net.dostring_in
+permissions in July 2025 (then reverted, with a future GUI toggle announced).  If
+your DCS build gates it, enable it through the official setting; do not
+desanitize MissionScripting.lua - the mission scripts need no io, lfs, os or
+socket access.
 ]]
 
 package.path = package.path .. ';.\\LuaSocket\\?.lua'
@@ -109,12 +132,10 @@ local MAX_SNAPSHOT, MAX_RESPONSE = 262144, 65536
 local MAX_RADIO_FILE, MAX_RADIO_RECORDS, MAX_RADIO_ALIASES, RADIO_INSTRUCTIONS = 4194304, 4096, 8, 20000000
 local MAX_COMPANION_FILE = 1048576
 -- The installed engine JSON library (<DCS install>/Scripts/JSON.lua, returns a codec object with
--- :encode/:decode).  The mission scripting state has no net.lua2json/json2lua, so every bridge
--- depends on the hook installing it there as OverlordJSON.
+-- :encode/:decode), installed in the mission scripting environment as OverlordJSON for the companions.
 local CODEC_FILE, MAX_CODEC_FILE, CODEC_ATTEMPTS = 'Scripts/JSON.lua', 262144, 3
--- net.dostring_in Lua state holding the mission scripting API (world, coalition, ...).  The state
--- named "mission" is the mission description (world is nil there), so it is refused.
-local SCRIPTING_STATE = 'server'
+-- Largest tagged reply of a loader call ("R" .. "present"/"loaded"/...).
+local MAX_STATUS = 16
 -- Fixed feature table: configuration selects entries, it never supplies code or paths.
 local FEATURES = {
   jtac = { module = 'OverlordJTAC', path = '/dcs/exchange', file = 'overlord_jtac.lua' },
@@ -210,10 +231,10 @@ local function loadConfig(path)
       or type(timeout) ~= 'number' or timeout < 1 or timeout > 10 then
     return nil, 'invalid interval or timeout'
   end
-  if cfg.state ~= nil and cfg.state ~= SCRIPTING_STATE then
-    return nil, 'state must be "server" (the "mission" state has no mission scripting API)'
+  if cfg.state ~= nil then
+    return nil, 'state is not configurable: the bridge always runs in the mission scripting environment'
+      .. ' through the "mission" state\'s a_do_script; remove the state key'
   end
-  local state = SCRIPTING_STATE
   local features = featureList(cfg.features)
   if not features then return nil, 'features must be a list of distinct "jtac"/"carriers"/"airfields" entries' end
   local files = radioFiles(cfg.airfieldRadioFiles)
@@ -222,7 +243,7 @@ local function loadConfig(path)
   end
   if cfg.autoLoad ~= nil and type(cfg.autoLoad) ~= 'boolean' then return nil, 'autoLoad must be true or false' end
   return { host = host, port = port, bridgeToken = cfg.bridgeToken, apiToken = cfg.apiToken,
-           interval = interval, timeout = timeout, state = state, features = features, radioFiles = files,
+           interval = interval, timeout = timeout, features = features, radioFiles = files,
            autoLoad = cfg.autoLoad == true }
 end
 
@@ -501,6 +522,46 @@ local function pump(feature, now)
   end
 end
 
+-- Mission relay -----------------------------------------------------------------------
+
+-- Caller-facing phrases for relay outcomes that carry no result (see the header).
+local RELAY_FAILURES = {
+  rejected = 'rejected by the "mission" state',
+  U = 'unavailable: the "mission" state has no a_do_script',
+  E = 'failed',
+  L = 'reply exceeds the size limit',
+  silent = 'unanswered: the mission scripting environment has no net.dostring_in("mission") return channel',
+  unexpected = 'returned an unexpected relay reply',
+}
+
+-- Runs the fixed hook-built `body` (a function body ending in `return <value>`) in the real
+-- mission scripting environment via the "mission" state's a_do_script, and carries its string
+-- result (at most `limit` bytes) back through the "mission" state global OverlordBridgeReturn.
+-- Returns the string, or nil and nil for a non-string result, or nil and a failure phrase.
+local function missionCall(body, limit)
+  local call = 'local ok, r = pcall(function() ' .. body .. '\nend)\nlocal t\n'
+    .. 'if not ok then t = "E" elseif type(r) ~= "string" then t = "N"'
+    .. ' elseif #r > ' .. limit .. ' then t = "L" else t = "R" .. r end\n'
+    .. 'local relay = type(net) == "table" and net.dostring_in\n'
+    .. 'if type(relay) == "function" then'
+    .. ' pcall(relay, "mission", "OverlordBridgeReturn = " .. string.format("%q", t)) end'
+  local code = 'OverlordBridgeReturn = nil'
+    .. ' if type(a_do_script) ~= "function" then return "U" end'
+    .. ' a_do_script(' .. string.format('%q', call) .. ')'
+    .. ' local r = OverlordBridgeReturn OverlordBridgeReturn = nil return r'
+  local result, ok = net.dostring_in('mission', code)
+  if ok == false then return nil, RELAY_FAILURES.rejected end
+  if type(result) ~= 'string' or result == '' then return nil, RELAY_FAILURES.silent end
+  local tag = result:sub(1, 1)
+  if tag == 'R' then
+    if #result > limit + 1 then return nil, RELAY_FAILURES.L end
+    return result:sub(2), nil
+  end
+  if #result ~= 1 then return nil, RELAY_FAILURES.unexpected end
+  if tag == 'N' then return nil, nil end
+  return nil, RELAY_FAILURES[tag] or RELAY_FAILURES.unexpected
+end
+
 -- Auto-load ---------------------------------------------------------------------------
 
 local AUTOLOAD_RESULTS = {
@@ -533,9 +594,9 @@ local function autoload(feature)
     .. ' if not pcall(chunk) then return "runtime" end'
     .. ' return type(' .. module .. ') == "table" and type(' .. module .. '.bridge) == "function"'
     .. ' and "loaded" or "missing"'
-  local result, ok = net.dostring_in(hook.cfg.state, code)
-  if ok == false then
-    logError(feature, 'auto-load: mission rejected the loader')
+  local result, failure = missionCall(code, MAX_STATUS)
+  if failure then
+    logError(feature, 'auto-load: loader ' .. failure)
   elseif result == 'loaded' then
     log.write('OVERLORD', log.INFO, 'Overlord bridge [' .. feature.name .. ']: auto-loaded ' .. name)
   elseif result == 'present' then
@@ -549,7 +610,7 @@ end
 -- Native JSON codec ----------------------------------------------------------------------
 
 local CODEC_RESULTS = {
-  unavailable = 'scripting state has no loadstring',
+  unavailable = 'mission scripting environment has no loadstring',
   syntax = 'native ' .. CODEC_FILE .. ' does not compile',
   invalid = 'native ' .. CODEC_FILE .. ' returned no codec with encode/decode',
 }
@@ -572,8 +633,8 @@ local function codecSource()
 end
 
 -- Makes OverlordJSON = { encode, decode } (closures over the native codec object) available in the
--- scripting state before any bridge or auto-load.  At most CODEC_ATTEMPTS installs per epoch, one
--- per interval.  Returns true, or false and a reason; tokens and paths never enter the code.
+-- mission scripting environment before any bridge or auto-load.  At most CODEC_ATTEMPTS installs per
+-- epoch, one per interval.  Returns true, or false and a reason; tokens and paths never enter the code.
 local function ensureCodec(now)
   local codec = hook.codec
   if codec.ready then return true end
@@ -595,14 +656,14 @@ local function ensureCodec(now)
     .. ' OverlordJSON = { encode = function(value) return codec:encode(value) end,'
     .. ' decode = function(text) return codec:decode(text) end }'
     .. ' return "ready"'
-  local result, ok = net.dostring_in(SCRIPTING_STATE, code)
-  if ok ~= false and (result == 'ready' or result == 'present') then
+  local result, failure = missionCall(code, MAX_STATUS)
+  if not failure and (result == 'ready' or result == 'present') then
     codec.ready, codec.error = true, nil
     log.write('OVERLORD', log.INFO, 'Overlord bridge: ' .. (result == 'ready'
       and 'native JSON codec installed as OverlordJSON' or 'OverlordJSON already present'))
     return true
   end
-  codec.error = ok == false and 'JSON codec loader rejected'
+  codec.error = failure and ('JSON codec loader ' .. failure)
     or (CODEC_RESULTS[result] or 'unexpected JSON codec loader result')
   return false, codec.error
 end
@@ -624,12 +685,12 @@ local function exchange(feature, now)
   end
   local code = 'return ' .. feature.module .. ' and ' .. feature.module .. '.bridge(' .. args .. ')'
   feature.inbound = ''
-  local result, ok = net.dostring_in(hook.cfg.state, code)
-  if ok == false then
-    logError(feature, 'mission entry point failed')
+  local result, failure = missionCall(code, MAX_SNAPSHOT)
+  if failure then
+    logError(feature, 'mission entry point ' .. failure)
     return
   end
-  if type(result) ~= 'string' or result:sub(1, 1) ~= '{' or #result > MAX_SNAPSHOT then
+  if not result or result:sub(1, 1) ~= '{' then
     -- Companion script not loaded in this mission: auto-load it before the next exchange.
     if hook.cfg.autoLoad and not feature.loadTried then feature.loadDue = true end
     return

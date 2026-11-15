@@ -198,7 +198,6 @@ is provided.
      -- apiToken = "<same value as API_TOKEN>", -- include when configured
      interval = 1,
      timeout = 3,
-     state = "server",
    }
    ```
 
@@ -208,18 +207,25 @@ is provided.
    unit/group/static names exactly. Add MISSION START / DO SCRIPT FILE actions:
    configuration first, then `dcs/overlord_jtac.lua`. Mission configuration ships
    inside the downloadable `.miz`: **never put tokens or passwords in it**.
-4. Keep the mission sandbox intact. The companion needs no files, `os`, or sockets.
-   The hook calls fixed mission entry points through `net.dostring_in`.
-   If the DCS build restricts this bridge, use its official permission setting;
-   do not blanket-desanitize `MissionScripting.lua`. The hook always targets the
-   `server` Lua state, where mission scripts run; `state = "mission"` (the mission
-   description, without `world`) is refused.
-   That state has no `net.lua2json`/`json2lua`: before any exchange or auto-load,
-   the hook reads the engine's own `<DCS install>/Scripts/JSON.lua` (fixed path,
-   bounded, once per mission) and installs it there as `OverlordJSON`, which all
-   companions use. This also applies to companions loaded by mission triggers
-   with `autoLoad` disabled. If that file is missing or invalid, no feature
-   bridges and each logs `JSON codec unavailable`. Nothing is vendored or copied.
+4. Keep the mission sandbox intact. Companions need no files, `os`, or sockets.
+   The hook calls `net.dostring_in("mission", ...)`, whose `a_do_script` runs
+   fixed bridge code in the actual mission scripting environment. That code
+   returns bounded, tagged string replies through the mission environment's
+   `net.dostring_in("mission", ...)`; the relay mailbox is cleared before and
+   after each call. This return channel must be permitted by your DCS build.
+   The deployed server image permits this destination only; no `io`/`lfs`
+   desanitization, temporary files or HTTP executor are needed.
+   The `"server"`/`"scripting"` VM is separate: its world API does not make
+   MISSION START globals available there. The hook never calls it.
+   Remove any legacy `state` setting; routing is fixed and that key is rejected.
+   If the return channel is unavailable, all features stay unbridged and log
+   `unanswered: ... no net.dostring_in("mission") return channel`.
+   Before exchange or auto-load, the hook reads the engine's own
+   `<DCS install>/Scripts/JSON.lua` (fixed path, bounded, once per mission)
+   and installs `OverlordJSON` in the actual mission environment. This also
+   covers companions loaded by mission triggers with `autoLoad` disabled.
+   Missing or invalid codec files block bridging with `JSON codec unavailable`.
+   Nothing is vendored or copied into the repository.
 5. Tune JTAC frequency. Start with `Axeman, Viper one one, checking in`,
    `request task`, and `ready brief`; include controller and caller on every call.
    Read back requested critical fields with labels and exact numerical values.
@@ -293,7 +299,6 @@ passwords, API tokens or bridge tokens inside the mission.
      features = {"jtac", "carriers"}, -- or {"carriers"} alone
      interval = 1,
      timeout = 3,
-     state = "server",
    }
    ```
 

@@ -394,8 +394,9 @@ local function newMission(opts)
     },
     world = { event = EVENT, addEventHandler = function(h) W.handlers[#W.handlers + 1] = h end,
               getAirbases = function() return W.bases end },
-    -- No net here: the server state only gets JSON as OverlordJSON from the hook (newHook removes
-    -- this stand-in so the hook must install it from the native JSON.lua fixture).
+    -- No net here (newHook adds the mission environment's stock net.dostring_in to "mission" only).
+    -- JSON arrives as OverlordJSON from the hook (newHook removes this stand-in so the hook must
+    -- install it from the native JSON.lua fixture).
     OverlordJSON = { encode = encode, decode = decode },
     -- The scripting state keeps loadstring; chunks bind to the mission globals.
     loadstring = function(source, name)
@@ -1008,6 +1009,52 @@ radio =
 }
 ]]
 
+-- DCS Lua states as observed through net.dostring_in from a hook on a real server:
+--  * "mission": the trigger state; no world, but a_do_script, which runs a chunk in the real
+--    mission scripting environment (W.env) and returns nothing.  The mission environment's own
+--    net.dostring_in reaches only this state.
+--  * "server"/"scripting": a separate VM with a world API but none of the mission's globals; its
+--    stale companion modules answer marked snapshots, so a hook that calls it cannot pass.
+local RELAY_BODY = '^local ok, r = pcall%(function%(%) (.-)\nend%)\nlocal t\n'
+
+local function dcsStates(H, W)
+  H.serverCalls = {}
+  local mission = setmetatable({}, { __index = {
+    type = type,
+    a_do_script = function(source)
+      local body = assert(source:match(RELAY_BODY), 'hook relay shape')
+      -- JSON codec installs are recorded apart from bridge/auto-load calls.
+      local calls = body:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
+      calls[#calls + 1] = { state = 'a_do_script', code = body }
+      pcall(compile(source, '=a_do_script', W.env))
+    end,
+  } })
+  H.missionState = mission
+  local function run(target, code)
+    local ok, result = pcall(compile(code, '=dostring', target))
+    if result == nil then result = '' end
+    return tostring(result), ok
+  end
+  rawset(W.env, 'net', { dostring_in = function(state, code)
+    if state ~= 'mission' then return 'Access to this state is blocked (exploit mitigation)', false end
+    return run(mission, code)
+  end })
+  local stale = setmetatable({ world = {}, type = type, pcall = pcall, string = string,
+                               OverlordJSON = { encode = encode, decode = decode } }, { __index = function() end })
+  for _, module in ipairs({ 'OverlordJTAC', 'OverlordCarrier', 'OverlordAirfield' }) do
+    stale[module] = { bridge = function() return '{"version":1,"stale":"' .. module .. '"}' end }
+  end
+  H.staleState = stale
+  return function(state, code)
+    if state == 'mission' then return run(mission, code) end
+    if state == 'server' or state == 'scripting' then
+      H.serverCalls[#H.serverCalls + 1] = code
+      return run(stale, code)
+    end
+    return '', false
+  end
+end
+
 local function newHook(W, opts)
   opts = opts or {}
   local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {}, opens = 0,
@@ -1015,7 +1062,8 @@ local function newHook(W, opts)
   local dir = tempDir()
   H.dir = dir
   local config = 'return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
-    .. ' interval = 1, timeout = 3, state = ' .. string.format('%q', opts.state or 'server') .. ', features = '
+    .. ' interval = 1, timeout = 3,' .. (opts.state and (' state = ' .. string.format('%q', opts.state) .. ',') or '')
+    .. ' features = '
     .. (opts.features or '{ "airfields" }')
     .. (opts.extra and (', ' .. opts.extra) or '') .. ' }'
   writeFile(dir .. '/Config/overlord-hook.lua', config)
@@ -1070,18 +1118,7 @@ local function newHook(W, opts)
       getCurrentMission = function() return { mission = { theatre = opts.theatre or W.mission.theatre } } end,
     },
     net = {
-      -- DCS keeps mission scripts in the "server" Lua state; the "mission" state is the mission
-      -- description, where world (and every companion module) is nil.
-      dostring_in = function(state, code)
-        -- JSON codec installs are recorded apart from bridge/auto-load calls.
-        local calls = code:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
-        calls[#calls + 1] = { state = state, code = code }
-        local target = state == 'server' and W.env
-          or state == 'mission' and setmetatable({ type = type, pcall = pcall, loadstring = loadstring }, {})
-        if not target then return '', false end
-        local ok, result = pcall(compile(code, '=dostring', target))
-        return tostring(result), ok
-      end,
+      dostring_in = dcsStates(H, W),
       lua2json = encode,
     },
     debug = opts.debug,   -- nil: the real debug library (through _G)
@@ -1636,22 +1673,86 @@ check('files are read without seek and unsupported bounded reads fail closed', f
   H.cleanup()
 end)
 
-check('mission scripts live in the server state: state = "mission" is refused, every call targets server', function()
+check('every call runs in the real mission environment through a_do_script; any state key is refused', function()
   local W = newMission({ bare = true, config = false })
-  local H = newHook(W, { state = 'mission', extra = 'autoLoad = true', companions = realCompanions() })
-  H.callbacks.onSimulationStart()
-  H.run(2)
-  eq(#H.calls, 0, 'hook disabled')
-  assert(logged(H, 'state must be "server"'))
+  for _, state in ipairs({ 'server', 'mission', 'scripting' }) do
+    local H = newHook(W, { state = state, extra = 'autoLoad = true', companions = realCompanions() })
+    H.callbacks.onSimulationStart()
+    H.run(2)
+    eq(#H.calls + #H.codecCalls + #H.serverCalls, 0, 'hook disabled by state = ' .. state)
+    assert(logged(H, 'state is not configurable'), 'reason logged for state = ' .. state)
+    H.cleanup()
+  end
+  local H = newHook(W, { features = ALL, extra = 'autoLoad = true', companions = realCompanions() })
   eq(H.env.net.dostring_in('mission', 'return type(world)'), 'nil', 'mission state has no world')
-  eq(H.env.net.dostring_in('server', 'return type(world)'), 'table', 'server state runs mission scripts')
-  H.cleanup()
-  H = newHook(W, { features = ALL, extra = 'autoLoad = true', companions = realCompanions() })
+  eq(H.env.net.dostring_in('mission', 'return type(a_do_script)'), 'function', 'mission state runs DO SCRIPT')
+  eq(H.env.net.dostring_in('server', 'return type(world)'), 'table', 'server VM has a world API ...')
+  eq(H.env.net.dostring_in('server', 'return type(OverlordJTACConfig)'), 'nil', '... but no mission globals')
+  H.serverCalls = {}
   H.callbacks.onSimulationStart()
   H.run(3)
   eq(#loaderCalls(H), 3, 'every companion auto-loaded')
-  for _, call in ipairs(H.calls) do eq(call.state, 'server', 'exchange and loader target the server state') end
+  for _, call in ipairs(H.calls) do eq(call.state, 'a_do_script', 'exchange and loader run through a_do_script') end
+  eq(#H.serverCalls, 0, 'the separate server VM is never called')
+  eq(type(rawget(W.env, 'OverlordJTAC')), 'table', 'companion loaded where mission scripts run')
+  eq(rawget(H.missionState, 'OverlordBridgeReturn'), nil, 'relay global cleared after every call')
   eq(#H.on('/dcs/exchange'), 2)
+  for _, request in ipairs(H.requests) do eq(request.body.stale, nil, 'no snapshot from the server VM') end
+  H.cleanup()
+end)
+
+check('a mission without companions never falls back to the server VM\'s stale modules', function()
+  local W = newMission({ bare = true, config = false })
+  local H = newHook(W, { features = ALL })
+  H.callbacks.onSimulationStart()
+  H.run(3)
+  eq(type(H.staleState.OverlordJTAC), 'table', 'server VM holds stale modules')
+  eq(#H.serverCalls, 0, 'server VM never called')
+  eq(#H.requests, 0, 'nothing bridged')
+  eq(#W.forbidden, 0)
+  H.cleanup()
+end)
+
+check('a missing return channel, a_do_script or mission state leaves every feature unbridged with the reason', function()
+  local cases = {
+    { function(W) rawset(W.env, 'net', nil) end,
+      'unanswered: the mission scripting environment has no net.dostring_in("mission") return channel' },
+    { function(W) rawset(W.env, 'net', { dostring_in = function() return 'blocked', false end }) end,
+      'unanswered: the mission scripting environment has no net.dostring_in("mission") return channel' },
+    { function(_, H) getmetatable(H.missionState).__index.a_do_script = nil end,
+      'unavailable: the "mission" state has no a_do_script' },
+    { function(_, H) H.env.net.dostring_in = function() return 'refused', false end end,
+      'rejected by the "mission" state' },
+  }
+  for _, case in ipairs(cases) do
+    local W = newMission({ others = true })
+    local H = newHook(W, { features = ALL })
+    case[1](W, H)
+    H.callbacks.onSimulationStart()
+    H.run(6)
+    eq(#H.requests, 0, 'no bridge: ' .. case[2])
+    eq(#H.serverCalls, 0, 'no server VM fallback: ' .. case[2])
+    for _, name in ipairs({ 'jtac', 'carriers', 'airfields' }) do
+      assert(logged(H, '[' .. name .. ']: JSON codec unavailable: JSON codec loader ' .. case[2]), name .. ': ' .. case[2])
+    end
+    H.cleanup()
+  end
+end)
+
+check('mission replies are bounded; errors and oversize replies are reported per feature without values', function()
+  local W = newMission({ others = true })
+  local H = newHook(W, { features = '{ "jtac", "carriers" }' })
+  H.callbacks.onSimulationStart()
+  H.run(1)
+  W.env.OverlordJTAC.bridge = function() return '{' .. ('x'):rep(262144) end
+  W.env.OverlordCarrier.bridge = function() error('secret-value') end
+  local before = #H.requests
+  H.run(2)
+  eq(#H.requests, before, 'neither feature posts')
+  assert(logged(H, '[jtac]: mission entry point reply exceeds the size limit'))
+  assert(logged(H, '[carriers]: mission entry point failed'))
+  for _, line in ipairs(H.logs) do assert(not line:find('secret', 1, true), 'error value logged') end
+  eq(rawget(H.missionState, 'OverlordBridgeReturn'), nil)
   H.cleanup()
 end)
 
@@ -1670,9 +1771,9 @@ end)
 
 -- Native JSON codec --------------------------------------------------------------------
 
-check('the hook installs the native JSON codec into a net-less scripting state; all three companions bridge', function()
+check('the hook installs the native JSON codec into the mission scripting environment; all three companions bridge', function()
   local W = newMission({ others = true })
-  eq(rawget(W.env, 'net'), nil, 'no net in the scripting state')
+  eq(rawget(W.env, 'net'), nil, 'mission scripts get no net from the test mission')
   local H = newHook(W, { features = ALL })
   eq(rawget(W.env, 'OverlordJSON'), nil, 'scripting state starts without a codec')
   H.callbacks.onSimulationStart()
@@ -1681,7 +1782,8 @@ check('the hook installs the native JSON codec into a net-less scripting state; 
   eq(#H.on('/carrier/exchange'), 3, 'carriers bridge')
   eq(#H.on('/airfield/exchange'), 3, 'airfields bridge')
   eq(#H.codecCalls, 1, 'one install per epoch')
-  eq(H.codecCalls[1].state, 'server')
+  eq(H.codecCalls[1].state, 'a_do_script')
+  eq(rawget(W.env.net, 'lua2json'), nil, 'companions rely on the installed codec, not net.lua2json')
   local code = H.codecCalls[1].code
   assert(code:find('loadstring(' .. string.format('%q', nativeJsonFixture()) .. ', "=Scripts/JSON.lua")', 1, true),
     'native source passed as one quoted literal')
@@ -1742,7 +1844,7 @@ check('a rejected codec install is retried within its bound, then bridging start
   local H = newHook(W, { features = '{ "jtac", "carriers" }' })
   local real, rejected = H.env.net.dostring_in, 0
   H.env.net.dostring_in = function(state, code)
-    if code:find('^if type%(OverlordJSON%)') and rejected < 2 then
+    if code:find('pcall(function() if type(OverlordJSON)', 1, true) and rejected < 2 then
       rejected = rejected + 1
       H.codecCalls[#H.codecCalls + 1] = { state = state, code = code }
       return '', false

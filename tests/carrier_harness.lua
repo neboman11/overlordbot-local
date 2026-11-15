@@ -310,8 +310,9 @@ local function newMission(opts)
       return 288.15, 101591.67
     end },
     world = { event = EVENT, addEventHandler = function(h) W.handlers[#W.handlers + 1] = h end },
-    -- No net here: the server state only gets JSON as OverlordJSON from the hook (newHook removes
-    -- this stand-in so the hook must install it from the native JSON.lua fixture).
+    -- No net here (newHook adds the mission environment's stock net.dostring_in to "mission" only).
+    -- JSON arrives as OverlordJSON from the hook (newHook removes this stand-in so the hook must
+    -- install it from the native JSON.lua fixture).
     OverlordJSON = { encode = encode, decode = decode },
     -- The scripting state keeps loadstring; chunks bind to the mission globals.
     loadstring = function(source, name)
@@ -779,6 +780,51 @@ end)
 
 -- Server hook with both features ------------------------------------------------------
 
+-- DCS Lua states as observed through net.dostring_in from a hook on a real server:
+--  * "mission": the trigger state; no world, but a_do_script, which runs a chunk in the real
+--    mission scripting environment (W.env) and returns nothing.  The mission environment's own
+--    net.dostring_in reaches only this state.
+--  * "server"/"scripting": a separate VM with a world API but none of the mission's globals; its
+--    stale companion modules answer marked snapshots, so a hook that calls it cannot pass.
+local RELAY_BODY = '^local ok, r = pcall%(function%(%) (.-)\nend%)\nlocal t\n'
+
+local function dcsStates(H, W)
+  H.serverCalls = {}
+  local mission = setmetatable({}, { __index = {
+    type = type,
+    a_do_script = function(source)
+      local body = assert(source:match(RELAY_BODY), 'hook relay shape')
+      -- JSON codec installs are recorded apart from bridge/auto-load calls.
+      local calls = body:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
+      calls[#calls + 1] = { state = 'a_do_script', code = body }
+      pcall(compile(source, '=a_do_script', W.env))
+    end,
+  } })
+  H.missionState = mission
+  local function run(target, code)
+    local ok, result = pcall(compile(code, '=dostring', target))
+    if result == nil then result = '' end
+    return tostring(result), ok
+  end
+  rawset(W.env, 'net', { dostring_in = function(state, code)
+    if state ~= 'mission' then return 'Access to this state is blocked (exploit mitigation)', false end
+    return run(mission, code)
+  end })
+  local stale = setmetatable({ world = {}, type = type, pcall = pcall, string = string,
+                               OverlordJSON = { encode = encode, decode = decode } }, { __index = function() end })
+  for _, module in ipairs({ 'OverlordJTAC', 'OverlordCarrier', 'OverlordAirfield' }) do
+    stale[module] = { bridge = function() return '{"version":1,"stale":"' .. module .. '"}' end }
+  end
+  return function(state, code)
+    if state == 'mission' then return run(mission, code) end
+    if state == 'server' or state == 'scripting' then
+      H.serverCalls[#H.serverCalls + 1] = code
+      return run(stale, code)
+    end
+    return '', false
+  end
+end
+
 local function newHook(W, features, codec)
   local H = { real = 0, requests = {}, calls = {}, logs = {}, conns = {}, stall = {}, replies = {},
               codecCalls = {} }
@@ -787,7 +833,7 @@ local function newHook(W, features, codec)
   os.execute('mkdir -p "' .. dir .. '/Config/"')
   local f = assert(io.open(dir .. '/Config/overlord-hook.lua', 'w'))
   f:write('return { host = "127.0.0.1", port = 8081, bridgeToken = "bridge-secret", apiToken = "api-secret",'
-    .. ' interval = 1, timeout = 3, state = "server", features = ' .. features .. ' }')
+    .. ' interval = 1, timeout = 3, features = ' .. features .. ' }')
   f:close()
   -- Native engine JSON.lua under the install dir; the scripting state starts without OverlordJSON.
   if codec ~= false then writeFile(dir .. '/dcs/Scripts/JSON.lua', codec or nativeJsonFixture()) end
@@ -836,13 +882,7 @@ local function newHook(W, features, codec)
       getRealTime = function() return H.real end,
       setUserCallbacks = function(cb) H.callbacks = cb end,
     },
-    net = { dostring_in = function(state, code)
-      -- JSON codec installs are recorded apart from bridge/auto-load calls.
-      local calls = code:find('^if type%(OverlordJSON%)') and H.codecCalls or H.calls
-      calls[#calls + 1] = { state = state, code = code }
-      local ok, result = pcall(compile(code, '=dostring', W.env))
-      return tostring(result), ok
-    end },
+    net = { dostring_in = dcsStates(H, W) },
     log = { write = function(_, _, m) H.logs[#H.logs + 1] = m end, ERROR = 1, WARNING = 2, INFO = 3 },
     lfs = { writedir = function() return dir .. '/' end, currentdir = function() return dir .. '/dcs' end },
     package = { path = '', cpath = '' },
@@ -888,11 +928,12 @@ check('hook runs JTAC and carrier features on fixed routes with shared tokens an
   eq(count(carriers[1].body.carriers), 5)
   eq(count(carriers[1].body.aircraft), 0)
   eq(find(carriers[2].body.aircraft, 'unit_id', '301').carrier_id, '101', 'carrier watch round trip')
-  eq(rawget(W.env, 'net'), nil, 'no net in the scripting state')
+  eq(rawget(W.env.net, 'lua2json'), nil, 'companions rely on the installed codec, not net.lua2json')
+  eq(#H.serverCalls, 0, 'the separate server VM is never called')
   eq(#H.codecCalls, 1, 'native JSON codec installed once before the bridges')
-  eq(H.codecCalls[1].state, 'server')
+  eq(H.codecCalls[1].state, 'a_do_script')
   for _, call in ipairs(H.calls) do
-    eq(call.state, 'server')
+    eq(call.state, 'a_do_script')
     assert(call.code:match('^return OverlordJTAC and OverlordJTAC%.bridge%(".-",".*"%)$')
       or call.code:match('^return OverlordCarrier and OverlordCarrier%.bridge%(".-",".*"%)$'), 'fixed entry point')
   end
