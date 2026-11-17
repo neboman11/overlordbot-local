@@ -587,6 +587,8 @@ Piper LJSpeech on the same physical Xeon:
 | 0 (runtime default) | 0.9272 | 1.4063 | 343.2 |
 | 4 (recommended) | 0.2639 | 0.4215 | 290.5 |
 
+Piper's memory grows about 2.4 MB per character of each sentence it synthesizes, so the worker splits replies into comma-clause chunks of at most 120 characters (`overlord/speech.py`). Measured in the speech image with four threads, a 1000-character reply (the controller maximum) peaks at 511 MB RSS; as a single sentence it peaked at 2534 MB and was OOM-killed under a 1536 MiB limit.
+
 Four-thread result: `benchmarks/speech-xeon-tuned.json`; tiny STT median 0.9539 seconds. **Choose tiny.en and set both thread counts to 4 for leafman/stickman.** A rough sum of separately measured medians plus the 0.2-second EOT timeout is 1.418 seconds, excluding LAN/HTTP/codec/reply-length variation. This is an estimate, **not a measured full-Xeon radio guarantee**; base/small do not meet the 1.5-second target on that CPU. QEMU Ivy Bridge additionally passed both speech engines (`benchmarks/avx-compatibility.json`); emulated duration is not hardware latency.
 
 Complete real SRS → STT → brain → Piper → SRS verification on **Ryzen 7 7700X**, same AVX-only whisper build, four-thread speech workers, fixed SHA-checked synthetic caller WAVs:

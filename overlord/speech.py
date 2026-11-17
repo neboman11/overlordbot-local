@@ -219,6 +219,32 @@ def resample(samples, source_rate, target_rate=SAMPLE_RATE, zeros=16, beta=8.6, 
     return output.astype(np.float32)
 
 
+# Piper runs one sentence per inference, and its memory grows ~2.4 MB per character of that sentence:
+# a 1000-character comma-joined JTAC brief peaks at ~2.5 GB.  Long text is synthesized clause by clause.
+TTS_CHUNK_CHARS = 120
+TTS_CLAUSE_PAUSE_SECONDS = 0.12
+
+
+def speech_chunks(text, limit=TTS_CHUNK_CHARS):
+    """Split text at clause (comma) boundaries, then at spaces, into pieces of at most ``limit`` chars."""
+    pieces = []
+    for clause in (part.strip() for part in text.split(',')):
+        while len(clause) > limit:
+            cut = clause.rfind(' ', 0, limit + 1)
+            cut = cut if cut > 0 else limit
+            pieces.append(clause[:cut].strip())
+            clause = clause[cut:].strip()
+        if clause:
+            pieces.append(clause)
+    chunks = []
+    for piece in pieces:
+        if chunks and len(chunks[-1]) + 2 + len(piece) <= limit:
+            chunks[-1] += ', ' + piece
+        else:
+            chunks.append(piece)
+    return chunks
+
+
 class NativeTTS:
     """Piper voice loaded once on the ONNX Runtime CPU provider.
 
@@ -264,12 +290,19 @@ class NativeTTS:
         if voice not in (None, self.voice):
             raise ValueError(f'voice {voice!r} is not loaded; available: {self.voice}')
         np = self._np
-        with self._lock:
-            chunks = [chunk.audio_float_array for chunk in self._voice.synthesize(text)]
-        if not chunks:
-            return b''
-        audio = resample(np.concatenate(chunks), self.native_rate, SAMPLE_RATE)
-        return (np.clip(audio, -1.0, 1.0) * 32767.0).round().astype('<i2').tobytes()
+        pause = np.zeros(round(TTS_CLAUSE_PAUSE_SECONDS * SAMPLE_RATE), dtype='<i2')
+        parts = []
+        for clause in speech_chunks(text):
+            with self._lock:
+                audio = [chunk.audio_float_array for chunk in self._voice.synthesize(clause)]
+            if not audio:
+                continue
+            # Resampled per clause too: the polyphase index matrix is ~400 bytes per output sample.
+            audio = resample(np.concatenate(audio), self.native_rate, SAMPLE_RATE)
+            if parts:
+                parts.append(pause)
+            parts.append((np.clip(audio, -1.0, 1.0) * 32767.0).round().astype('<i2'))
+        return np.concatenate(parts).tobytes() if parts else b''
 
     def close(self):
         self._closed = True
