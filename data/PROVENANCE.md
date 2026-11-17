@@ -48,10 +48,11 @@ coalition or identification status. External reference documents are not bundled
 - The 4 `sendTransport` utterances expect intent `None`, because the original `ITransmission.Intents`
   has no such intent.
 - Airfield names are canonical (alias-resolved) where the original kept the spoken name.
-- Every case is checked. 17 cases have a `correction` (category, reason, fields) and keep the
+- Every case is checked. 18 cases have a `correction` (category, reason, fields) and keep the
   extracted original in `label`:
-  - 7 `label`: the LUIS label omits or garbles a spoken entity (receiver, transmitter, radius,
-    an airfield name that includes "ground").
+  - 8 `label`: the LUIS label omits or garbles a spoken entity (receiver, transmitter, radius,
+    an airfield name that includes "ground"), or leaves a run-together STT callsign ("cat11")
+    unlabelled.
   - 4 `homophone`: "for"/"too" before a single number is the flight digit 4/2. The benchmark shows
     "Dodge four one" transcribed as "Dodge for one"; LUIS labelled flight unknown, element 1.
   - 2 `policy`: a request with neither receiver nor transmitter ("radio check", "bogey dope") is

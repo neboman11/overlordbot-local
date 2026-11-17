@@ -385,6 +385,10 @@ def ambiguous_callsign(player: dict) -> str:
     return f"{group} {flight} {element}"
 
 
+# How a controller addresses a transmission whose callsign it could not read.
+UNKNOWN_CALLER = "station calling"
+
+
 def _speech(*sections) -> Optional[str]:
     parts = [s for s in sections if s is not None]
     return ", ".join(parts) if parts else None
@@ -1169,8 +1173,8 @@ def _determine_transmitter(t: dict, reply: _Reply, units, coalition):
     """BaseResponder.DetermineTransmitter."""
     player = t.get("transmitter")
     if not player or (player.get("group") is None and player["flight"] < 0 and player["element"] < 0):
-        reply.caller = "last transmitter"
-        reply.message = "i could not recognize your callsign"
+        reply.caller = UNKNOWN_CALLER
+        reply.message = "say again your callsign"
         reply.notes = "Could not find a transmitter callsign in the transmission"
         reply.stop = True
         return None

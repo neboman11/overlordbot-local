@@ -73,7 +73,7 @@ import time
 
 from . import carrier_parser
 from . import domain
-from .identities import identify_player, sender_identifies
+from .identities import identify_player, sender_identifies, spoken_callsigns
 from .jtac import _ID, _bool, _list, _num, _readback_runs, _text
 
 FREQUENCY_GUARD_HZ = 200        # receive windows closer than this conflict
@@ -889,7 +889,7 @@ class CarrierService:
     def _speech(self, caller, carrier, role, message):
         reply = domain._speech(caller, f"{carrier['spoken']} {role}", message)
         if len(reply) > MAX_REPLY_CHARS:
-            reply = domain._speech("last transmitter", f"{carrier['spoken']} {role}", "say again")
+            reply = domain._speech(domain.UNKNOWN_CALLER, f"{carrier['spoken']} {role}", "say again")
         return reply
 
     def _push(self, session, role, message, validation):
@@ -949,8 +949,8 @@ class CarrierService:
             now = time.time()
             events = [dict(note["validation"], reply=note["reply"], ttl_seconds=note["validation"]["expires"] - now)
                       for note in notes if self.validate_reply(note["validation"])]
-            callsigns = sorted({p["callsign"] for p in self._players.values()
-                                if p["coalition"] == carrier["coalition"] and p["callsign"]})[:32]
+            callsigns = spoken_callsigns(name for p in self._players.values() if p["coalition"] == carrier["coalition"]
+                                         for name in (p["player_name"], p["callsign"]))
             return {"events": events, "vocabulary": [carrier["spoken"]] + VOCABULARY + callsigns}
 
     # -- registry and routing --------------------------------------------------
@@ -1017,14 +1017,14 @@ class CarrierService:
             player, caller, problem = identify_player(self._players.values(), parsed, coalition)
             intent = parsed["intent"]
             if player is None:
-                message = "say again" if intent == "None" and caller == "last transmitter" else problem
+                message = "say again" if intent == "None" and caller == domain.UNKNOWN_CALLER else problem
                 answer.update(reply=self._speech(caller, carrier, "marshal", message), notes=problem,
                               validation=self._notice(carrier["id"], None))
                 return answer
             uid = player["unit_id"]
             if sender is not None and not sender_identifies(self._players.values(), sender, player):
                 answer.update(reply=self._speech(caller, carrier, "marshal",
-                                                 "unable, your radio name does not identify you"),
+                                                 "unable, your SRS name does not match that callsign"),
                               notes="SRS radio name does not uniquely identify the spoken caller",
                               validation=self._notice(carrier["id"], uid, player["incarnation"]))
                 return answer

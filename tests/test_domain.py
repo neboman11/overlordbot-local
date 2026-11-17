@@ -154,7 +154,7 @@ class Recognition(unittest.TestCase):
         self.assertEqual(say("overlord dolt radio check", [me()]),
                          "dolt x x, overlord, i could not fully recognize your callsign")
         self.assertEqual(say("overlord radio check", [me()]),
-                         "last transmitter, overlord, i could not recognize your callsign")
+                         "station calling, overlord, say again your callsign")
         self.assertEqual(say("overlord dolt 1 2 radio check", []), "dolt 1 2, overlord, i could not find you on scope")
 
     def test_duplicate_callsign(self):
@@ -368,7 +368,7 @@ class Atc(unittest.TestCase):
         self.assertEqual(say("kutaisi ground dolt radio check", world),
                          "dolt x x, Kutaisi ground, i could not fully recognize your callsign")
         self.assertEqual(say("kutaisi ground radio check", world),
-                         "last transmitter, Kutaisi ground, i could not recognize your callsign")
+                         "station calling, Kutaisi ground, say again your callsign")
         self.assertIsNone(say("kutaisi dolt 1 2 radio check", world))   # no controller name: ignored
 
 

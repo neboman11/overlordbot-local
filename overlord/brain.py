@@ -6,6 +6,7 @@ import threading
 import time
 from . import domain
 from . import parser
+from .identities import spoken_callsigns
 
 
 AWACS_COMMANDS = {
@@ -359,8 +360,11 @@ class Brain:
         if self.jtac is not None and channel == self.jtac.channel:
             events = [dict(event['validation'], reply=event['reply'], ttl_seconds=10)
                       for event in self.jtac.take_events(coalition, channel)]
-            return {'events': events, 'vocabulary': [self.jtac.callsign, 'check in', 'nine line',
-                                                    'readback', 'contact', 'abort', 'laser on', 'laser off']}
+            with self.world.locked_snapshot() as (_, units):
+                callsigns = spoken_callsigns(name for unit in units if unit['coalition'] == coalition
+                                             for name in (unit.get('pilot'), unit.get('callsign')))
+            return {'events': events, 'vocabulary': [self.jtac.callsign, 'check in', 'nine line', 'readback',
+                                                    'contact', 'abort', 'laser on', 'laser off'] + callsigns}
         with self.lock, self.world.locked_snapshot() as (generation, units):
             self._sync_generation(generation)
             out = []
@@ -375,7 +379,8 @@ class Brain:
             self.events = remaining
             friendly = [unit for unit in units if unit['coalition'] == coalition
                         and (unit.get('callsign') or unit.get('pilot'))][:32]
-            vocabulary = [self.callsign] + sorted({unit.get('callsign') or unit.get('pilot') for unit in friendly})
+            vocabulary = [self.callsign] + spoken_callsigns(name for unit in friendly
+                                                            for name in (unit.get('pilot'), unit.get('callsign')))
             nearby = [field for field in domain.AIRFIELDS
                       if any(domain.distance_m(field.lat, field.lon, unit['lat'], unit['lon']) <= 1000000
                              for unit in friendly)]

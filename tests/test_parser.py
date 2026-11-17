@@ -65,6 +65,14 @@ class Grammar(unittest.TestCase):
                 t = parse(text)["transmitter"]
                 self.assertEqual((t["group"], t["flight"], t["element"]), (text.split()[1], flight, element))
 
+    def test_element_heard_as_a_word_or_run_together(self):
+        # Whisper writes "two" as "to" and glues digits onto the group: real Silver 1-2 transcripts.
+        for text in ("overlord silver one to radio check", "overlord, Silver 1 too, bogey dope",
+                     "overlord silver12 radio check", "overlord Silver1 to radio check"):
+            with self.subTest(text):
+                t = parse(text)["transmitter"]
+                self.assertEqual((t["group"], t["flight"], t["element"]), ("silver", 1, 2))
+
     def test_noise_word_before_callsign_number_is_not_a_group(self):
         for text in ("overlord made a 11 bogey dope", "overlord don't 12 bogey dope",
                      "of lord 1 three set warning 40 miles"):

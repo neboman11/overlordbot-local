@@ -212,7 +212,7 @@ class CarrierTests(unittest.TestCase):
         self.players.append(human('900', 'Enfield 1-1', 'AI', '900', is_human=False))
         response = self.bridge([self.track('102', place='71')])      # unrequested report is ignored
         self.assertEqual(response['watch'], [])
-        self.assertIn('no player aircraft', self.say('Marshal, Enfield 1 1, checking in')['reply'])
+        self.assertIn('no aircraft with that callsign', self.say('Marshal, Enfield 1 1, checking in')['reply'])
         answer = self.say('Marshal, Viper 1 1, checking in')
         self.assertIn('CASE one recovery', answer['reply'])
         self.assertTrue(self.svc.validate_reply(answer['validation']))
@@ -238,8 +238,9 @@ class CarrierTests(unittest.TestCase):
                         human('300', 'Hornet 3-1', 'Eve', '7'), human('400', 'Hornet 4-1', 'Fay', '201')]
         self.bridge()
         answer = self.say('Marshal, Viper 1 1, checking in')
-        self.assertIn('more than one aircraft matches, say modex', answer['reply'])
-        self.assertIn('more than one aircraft matches, say callsign', self.say('Marshal, 201, checking in')['reply'])
+        self.assertIn('more than one aircraft with that callsign, say your modex', answer['reply'])
+        self.assertIn('more than one aircraft with that callsign, say your callsign',
+                      self.say('Marshal, 201, checking in')['reply'])
         self.assertEqual(self.bridge()['watch'], [])
         self.assertIn('zero zero seven, Roosevelt marshal, CASE one',
                       self.say('Marshal, zero zero seven, checking in')['reply'])
@@ -252,7 +253,7 @@ class CarrierTests(unittest.TestCase):
         for sender in ('', '   ', 'SRS client', 'Bob', 'Ann', 'Viper 1-2 | Ann', 'Viper 1-1 | Ann',
                        'Viper 1-2 | Bob'):
             answer = self.say('Marshal, Viper 1 1, checking in', sender=sender)
-            self.assertIn('your radio name does not identify you', answer['reply'], sender)
+            self.assertIn('your SRS name does not match that callsign', answer['reply'], sender)
         self.assertEqual(self.bridge()['watch'], [])
         self.assertIn('CASE one', self.say('Marshal, Viper 1 1, checking in', sender='Viper 1-1 | Bob')['reply'])
         self.assertIn('CASE one', self.say('Marshal, Viper 1 2, checking in', sender='Ann')['reply'])
@@ -262,7 +263,7 @@ class CarrierTests(unittest.TestCase):
             for sender in ('', 'SRS client', 'Viper 1-2 | Ann'):
                 answer = self.say(f'Marshal, Viper 1 1, {text}', channel=channel, carrier_id=carrier_id,
                                   sender=sender)
-                self.assertIn('does not identify you', answer['reply'])
+                self.assertIn('does not match that callsign', answer['reply'])
         self.assertEqual(self.watched(self.bridge()), {('100', '71'), ('101', '71')})
         self.assertIn('hold overhead at angels two',
                       self.say('Marshal, Viper 1 1, say again', sender='viper11')['reply'])
@@ -669,7 +670,7 @@ class CarrierTests(unittest.TestCase):
                      'carrier #4 rejected', 'player 102 rejected', 'player 103 rejected: invalid modex'):
             self.assertIn(text, joined)
         self.assertNotIn('Carl', joined)
-        self.assertIn('no player aircraft', self.say('Marshal, Dodge 1 1, checking in')['reply'])
+        self.assertIn('no aircraft with that callsign', self.say('Marshal, Dodge 1 1, checking in')['reply'])
         self.assertIn('CASE one recovery', self.say('Marshal, Viper 1 1, say again')['reply'])
 
     def test_landing_off_this_deck_releases_the_lane_without_a_false_bolter(self):

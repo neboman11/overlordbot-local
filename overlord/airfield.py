@@ -64,7 +64,7 @@ import time
 from . import airfield_parser, domain
 from .carrier import (FREQUENCY_GUARD_HZ, _altimeter, _bearing, _digits, _entities, _id,
                       _known_groups, _number_matches, _optional, _player, _point, _velocity, parse_channel)
-from .identities import identify_player, sender_identifies
+from .identities import identify_player, sender_identifies, spoken_callsigns
 from .jtac import _bool, _list, _num, _readback_runs, _text
 
 REPLY_TTL, EVENT_TTL = 15, 10
@@ -114,11 +114,12 @@ LANE_CLEARANCE = {"crossing_clearance": "crossing_requested", "lineup_clearance"
 TAKEOFF_GRANTED = ("takeoff_clearance", "cleared_takeoff")
 LANDING_GRANTED = ("landing_clearance", "cleared_land")
 ENROLLING = ("startup", "taxi", "inbound", "emergency")
-VOCABULARY = ["ground", "tower", "approach", "request startup", "request taxi", "holding short",
-              "ready for departure", "lined up", "request crossing", "runway", "left", "right", "center",
-              "readback", "hold short", "line up and wait", "cleared for takeoff", "cleared to land",
-              "altimeter", "airborne", "switching", "inbound", "downwind", "base", "final", "going around",
-              "vacated", "taxi to parking", "say again", "request wind", "mayday", "cancel", "checking out"]
+VOCABULARY = ["ground", "tower", "approach", "radio check", "request information", "request startup",
+              "request taxi", "holding short", "ready for departure", "lined up", "request crossing", "runway",
+              "left", "right", "center", "readback", "hold short", "line up and wait", "cleared for takeoff",
+              "cleared to land", "altimeter", "airborne", "switching", "inbound", "downwind", "base", "final",
+              "going around", "vacated", "taxi to parking", "say again", "request wind", "mayday", "cancel",
+              "checking out"]
 _DESIGNATOR = re.compile(r"(0?[1-9]|[12][0-9]|3[0-6])([LRC]?)")
 _SIDE_WORDS = {"L": "left", "R": "right", "C": "center"}
 
@@ -493,7 +494,7 @@ def readback_problem(text, pending):
     # Clearance terms on the raw words: the shared readback runs drop separator words such as "line".
     words = " ".join(re.findall(r"[a-z]+", text.lower().replace("'", "").replace("\u2019", "")))
     if airfield_parser.NEGATION.search(words) or airfield_parser.CANCEL.search(words):
-        return "negative readback, read back the clearance again"
+        return "read back the clearance exactly"
     runs = _readback_runs(text)
     runways = []
     for index, (kind, value) in enumerate(runs):
@@ -729,7 +730,7 @@ class AirfieldService:
         for uid in snap["rejected_aircraft"]:
             session = self._sessions.get(uid)
             if session is not None:
-                self._release(session, "tracking data invalid, airfield session closed, call again")
+                self._release(session, "radar contact lost, call again when ready")
         reported = set()
         for uid, record in snap["aircraft"].items():
             session = self._sessions.get(uid)
@@ -740,7 +741,7 @@ class AirfieldService:
         for session in list(self._sessions.values()):
             if session.unit_id not in reported and session.issued_seq is not None \
                     and snap["seq"] > session.issued_seq + 1:
-                self._release(session, "radar contact lost, airfield session closed, call again")
+                self._release(session, "radar contact lost, call again when ready")
         for fid in self._control:
             self._schedule(self._fields[fid])
 
@@ -820,7 +821,7 @@ class AirfieldService:
                 if session.kind == "arrival" and session.phase in ARRIVAL_AIRBORNE:
                     # A land event after enrolment is a real landing (a parked aircraft never sends one).
                     if place != field["id"]:
-                        self._release(session, f"landing not observed at {field['spoken']}, arrival closed")
+                        self._release(session, f"you landed away from {field['spoken']}, arrival cancelled")
                         return
                     session.airborne_seen = True
                     self._touchdown(session)
@@ -835,7 +836,7 @@ class AirfieldService:
             elif session.kind == "arrival" and session.phase in ("touchdown", "landed"):
                 self._touch_and_go(session, field)
             elif session.kind == "arrival" and session.phase not in ARRIVAL_AIRBORNE:
-                self._release(session, "airborne, arrival closed")
+                self._release(session, "you are airborne, arrival cancelled, call inbound when ready")
                 return
         if self._sessions.get(session.unit_id) is not session:
             return
@@ -850,7 +851,7 @@ class AirfieldService:
             elif record["ground_airfield_id"] == field["id"]:
                 session.phase = "landed"
                 self._bump(session)
-                self._event(session, "tower", "landing observed, vacate the runway, report vacated")
+                self._event(session, "tower", "vacate the runway when able, report vacated")
         elif session.phase in ARRIVAL_AIRBORNE and not record["in_air"]:
             if not session.airborne_seen:
                 # Parked when it checked in: never a landing later, unless it is an emergency on the ground.
@@ -860,14 +861,14 @@ class AirfieldService:
                     self._bump(session)
                     self._event(session, "tower", "emergency on the ground, vacate any runway, report vacated")
                 else:
-                    self._release(session, "you are not airborne, arrival not required, report inbound when airborne")
+                    self._release(session, "you are on the ground, call inbound once airborne")
                 return
             if record["ground_airfield_id"] == field["id"]:
                 self._touchdown(session)
                 session.phase = "landed"
-                self._event(session, "tower", "landing observed, vacate the runway, report vacated")
+                self._event(session, "tower", "vacate the runway when able, report vacated")
             elif record["ground_airfield_id"] is not None:
-                self._release(session, f"landing not observed at {field['spoken']}, arrival closed")
+                self._release(session, f"you landed away from {field['spoken']}, arrival cancelled")
                 return
         if session.phase == "crossing":
             strip, _ = _end(field, session.cross)
@@ -881,7 +882,7 @@ class AirfieldService:
             self._free_lane(session)
             session.phase = "vacated"
             self._bump(session)
-            self._event(session, "ground", "runway vacated, request taxi to parking")
+            self._event(session, "ground", "clear of the runway, request taxi to parking when ready")
 
     def _observe_departure(self, session, field, record):
         if record["in_air"] and session.phase in DEPARTURE_GROUND:
@@ -892,7 +893,7 @@ class AirfieldService:
                 self._bump(session)
                 self._event(session, "ground", self._status(session, field))
             elif record["ground_airfield_id"] is not None:
-                self._release(session, f"unable, not observed on the ground at {field['spoken']}, departure closed")
+                self._release(session, f"unable, I don't see you on the ground at {field['spoken']}, departure cancelled")
         elif session.phase == "lineup" and _lined_up(field, session.runway, record):
             session.phase = "lined_up"
             self._bump(session)
@@ -904,16 +905,16 @@ class AirfieldService:
         session.phase, session.pending = "touchdown", None
         self._bump(session)
         if not self._holds_lane(session):
-            self._event(session, "tower", "landing without clearance observed")
+            self._event(session, "tower", "you landed without a landing clearance")
 
     def _touch_and_go(self, session, field):
         """Airborne again after a touchdown: the old landing instructions end; it goes around."""
         self._free_lane(session)
-        self._event(session, "tower", "airborne observed, go around, " + self._reentry(session, field))
+        self._event(session, "tower", "you are airborne, go around, " + self._reentry(session, field))
 
     def _takeoff(self, session, field):
         if session.phase == "startup_requested":
-            self._release(session, f"unable, not observed on the ground at {field['spoken']}, departure closed")
+            self._release(session, f"unable, I don't see you on the ground at {field['spoken']}, departure cancelled")
             return
         cleared = session.phase == "cleared_takeoff"
         self._free_lane(session)            # only ever this aircraft's own lane
@@ -922,13 +923,13 @@ class AirfieldService:
         if cleared:
             self._event(session, "tower", self._airborne_text(field, session))
         else:
-            self._event(session, "tower", "takeoff not cleared, airborne observed, report leaving the zone")
+            self._event(session, "tower", "you departed without a takeoff clearance, report leaving the zone")
 
     def _airborne_text(self, field, session):
         lead = "airborne"
         channel = self._contact_channel(field, session, "approach")
         if channel:
-            lead += f", contact {field['spoken']} approach {_say_frequency(int(channel.split(':')[1]))}"
+            lead += f", contact {field['spoken']} approach on {_say_frequency(int(channel.split(':')[1]))}"
         return lead + ", report leaving the zone"
 
     def _reentry(self, session, field):
@@ -966,13 +967,13 @@ class AirfieldService:
         if field["active"] is not None:
             if field["active"] in ends:
                 return field["active"], None
-            return None, "configured active runway not usable"
+            return None, "the active runway is not usable"
         if not ends:
-            return None, "no usable runway"
+            return None, "no runway available"
         speed, wind = field["wind_speed"], field["wind_from"]
         calm = speed is not None and speed * KNOTS_PER_MPS < CALM_KNOTS
         if not calm and (speed is None or wind is None):
-            return None, "wind information not available, unable to determine the runway in use"
+            return None, "no wind information, unable to assign a runway"
         if current in ends and (calm or domain.diff_heading(round(wind), round(ends[current][1])) < 90):
             return current, None            # no tailwind: keep it rather than flap between ends
         if calm:
@@ -1028,7 +1029,7 @@ class AirfieldService:
                     session.vacating = True
                     session.phase, session.pending, session.runway = "startup", None, None
                     self._bump(session)
-                    tell(session, "tower", "runway changed, clearance cancelled, vacate the runway, then request taxi")
+                    tell(session, "tower", "runway change, clearance cancelled, vacate the runway and request taxi again")
                 else:
                     self._free_lane(session)
                     tell(session, "ground", "runway changed, " + self._taxi_clearance(session, field))
@@ -1041,10 +1042,10 @@ class AirfieldService:
             if message:
                 # Expired: no new grant until the pilot asks again (never a renewed unattended clearance).
                 lane.expired = True
-                tell(lane, "tower", "no readback, " + message)
+                tell(lane, "tower", "no readback received, " + message)
             lane = self._sessions.get(control["lane"]) if control["lane"] else None
         if lane is not None and not self._has_tower(field, lane):
-            message = self._revoke_unstarted(lane, field, reason="tower service not available on this frequency")
+            message = self._revoke_unstarted(lane, field, reason="no tower service on this frequency")
             if message is None and not lane.expired:
                 # Keep physically started movement/occupancy, not its obsolete tower authority.
                 lane.pending, lane.expired = None, True
@@ -1084,6 +1085,14 @@ class AirfieldService:
                 break
         return spoken
 
+    @staticmethod
+    def _with_schedule(session, message, extra):
+        """A clearance granted by this very call replaces the queue status said before it."""
+        if session.pending is None or session.phase not in LANE_CLEARANCE or session.pending["text"] not in extra:
+            return f"{message}, {extra}"
+        lead = next((p for p in ("copy emergency, you have priority", "readback correct") if message.startswith(p)), None)
+        return f"{lead}, {extra}" if lead else extra
+
     def _grant(self, session, field, kind, phase, text):
         self._control[field["id"]]["lane"] = session.unit_id
         session.phase = phase
@@ -1105,7 +1114,7 @@ class AirfieldService:
             return session.runway == runway and _at_hold(field, runway, track)
         return session.phase == "crossing_requested" and _at_crossing(field, session.cross, track)
 
-    def _revoke_unstarted(self, session, field, reason="clearance cancelled"):
+    def _revoke_unstarted(self, session, field, reason=None):
         """End a runway clearance that has not physically started; returns the instruction, if any.
 
         A lane holder standing on a runway keeps the lane (never bumped); only a take-off clearance
@@ -1117,21 +1126,21 @@ class AirfieldService:
             if session.phase in TAKEOFF_GRANTED and not _rolling(session.track):
                 session.phase, session.pending = "lined_up", None
                 self._bump(session)
-                return f"hold position, takeoff clearance cancelled, {reason}"
+                return "hold position, cancel takeoff" + (f", {reason}" if reason else "")
             return None
         if session.phase in LANDING_GRANTED or session.phase == "final":
             self._free_lane(session)
-            return "go around, " + reason + ", " + self._reentry(session, field)
+            return "go around, " + (f"{reason}, " if reason else "") + self._reentry(session, field)
         if session.phase in ("crossing_clearance", "crossing"):
             self._free_lane(session)
             session.phase, session.pending, session.entered = "crossing_requested", None, False
             self._bump(session)
-            return f"hold short {say_runway(session.cross)}, crossing clearance cancelled, {reason}"
+            return f"hold short {say_runway(session.cross)}, crossing clearance cancelled" + (f", {reason}" if reason else "")
         if session.phase in ("lineup_clearance", "lineup", "lined_up") + TAKEOFF_GRANTED:
             self._free_lane(session)
             session.phase, session.pending = "holding_short", None
             self._bump(session)
-            return f"hold short {say_runway(session.runway)}, line up clearance cancelled, {reason}"
+            return f"hold short {say_runway(session.runway)}, line up clearance cancelled" + (f", {reason}" if reason else "")
         return None
 
     def _brief(self, session, field):
@@ -1146,8 +1155,7 @@ class AirfieldService:
         visual = (f"enter {field['pattern']} downwind {say_runway(runway)}, report downwind" if field["pattern"]
                   else f"report final {say_runway(runway)}")
         text = (f"{say_runway(runway)} in use, {self._wind(field)}, {_say_altimeter(field['altimeter'])}, "
-                f"no published approach available, make a visual approach, {visual}, "
-                "read back runway and altimeter")
+                f"make a visual approach, {visual}, read back runway and altimeter")
         session.phase = "arrival_briefing"
         session.pending = {"kind": "arrival", "runway": runway, "altimeter": field["altimeter"], "text": text,
                            "issued": self._time}
@@ -1161,9 +1169,8 @@ class AirfieldService:
             session.phase, session.pending = "startup", None
             return f"{self._select_runway(field, None)[1]}, hold position"
         route = _named_route(field, self._current(session), runway)
-        path = (f"via {', '.join(route)}" if route
-                else "named taxi route not available, taxi at your discretion")
-        text = (f"taxi to holding point {say_runway(runway)} {path}, hold short of all runways, "
+        via = f" via {', '.join(route)}" if route else ""
+        text = (f"taxi to holding point {say_runway(runway)}{via}, hold short of all runways, "
                 f"{_say_altimeter(field['altimeter'])}, read back")
         session.phase = "taxi_clearance"
         session.pending = {"kind": "taxi", "runway": runway, "altimeter": None, "text": text, "issued": self._time}
@@ -1211,7 +1218,7 @@ class AirfieldService:
     def _speech(self, caller, speaker, message):
         reply = domain._speech(caller, speaker, message)
         if len(reply) > MAX_REPLY_CHARS:
-            reply = domain._speech("last transmitter", speaker, "say again")
+            reply = domain._speech(domain.UNKNOWN_CALLER, speaker, "say again")
         return reply
 
     def _push(self, session, message, validation, role=None):
@@ -1306,8 +1313,8 @@ class AirfieldService:
             for field in members:
                 names += [field["spoken"]] + [a for r in field["radios"] if r["channel"] == channel
                                               for a in r["aliases"]]
-            callsigns = sorted({p["callsign"] for p in self._players.values()
-                                if p["coalition"] == coalition and p["callsign"]})[:32]
+            callsigns = spoken_callsigns(name for p in self._players.values() if p["coalition"] == coalition
+                                         for name in (p["player_name"], p["callsign"]))
             vocabulary = list(dict.fromkeys(names + VOCABULARY + callsigns))[:MAX_VOCABULARY]
             return {"events": events, "vocabulary": vocabulary}
 
@@ -1422,27 +1429,27 @@ class AirfieldService:
             role = parsed["receiver"]["role"]
             if role is not None and role not in roles:
                 other = self._contact_channel(field, _Probe(channel), role)
-                message = f"unable, {field['spoken']} {role} is not on this frequency" + (
-                    f", contact {field['spoken']} {role} {_say_frequency(int(other.split(':')[1]))}" if other else "")
+                message = f"{field['spoken']} {role} is not on this frequency" + (
+                    f", contact {role} on {_say_frequency(int(other.split(':')[1]))}" if other else "")
                 answer.update(reply=self._speech(caller, self._speaker(field, channel, None), message),
                               notes="Controller role not published on this channel",
                               validation=self._notice(field["id"], channel, uid, incarnation))
                 return answer
             if player is None:
-                message = "say again" if parsed["intent"] == "None" and caller == "last transmitter" else problem
+                message = "say again" if parsed["intent"] == "None" and caller == domain.UNKNOWN_CALLER else problem
                 answer.update(reply=self._speech(caller, self._speaker(field, channel, role), message), notes=problem,
                               validation=self._notice(field["id"], channel, None))
                 return answer
             if sender is not None and not sender_identifies(self._players.values(), sender, player):
                 answer.update(reply=self._speech(caller, self._speaker(field, channel, role),
-                                                 "unable, your radio name does not identify you"),
+                                                 "unable, your SRS name does not match that callsign"),
                               notes="SRS radio name does not uniquely identify the spoken caller",
                               validation=self._notice(field["id"], channel, uid, incarnation))
                 return answer
             intent = parsed["intent"]
             enrolled = False
             if not fresh and intent not in ("cancel", "checkOut", "cancelEmergency"):
-                message, answer["notes"] = "unable, no live airfield link", "Airfield bridge snapshot missing or stale"
+                message, answer["notes"] = "unable, no radar data, stand by", "Airfield bridge snapshot missing or stale"
             elif session is not None and session.airfield_id != field["id"]:
                 other = self._fields.get(session.airfield_id)
                 name = other["spoken"] if other else "another airfield"
@@ -1465,7 +1472,7 @@ class AirfieldService:
             if session is not None and session.airfield_id == field["id"] and fresh and not informational:
                 extra = self._schedule(field, speaker=session)
                 if extra:
-                    message = f"{message}, {extra}"
+                    message = self._with_schedule(session, message, extra)
             elif fresh:
                 self._schedule(field)
             session = self._sessions.get(uid)
@@ -1497,7 +1504,7 @@ class AirfieldService:
             if not relevant:
                 return None, None, None         # explicitly another airfield's radio: never a default
             if len(named) > 1:
-                return None, "Tower", "more than one airfield matches that name, say again with the full name"
+                return None, "Tower", "more than one airfield with that name, say the full airfield name"
             if named & member_ids:
                 return self._fields[next(iter(named))], None, None
             target = sharing[next(iter(named))]
@@ -1544,13 +1551,13 @@ class AirfieldService:
             return "roger, emergency cancelled, " + self._status(own, field), False
         if intent in ("cancel", "checkOut"):
             if own is None:
-                return "copy, no active airfield session", False
+                return "roger, nothing to cancel", False
             if self._occupying(own, field):
                 own.phase, own.pending, own.vacating = "cancelled", None, True
                 self._bump(own)
                 return "clearance cancelled, vacate the runway, report vacated", False
             self._release(own)
-            return ("copy, checked out" if intent == "checkOut" else f"copy, {own.kind} cancelled, checked out"), False
+            return ("roger, good day" if intent == "checkOut" else f"roger, {own.kind} cancelled, good day"), False
         if intent == "information":
             return self._information(field), False
         if intent == "None":
@@ -1566,7 +1573,7 @@ class AirfieldService:
         if intent == "inbound":
             return self._arrival(player, caller, field, channel, own)
         if own is None:
-            return "unable, no active session, state your request", False
+            return "no request on file, say your request", False
         if intent == "sayAgain":
             return self._status(own, field), False
         return getattr(self, "_" + intent)(own, parsed, field), False
@@ -1595,7 +1602,7 @@ class AirfieldService:
                 self._bump(own)
             if taxi and own.phase in ("startup", "taxi_clearance"):
                 if not self._ground_here(own):
-                    return "unable, not observed on the ground here", False
+                    return "unable, I don't see you on the ground here", False
                 return self._taxi_clearance(own, field), False
             return self._status(own, field), False
         track = None
@@ -1603,12 +1610,12 @@ class AirfieldService:
             track = self._current(own)
             if own.kind == "arrival" and not (own.phase in ("vacated", "taxi_in_clearance", "taxi_in")
                                               and self._ground_here(own)):
-                return "unable, departure requires the aircraft on the ground clear of the runway", False
+                return "unable, request your departure on the ground clear of the runway", False
         session = self._register(player, caller, field, channel, "departure", track)
         if session is None:
             return "unable, airfield traffic limit reached", False
         if not self._ground_here(session):
-            return f"standby, not yet observed on the ground at {field['spoken']}", True
+            return f"stand by, I don't see you on the ground at {field['spoken']} yet", True
         session.phase = "startup"
         if taxi:
             return self._taxi_clearance(session, field), True
@@ -1631,11 +1638,10 @@ class AirfieldService:
         if self._holds_lane(session) or self._occupying(session, field):
             return "vacate the runway first, report vacated"
         if not self._ground_here(session):
-            return "unable, not observed on the ground here"
+            return "unable, I don't see you on the ground here"
         route = _named_route(field, self._current(session))
-        path = (f"taxi to parking via {', '.join(route)}" if route
-                else "named taxi route not available, taxi to parking at your discretion")
-        text = f"{path}, hold short of all runways, read back"
+        via = f" via {', '.join(route)}" if route else ""
+        text = f"taxi to parking{via}, hold short of all runways, read back"
         session.phase, session.cross, session.runway = "taxi_in_clearance", None, None
         session.pending = {"kind": "taxi_in", "runway": None, "altimeter": None, "text": text, "issued": self._time}
         self._bump(session)
@@ -1647,8 +1653,8 @@ class AirfieldService:
             return None
         contact = self._contact_channel(field, session, "tower")
         if contact:
-            return f"contact {field['spoken']} tower {_say_frequency(int(contact.split(':')[1]))}"
-        return f"unable, no tower service at {field['spoken']}, runway clearances not available"
+            return f"contact {field['spoken']} tower on {_say_frequency(int(contact.split(':')[1]))}"
+        return f"unable, {field['spoken']} has no tower, no runway clearances available"
 
     def _status(self, session, field):
         """Current instruction rendered from present state; never replays a revoked clearance."""
@@ -1656,13 +1662,13 @@ class AirfieldService:
         runway = say_runway(session.runway) if session.runway else None
         if (phase in LANE_CLEARANCE or phase in ("crossing", "lineup") + TAKEOFF_GRANTED + LANDING_GRANTED) \
                 and (session.expired or not self._has_tower(field, session)):
-            return self._tower_note(field, session) or "previous runway clearance no longer current, report intentions"
+            return self._tower_note(field, session) or "your runway clearance is cancelled, say intentions"
         if session.pending is not None:
             return session.pending["text"]
         if session.vacating or phase in ("cancelled", "landed"):
             return "vacate the runway, report vacated"
         if phase == "startup_requested":
-            return "standby, not yet observed on the ground here"
+            return "stand by, I don't see you on the ground yet"
         if phase == "startup":
             return f"startup approved, {_say_altimeter(field['altimeter'])}, report ready to taxi"
         if phase == "taxi":
@@ -1678,14 +1684,14 @@ class AirfieldService:
             return f"cross {say_runway(session.cross)}, report vacated"
         if phase == "holding_short":
             if tower or session.expired:
-                return f"hold short {runway}, " + (tower or "report ready for departure when ready")
+                return f"hold short {runway}, " + (tower or "report ready for departure")
             return f"hold short {runway}, number {domain.number_to_words(self._rank(session, field))} for departure"
         if phase == "lineup":
             return f"line up and wait {runway}, report lined up"
         if phase == "lined_up":
             if tower or session.expired:
-                return f"hold position {runway}, " + (tower or "report ready for takeoff when ready")
-            return f"hold position {runway}, stand by for takeoff clearance"
+                return "hold position, " + (tower or "report ready for takeoff")
+            return "hold position, stand by for takeoff clearance"
         if phase == "cleared_takeoff":
             return f"{runway}, cleared for takeoff"
         if phase == "airborne":
@@ -1716,10 +1722,10 @@ class AirfieldService:
 
     def _readback(self, session, parsed, field):
         if session.pending is None:
-            return "unable, no clearance to read back"
+            return "no clearance to read back"
         problem = readback_problem(parsed["readback"], session.pending)
         if problem:
-            return f"negative readback, {problem}, read back again"
+            return f"negative readback, {problem}" + ("" if problem.startswith("read back") else ", read back again")
         kind = session.pending["kind"]
         session.pending = None
         session.phase = {"taxi": "taxi", "taxi_in": "taxi_in", "lineup": "lineup", "takeoff": "cleared_takeoff",
@@ -1727,9 +1733,13 @@ class AirfieldService:
         self._bump(session)
         if kind == "lineup" and _lined_up(field, session.runway, self._current(session)):
             session.phase = "lined_up"
-        return "readback correct, " + self._status(session, field) if kind in ("taxi", "arrival", "lineup",
-                                                                                "taxi_in", "crossing") \
-            else "readback correct"
+        # Acknowledge with the next report only; never re-read the clearance just read back.
+        if kind in ("takeoff", "landing"):
+            return "readback correct"
+        if kind == "arrival" or session.phase == "lined_up":
+            return "readback correct, " + self._status(session, field)
+        return "readback correct, " + {"taxi": "report holding short", "lineup": "report lined up",
+                                       "crossing": "report vacated", "taxi_in": "report parked"}[kind]
 
     def _holdingShort(self, session, parsed, field):
         if session.kind != "departure":
@@ -1737,7 +1747,7 @@ class AirfieldService:
         if session.phase in ("lineup", "lined_up"):
             return self._linedUp(session, parsed, field)
         if session.phase == "taxi_clearance":
-            return "unable, read back taxi clearance first"
+            return "read back your taxi clearance first"
         if session.phase == "holding_short" and session.expired:
             session.expired = False         # a fresh request after a lapsed clearance
             self._bump(session)
@@ -1745,7 +1755,7 @@ class AirfieldService:
         if session.phase != "taxi":
             return self._status(session, field)
         if not _at_hold(field, session.runway, self._current(session)):
-            return f"negative, not observed at the holding point {say_runway(session.runway)}, report holding short"
+            return f"negative, I don't see you at the holding point for {say_runway(session.runway)}, report holding short"
         session.phase, session.expired = "holding_short", False
         self._bump(session)
         return self._status(session, field)
@@ -1755,7 +1765,7 @@ class AirfieldService:
             return "unable, no departure in progress"
         if session.phase == "lineup":
             if not _lined_up(field, session.runway, self._current(session)):
-                return f"negative, not observed lined up {say_runway(session.runway)}"
+                return f"negative, I don't see you lined up on {say_runway(session.runway)}"
             session.phase = "lined_up"
             self._bump(session)
         elif session.phase == "lined_up" and session.expired:
@@ -1768,9 +1778,9 @@ class AirfieldService:
             return "unable, " + self._status(session, field)
         target = parsed["runway"]
         if target is None or _end(field, target)[0] is None:
-            return "unable, say the runway to cross"
+            return "say the runway you want to cross"
         if not _at_crossing(field, target, self._current(session)):
-            return f"negative, not observed holding short {say_runway(target)}"
+            return f"negative, I don't see you holding short of {say_runway(target)}"
         if session.phase != "crossing_requested":
             session.resume = "taxi_in" if session.phase == "taxi_in" else "taxi"
         session.phase, session.cross, session.entered, session.expired = "crossing_requested", target, False, False
@@ -1790,13 +1800,13 @@ class AirfieldService:
     def _vacated(self, session, parsed, field):
         track = self._current(session)
         if track is None or track["in_air"] or _on_any_runway(field, track["point"]):
-            return "negative, not observed clear of the runway"
+            return "negative, you are still on the runway"
         if session.phase == "crossing" and session.entered:
             return "roger, " + self._crossing_vacated(session)
         if session.vacating:
             self._observed_vacated(session, field)
             if session.unit_id not in self._sessions:
-                return "roger, runway vacated, checked out"
+                return "roger, runway vacated, good day"
             return "roger, " + self._status(session, field)
         if session.phase == "landed":
             self._free_lane(session)
@@ -1810,7 +1820,7 @@ class AirfieldService:
         session.vacating = False
         self._bump(session)
         if session.phase == "cancelled":
-            self._release(session, "runway vacated, checked out")
+            self._release(session, "runway vacated, good day")
 
     def _taxiIn(self, session, parsed, field):
         if session.kind == "departure" and session.phase in ("startup", "taxi_clearance", "taxi", "holding_short",
@@ -1823,7 +1833,7 @@ class AirfieldService:
     def _airborne(self, session, parsed, field):
         if session.kind == "departure" and session.phase == "airborne":
             return self._status(session, field)
-        return "negative, airborne not observed"
+        return "negative, I don't see you airborne yet"
 
     def _handoff(self, session, parsed, field):
         if session.kind != "departure" or session.phase != "airborne":
@@ -1835,7 +1845,7 @@ class AirfieldService:
         if session.kind != "arrival":
             return "unable, no arrival in progress"
         if session.phase == "arrival_briefing":
-            return "unable, read back runway and altimeter first"
+            return "read back runway and altimeter first"
         if session.phase == call:
             return self._status(session, field)
         if session.phase not in allowed:
@@ -1843,21 +1853,21 @@ class AirfieldService:
         track = self._current(session)
         if call == "final":
             if not _on_final(field, session.runway, track):
-                return f"negative, not observed on final {say_runway(session.runway)}, " + self._status(session, field)
+                return f"negative, I don't see you on final for {say_runway(session.runway)}, " + self._status(session, field)
         elif not _in_pattern(field, track):
-            return "negative, position not confirmed, " + self._status(session, field)
+            return "negative, I can't confirm your position, " + self._status(session, field)
         session.phase, session.expired = call, False
         self._bump(session)
         return f"roger {call}, " + self._status(session, field)
 
     def _downwind(self, session, parsed, field):
         if not field["pattern"]:
-            return "unable, no published traffic pattern, " + self._status(session, field)
+            return "no published traffic pattern, " + self._status(session, field)
         return self._pattern_call(session, field, "downwind", ("inbound",))
 
     def _base(self, session, parsed, field):
         if not field["pattern"]:
-            return "unable, no published traffic pattern, " + self._status(session, field)
+            return "no published traffic pattern, " + self._status(session, field)
         return self._pattern_call(session, field, "base", ("downwind",))
 
     def _final(self, session, parsed, field):
@@ -1870,12 +1880,12 @@ class AirfieldService:
         if session.phase == "touchdown" and (track is None or not track["in_air"]):
             return "stand by for landing confirmation"
         self._free_lane(session)
-        return "roger going around, " + self._reentry(session, field)
+        return "roger, going around, " + self._reentry(session, field)
 
     def _landed(self, session, parsed, field):
         if session.kind == "arrival" and session.phase in ("touchdown", "landed", "vacated"):
             return self._status(session, field)
-        return "negative, touchdown not observed"
+        return "negative, I don't see you on the ground yet"
 
 
 class _Probe:

@@ -3,6 +3,21 @@ import re
 
 from . import domain
 
+_CALLSIGN = re.compile(r'([A-Za-z]{2,}(?: [A-Za-z]+)?)[ _-]?(\d)[ -]?(\d{1,2})(?!\d)')
+
+
+def spoken_callsigns(names, limit=32):
+    """STT priming: callsigns as said on the radio ("Silver 1-2" -> "Silver one two").
+
+    Whisper otherwise writes an unprimed "two" as "to" and drops the element digit.
+    """
+    spoken = set()
+    for text in names:
+        match = _CALLSIGN.search(text or '')
+        if match:
+            spoken.add(f"{match[1]} {domain._ONES[int(match[2])]} {domain._ONES[int(match[3])]}")
+    return sorted(spoken)[:limit]
+
 
 def identify_player(players, parsed, coalition):
     """Return (catalog player, spoken caller, problem), never guessing between candidates."""
@@ -15,16 +30,16 @@ def identify_player(players, parsed, coalition):
     else:
         heard = parsed['transmitter']
         if not heard or heard.get('group') is None or heard['flight'] < 0 or heard['element'] < 0:
-            return None, 'last transmitter', 'i could not recognize your callsign or modex'
+            return None, domain.UNKNOWN_CALLER, 'say again your callsign'
         caller = f"{heard['group']} {heard['flight']} {heard['element']}"
         matches = [player for player in catalog if domain.callsign_matches(
             {'pilot': player['player_name'], 'callsign': player['callsign']},
             heard['group'], heard['flight'], heard['element'])]
         other = 'modex'
     if len(matches) > 1:
-        return None, caller, f'more than one aircraft matches, say {other}'
+        return None, caller, f'more than one aircraft with that callsign, say your {other}'
     if not matches:
-        return None, caller, 'unable, no player aircraft with that identity'
+        return None, caller, 'unable, no aircraft with that callsign'
     return matches[0], caller, None
 
 

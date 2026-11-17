@@ -134,7 +134,7 @@ sh spike/audio.sh     # current SRS receive/WAV/playback proof
 sh scripts/benchmark_remote.sh leafman  # isolated SSH/user-namespace benchmark; no Kubernetes
 ```
 
-The published baseline passed 103 behavioral tests, including 525 individually checked parser corpus records. New functionality has additional behavioral coverage in `tests/`. Original labels remain preserved where 17 corrections/policy decisions are documented in `data/PROVENANCE.md`. Historical benchmarks include actual E5-2650 v2 execution, not just AVX-disabled builds on newer CPUs; QEMU Ivy Bridge additionally exercised both speech engines.
+The published baseline passed 103 behavioral tests, including 525 individually checked parser corpus records. New functionality has additional behavioral coverage in `tests/`. Original labels remain preserved where 18 corrections/policy decisions are documented in `data/PROVENANCE.md`. Historical benchmarks include actual E5-2650 v2 execution, not just AVX-disabled builds on newer CPUs; QEMU Ivy Bridge additionally exercised both speech engines.
 
 Carrier verification passed 79 focused Python tests and 41 offline Lua harness
 cases. A native SRS 2.4.1.0 two-carrier smoke verified separate audio channels,

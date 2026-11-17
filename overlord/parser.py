@@ -210,6 +210,7 @@ def tokenize(text: str) -> list[Tok]:
     s = re.sub(r"'s\b", "", s)                          # griffin's 31, overlord's
     s = s.replace("'", "")
     s = re.sub(r"[^a-z0-9<> ]", " ", s)                 # punctuation, / : - between numbers
+    s = re.sub(r"\b([a-z]{3,})(\d{1,2})\b", r"\1 \2", s)  # STT run-together callsign: silver12, silver1
     words = s.split()
     toks: list[Tok] = []
     i = 0
@@ -629,6 +630,9 @@ def parse_callsign(toks: list[Tok], allow_group_only: bool,
     digits = region[n].d
     second = region[n + 1] if n + 1 < len(region) and _is_callsign_number(region[n + 1]) \
         and len(digits) == 1 else None
+    # A homophone straight after a lone digit is the element STT spelled as a word: "silver one to".
+    trailing = region[n + 1].w if second is None and len(digits) == 1 and n + 1 < len(region) \
+        and region[n + 1].n is None and region[n + 1].w in DIGIT_HOMOPHONES else None
     link = pre.pop() if pre and pre[-1] in STOP_WORDS else None
     group = _resolve_group(pre, known_groups) if pre and pre[-1] not in STOP_WORDS else None
     if len(digits) >= 2:
@@ -637,6 +641,8 @@ def parse_callsign(toks: list[Tok], allow_group_only: bool,
         flight, element = int(digits), int(second.d)
     elif link is not None and group is not None:
         flight, element = DIGIT_HOMOPHONES.get(link, -1), int(digits)
+    elif trailing is not None and group is not None:
+        flight, element = int(digits), DIGIT_HOMOPHONES[trailing]
     else:
         flight, element = int(digits), -1
     kind = "tanker" if group in TANKERS else "player"

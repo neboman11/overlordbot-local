@@ -5965,8 +5965,25 @@
    "source": "OverlordBot.Core/Documentation/OverlordBot.lu:317",
    "labelled": "cat11, where is crazy.",
    "text": "cat11, where is crazy.",
-   "expected": {
+   "label": {
     "intent": "None"
+   },
+   "correction": {
+    "category": "label",
+    "reason": "\"cat11\" is the run-together STT form of callsign cat 1-1, which the parser splits; the label is None only because LUIS never read the merged token. \"cat 11, where is crazy\" parses the same way",
+    "fields": [
+     "intent",
+     "transmitter"
+    ]
+   },
+   "expected": {
+    "intent": "locationOfEntity",
+    "transmitter": {
+     "kind": "player",
+     "group": "cat",
+     "flight": 1,
+     "element": 1
+    }
    }
   },
   {

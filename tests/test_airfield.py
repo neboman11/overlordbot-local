@@ -240,7 +240,7 @@ class MovementAuthorityTests(Base):
         self.put('100', HOLD, in_air=True, agl_ft=200)
         self.event('100', 'takeoff')
         self.sync()
-        self.assertTrue(any('not cleared' in e['reply'] for e in self.events() if e['unit_id'] == '100'))
+        self.assertTrue(any('without a takeoff clearance' in e['reply'] for e in self.events() if e['unit_id'] == '100'))
         self.assertTrue(self.valid(landing))
 
     def test_landing_at_another_airfield_frees_the_lane_without_a_false_landing(self):
@@ -313,14 +313,14 @@ class ReadbackTests(Base):
         wrong = self.say('Ironwood tower Viper one two read back runway zero nine, altimeter two niner niner one')
         self.assertIn('negative readback', wrong['reply'])
         self.assertTrue(self.valid(self.brief))
-        self.assertIn('unable', self.say('Ironwood tower Viper one two final')['reply'])
+        self.assertIn('read back runway and altimeter first', self.say('Ironwood tower Viper one two final')['reply'])
 
     def test_negated_or_wrong_side_readbacks_do_not_advance(self):
         self.assertIn('negative readback', self.say(
             'Ironwood tower Viper one two read back runway zero nine left, altimeter two niner niner two')['reply'])
         self.assertIn('negative readback', self.say(
             'Ironwood tower Viper one two read back not runway zero nine, altimeter two niner niner two')['reply'])
-        self.assertIn('unable', self.say('Ironwood tower Viper one two final')['reply'])
+        self.assertIn('read back runway and altimeter first', self.say('Ironwood tower Viper one two final')['reply'])
 
     def test_takeoff_and_landing_terms_never_satisfy_each_other(self):
         takeoff = {'kind': 'takeoff', 'runway': '09', 'altimeter': None}
@@ -357,6 +357,15 @@ class IdentityAndRadioTests(Base):
 
     def test_enrolment_reports_the_transfer_unit(self):
         self.assertEqual(self.say('Ironwood ground Viper one one request startup')['transfer_unit_id'], '100')
+
+    def test_stt_vocabulary_primes_spoken_callsigns(self):
+        # Whisper writes an unprimed element "two" as "to"; priming uses the words a pilot actually says.
+        self.players.append(human('103', 'Springfield11', 'Silver 1-2'))
+        self.players.append(human('104', 'Uzi1-12', 'Eve'))
+        self.sync()
+        vocabulary = self.svc.take_events({'airfield': True, 'coalition': 2, 'channel': GROUND})['vocabulary']
+        for spoken in ('Viper one one', 'Silver one two', 'Springfield one one', 'Uzi one twelve'):
+            self.assertIn(spoken, vocabulary)
 
     def test_shared_channel_follows_an_existing_session_without_a_field_name(self):
         self.say('Maple ground Viper one one request startup')
@@ -467,7 +476,7 @@ class LifecycleAndDataTests(Base):
         self.event('101', 'land')
         self.put('101', ON_RUNWAY)
         self.sync()
-        self.assertTrue(any('landing observed' in e['reply'] for e in self.events()))
+        self.assertTrue(any('vacate the runway when able' in e['reply'] for e in self.events()))
 
     def test_startup_without_a_ground_sample_is_standby_not_approval(self):
         answer = self.say('Ironwood ground Viper one one request startup')
@@ -481,7 +490,7 @@ class LifecycleAndDataTests(Base):
         lineup = self.to_hold()
         self.clock.now += 30
         self.assertFalse(self.valid(lineup))
-        self.assertIn('no live airfield link', self.say('Ironwood tower Viper one one say again')['reply'])
+        self.assertIn('no radar data', self.say('Ironwood tower Viper one one say again')['reply'])
         self.assertIsNone(self.svc._control['1']['lane'])
 
     def test_missing_wind_gives_no_runway_and_no_taxi_clearance(self):
@@ -492,7 +501,7 @@ class LifecycleAndDataTests(Base):
         self.say('Ironwood ground Viper one one request startup')
         self.sync()
         taxi = self.say('Ironwood ground Viper one one request taxi')
-        self.assertIn('wind information not available', taxi['reply'])
+        self.assertIn('no wind information', taxi['reply'])
         self.assertIsNone(self.svc.registry()['airfields'][0]['runway'])
 
     def test_calm_wind_selects_a_real_runway_deterministically(self):
@@ -619,7 +628,7 @@ class ReviewRegressionTests(Base):
         self.assertFalse(any('line up' in e['reply'] for e in self.events() if 'no readback' not in e['reply']))
         self.assertNotIn('line up and wait', self.say('Ironwood tower Viper one one say again')['reply'])
         late = self.say('Ironwood tower Viper one one read back line up and wait runway zero nine')
-        self.assertIn('unable', late['reply'])
+        self.assertIn('no clearance to read back', late['reply'])
         self.assertIsNone(self.svc._control['1']['lane'])
         again = self.say('Ironwood tower Viper one one ready for departure')
         self.assertIn('line up and wait', again['reply'])
@@ -763,7 +772,7 @@ class ReviewRegressionTests(Base):
         self.sync()
         final = self.say('Ironwood ground Viper one two final')
         self.assertNotIn('cleared to land', final['reply'])
-        self.assertIn('no tower service', final['reply'])
+        self.assertIn('has no tower', final['reply'])
         self.sync()
         self.assertIsNone(self.svc._control['1']['lane'])
 

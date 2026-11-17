@@ -85,10 +85,10 @@ flowchart TD
   %% Every call: address, identity and link guards
     CL_C_GUARD{"CHECK every call: carrier_id, channel, coalition, receiver word, caller identity, SRS name, live link, owning carrier"}
     CL_N_SILENT["NO REPLY: wrong frequency, coalition or carrier_id, no unique enabled carrier on the channel, or call not opened with a receiver word of this carrier"]
-    CL_R_NOID["REPLY marshal: i could not recognize your callsign or modex"]
-    CL_R_UNKNOWN["REPLY marshal: unable, no player aircraft with that identity"]
-    CL_R_AMBIG["REPLY marshal: more than one aircraft matches, say modex"]
-    CL_R_SRS["REPLY marshal: unable, your radio name does not identify you"]
+    CL_R_NOID["REPLY marshal: station calling, [CARRIER] marshal, say again your callsign"]
+    CL_R_UNKNOWN["REPLY marshal: unable, no aircraft with that callsign"]
+    CL_R_AMBIG["REPLY marshal: more than one aircraft with that callsign, say your modex"]
+    CL_R_SRS["REPLY marshal: unable, your SRS name does not match that callsign"]
     CL_R_STALE["REPLY marshal: unable, no live carrier link"]
     CL_R_OTHER["REPLY marshal: unable, you are checked in with [OTHER_CARRIER]"]
     CL_R_SAYAGAIN["REPLY marshal: say again"]
@@ -161,7 +161,7 @@ flowchart TD
   CL_C_GUARD edge_CL_C_GUARD__CL_R_NOID@-->|"callsign or modex not recognized"| CL_R_NOID
   CL_C_GUARD edge_CL_C_GUARD__CL_R_SAYAGAIN@-->|"no command and caller not<br/>recognized, or addressed with no<br/>command or a negated call"| CL_R_SAYAGAIN
   CL_C_GUARD edge_CL_C_GUARD__CL_R_UNKNOWN@-->|"no human aircraft matches"| CL_R_UNKNOWN
-  CL_C_GUARD edge_CL_C_GUARD__CL_R_AMBIG@-->|"callsign matches two aircraft<br/>(modex heard: say callsign)"| CL_R_AMBIG
+  CL_C_GUARD edge_CL_C_GUARD__CL_R_AMBIG@-->|"callsign matches two aircraft<br/>(modex heard: say your callsign)"| CL_R_AMBIG
   CL_C_GUARD edge_CL_C_GUARD__CL_R_SRS@-->|"SRS name does not uniquely name<br/>you"| CL_R_SRS
   CL_C_GUARD edge_CL_C_GUARD__CL_R_STALE@-->|"bridge stale; only cancel and<br/>check out still act"| CL_R_STALE
   CL_C_GUARD edge_CL_C_GUARD__CL_R_OTHER@-->|"session on another ship;<br/>anything but request, check in<br/>or emergency"| CL_R_OTHER
@@ -336,10 +336,10 @@ flowchart TD
   %% Every call: address, identity and link guards
     CR_C_GUARD{"CHECK every call: carrier_id, channel, coalition, receiver word, caller identity, SRS name, live link, owning carrier"}
     CR_N_SILENT["NO REPLY: wrong frequency, coalition or carrier_id, no unique enabled carrier on the channel, or call not opened with a receiver word of this carrier"]
-    CR_R_NOID["REPLY marshal: i could not recognize your callsign or modex"]
-    CR_R_UNKNOWN["REPLY marshal: unable, no player aircraft with that identity"]
-    CR_R_AMBIG["REPLY marshal: more than one aircraft matches, say modex"]
-    CR_R_SRS["REPLY marshal: unable, your radio name does not identify you"]
+    CR_R_NOID["REPLY marshal: station calling, [CARRIER] marshal, say again your callsign"]
+    CR_R_UNKNOWN["REPLY marshal: unable, no aircraft with that callsign"]
+    CR_R_AMBIG["REPLY marshal: more than one aircraft with that callsign, say your modex"]
+    CR_R_SRS["REPLY marshal: unable, your SRS name does not match that callsign"]
     CR_R_STALE["REPLY marshal: unable, no live carrier link"]
     CR_R_OTHER["REPLY marshal: unable, you are checked in with [OTHER_CARRIER]"]
     CR_R_SAYAGAIN["REPLY marshal: say again"]
@@ -474,7 +474,7 @@ flowchart TD
   CR_C_GUARD edge_CR_C_GUARD__CR_R_NOID@-->|"callsign or modex not recognized"| CR_R_NOID
   CR_C_GUARD edge_CR_C_GUARD__CR_R_SAYAGAIN@-->|"no command and caller not<br/>recognized, or addressed with no<br/>command or a negated call"| CR_R_SAYAGAIN
   CR_C_GUARD edge_CR_C_GUARD__CR_R_UNKNOWN@-->|"no human aircraft matches"| CR_R_UNKNOWN
-  CR_C_GUARD edge_CR_C_GUARD__CR_R_AMBIG@-->|"callsign matches two aircraft<br/>(modex heard: say callsign)"| CR_R_AMBIG
+  CR_C_GUARD edge_CR_C_GUARD__CR_R_AMBIG@-->|"callsign matches two aircraft<br/>(modex heard: say your callsign)"| CR_R_AMBIG
   CR_C_GUARD edge_CR_C_GUARD__CR_R_SRS@-->|"SRS name does not uniquely name<br/>you"| CR_R_SRS
   CR_C_GUARD edge_CR_C_GUARD__CR_R_STALE@-->|"bridge stale; only cancel and<br/>check out still act"| CR_R_STALE
   CR_C_GUARD edge_CR_C_GUARD__CR_R_OTHER@-->|"session on another ship;<br/>anything but check in, request<br/>or emergency"| CR_R_OTHER
