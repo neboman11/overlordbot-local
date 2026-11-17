@@ -112,3 +112,20 @@ class RadioCallDocumentationTests(unittest.TestCase):
             self.assertIn('takeoff aborted', transmit('D_EMER'))
         finally:
             fixture.doCleanups()
+
+    def test_walkthrough_starts_and_chart_links_name_existing_steps(self):
+        # The interactive walkthrough (docs/radio-calls/guide.js) reads these charts; a renamed step
+        # would strand pilots at a dead link or an unloadable procedure.
+        manifest = json.loads((GUIDES / 'walkthrough.json').read_text())
+        steps = {}
+        for spec in manifest['charts']:
+            chart = FENCES.findall((GUIDES / spec['source']).read_text())[spec['index']]
+            steps[spec['id']] = set(re.findall(r'^\s*([A-Za-z]\w*)(?:\(\(|\(\[|\{\{|\[|\{|\()"', chart, re.MULTILINE))
+        for spec in manifest['charts']:
+            with self.subTest(chart=spec['id']):
+                self.assertIn(spec['start'], steps[spec['id']])
+                for origin, targets in spec['jumps'].items():
+                    self.assertIn(origin, steps[spec['id']])
+                    for target in targets:
+                        chart_id, step = target.split(':')
+                        self.assertIn(step, steps[chart_id], target)

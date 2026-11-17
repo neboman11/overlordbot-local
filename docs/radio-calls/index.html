@@ -3,58 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exact ATC and Carrier Radio Calls</title>
+<meta name="color-scheme" content="dark">
+<title>Radio call walkthrough · OverlordBot</title>
 <link rel="stylesheet" href="guide.css">
 <script type="module" src="guide.js"></script>
 </head>
 <body>
-<main>
-<h1>Exact ATC and carrier radio calls</h1>
-<p>Complete pilot-call flows for OverlordBot's native DCS controllers. Each chart keeps its normal, alternative, retry, abort and recovery paths together. These are application-supported procedures, not real-world aviation instructions.</p>
-<nav aria-label="Procedure charts">
-<a href="#airfield-departure">Airfield departure</a> · <a href="#airfield-arrival">Airfield arrival</a> · <a href="#carrier-departure">Carrier launch</a> · <a href="#carrier-recovery">Carrier recovery</a>
-</nav>
-<h2>How to use the charts</h2>
-<ul>
-<li><strong>Say only the bold words after YOU:</strong> in a call box, replacing bracketed values with the current mission/controller values. Do not say “YOU” or the brackets. Repeat the receiver and your callsign on every transmission.</li>
-<li><strong>ATC / REPLY / EVENT:</strong> controller transmissions; your own response is the bold words after YOU: in a call box.</li>
-<li><strong>WAIT / FLY / TAXI:</strong> instructions to perform, not words to say. Saying “airborne” or “trapped” cannot substitute for the aircraft actually doing it.</li>
-<li>Read back the actual clearance, not the sample values. Say the explicit word <strong>readback</strong>. Runway sides, altimeter and carrier marshal numbers must match exactly.</li>
-<li>Use only the role/frequency published for the selected field or carrier. Use a unique live human callsign or modex, matching your SRS radio name. Native controllers do not use LLM interpretation.</li>
-<li>These large charts are intentionally not split into happy-path and exception diagrams. Scroll inside a chart, use its zoom controls, or download the complete SVG. The linked Markdown provides phrase tables, examples and context requirements.</li>
-</ul>
-<ul class="legend" aria-label="Flowchart path colors">
-<li class="normal">Green solid: normal progression</li>
-<li class="error">Red: refusal or error</li>
-<li class="recovery">Amber dashed: retry, recovery or cancellation</li>
-<li class="neutral">Gray: optional status or shared checks</li>
-</ul>
-<p><a href="https://github.com/neboman11/overlordbot-local/blob/main/docs/radio-calls/airfield.md">Airfield phrase guide on GitHub</a> · <a href="https://github.com/neboman11/overlordbot-local/blob/main/docs/radio-calls/carrier.md">Carrier phrase guide on GitHub</a> · <a href="../">Architecture diagrams</a></p>
-<section id="airfield-departure" data-source="airfield.md" data-chart="0">
-<h2>Airfield departure — complete flow</h2>
-<p class="status" role="status">Loading chart…</p>
-<div class="controls"><button type="button" data-action="out" disabled aria-label="Zoom out airfield departure">−</button><button type="button" data-action="in" disabled aria-label="Zoom in airfield departure">+</button><button type="button" data-action="fit" disabled>Fit</button><button type="button" data-action="actual" disabled>100%</button><button type="button" data-action="download" disabled>Download complete SVG</button><output aria-label="Airfield departure zoom"></output></div>
-<div class="viewport" tabindex="0" role="region" aria-label="Scrollable airfield departure flowchart"></div>
-</section>
-<section id="airfield-arrival" data-source="airfield.md" data-chart="1">
-<h2>Airfield arrival — complete flow</h2>
-<p class="status" role="status">Loading chart…</p>
-<div class="controls"><button type="button" data-action="out" disabled aria-label="Zoom out airfield arrival">−</button><button type="button" data-action="in" disabled aria-label="Zoom in airfield arrival">+</button><button type="button" data-action="fit" disabled>Fit</button><button type="button" data-action="actual" disabled>100%</button><button type="button" data-action="download" disabled>Download complete SVG</button><output aria-label="Airfield arrival zoom"></output></div>
-<div class="viewport" tabindex="0" role="region" aria-label="Scrollable airfield arrival flowchart"></div>
-</section>
-<section id="carrier-departure" data-source="carrier.md" data-chart="0">
-<h2>Carrier launch — complete flow</h2>
-<p class="status" role="status">Loading chart…</p>
-<div class="controls"><button type="button" data-action="out" disabled aria-label="Zoom out carrier launch">−</button><button type="button" data-action="in" disabled aria-label="Zoom in carrier launch">+</button><button type="button" data-action="fit" disabled>Fit</button><button type="button" data-action="actual" disabled>100%</button><button type="button" data-action="download" disabled>Download complete SVG</button><output aria-label="Carrier launch zoom"></output></div>
-<div class="viewport" tabindex="0" role="region" aria-label="Scrollable carrier launch flowchart"></div>
-</section>
-<section id="carrier-recovery" data-source="carrier.md" data-chart="1">
-<h2>Carrier recovery — CASE I, II, III and recycle paths</h2>
-<p class="status" role="status">Loading chart…</p>
-<div class="controls"><button type="button" data-action="out" disabled aria-label="Zoom out carrier recovery">−</button><button type="button" data-action="in" disabled aria-label="Zoom in carrier recovery">+</button><button type="button" data-action="fit" disabled>Fit</button><button type="button" data-action="actual" disabled>100%</button><button type="button" data-action="download" disabled>Download complete SVG</button><output aria-label="Carrier recovery zoom"></output></div>
-<div class="viewport" tabindex="0" role="region" aria-label="Scrollable carrier recovery flowchart"></div>
-</section>
-<noscript><p>JavaScript is required for the interactive charts. Use the GitHub phrase-guide links above to view their Mermaid charts.</p></noscript>
+<header class="bar">
+  <h1>Radio call walkthrough</h1>
+  <nav class="tabs" aria-label="Procedure"></nav>
+</header>
+<main class="layout">
+  <section class="step" aria-live="polite" aria-labelledby="step-kind">
+    <div class="step-head">
+      <p id="step-kind" class="kind"></p>
+      <div class="step-tools">
+        <button type="button" data-action="back" title="Back (Backspace)">Back</button>
+        <button type="button" data-action="restart" title="Restart this procedure (Home)">Restart</button>
+      </div>
+    </div>
+    <div class="say" id="step-text"><p class="loading">Loading procedures…</p></div>
+    <h2 class="next-title" id="next-title">What happens next</h2>
+    <ol class="choices" aria-labelledby="next-title"></ol>
+    <p class="keys">Keys: <kbd>1</kbd>–<kbd>9</kbd> choose · <kbd>Backspace</kbd> back · <kbd>Home</kbd> restart · <kbd>/</kbd> find a call</p>
+  </section>
+  <aside class="side">
+    <div class="find">
+      <label for="find">Find a call or step</label>
+      <input id="find" type="search" autocomplete="off" placeholder="e.g. holding short, readback, bolter">
+      <ul class="results" role="listbox" aria-label="Matching steps"></ul>
+    </div>
+    <details class="panel" id="values" open>
+      <summary>Your values</summary>
+      <p class="hint">Filled values replace the placeholders in what you say. Fill runway, altimeter and similar as ATC gives them. Saved in this browser.</p>
+      <div class="fields"></div>
+    </details>
+    <details class="panel" id="anytime">
+      <summary>Any time</summary>
+      <ul class="jump-list"></ul>
+    </details>
+    <details class="panel" id="refusals">
+      <summary>If the call is refused</summary>
+      <ul class="jump-list"></ul>
+    </details>
+    <details class="panel" id="trail" open>
+      <summary>Your path</summary>
+      <ol class="trail-list"></ol>
+    </details>
+    <p class="source">Generated from the <a href="https://github.com/neboman11/overlordbot-local/blob/main/docs/radio-calls/airfield.md">airfield</a> and <a href="https://github.com/neboman11/overlordbot-local/blob/main/docs/radio-calls/carrier.md">carrier</a> phrase guides, which also hold the rules, readback formats and full charts. · <a href="../">Architecture diagrams</a></p>
+  </aside>
 </main>
+<noscript><p class="loading">JavaScript is required for the walkthrough. The phrase guides linked above contain the same procedures.</p></noscript>
 </body>
 </html>

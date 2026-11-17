@@ -20,7 +20,7 @@ Python standard library keeps control/network/domain services inspectable and de
 
 [![Native ATC and carrier radio architecture](docs/diagrams/previews/native-atc-carrier-bridge.png)](https://neboman11.github.io/overlordbot-local/diagrams/native-atc-carrier-bridge.html)
 
-[Exact pilot radio-call flowcharts](https://neboman11.github.io/overlordbot-local/radio-calls/) keep each complete procedure together, including readbacks, alternate routes and recovery loops.
+The [pilot radio-call walkthrough](https://neboman11.github.io/overlordbot-local/radio-calls/) steps through each ATC and carrier procedure as you fly it: what to say next with your values filled in, the replies to expect, and the refusal, retry and recovery paths.
 
 ## Run the complete local stack
 
