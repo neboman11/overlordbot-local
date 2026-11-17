@@ -185,7 +185,7 @@ local function newMission(opts)
   function Object:isExist() return self.alive end
   function Object:isActive() return self.active end
   function Object:getLife() return self.alive and 10 or 0 end
-  function Object:getID() return self.id end
+  function Object:getID() return self.id and tostring(self.id) end   -- live DCS returns unit ids as strings
   function Object:getName() return self.name end
   function Object:getTypeName() return self.type end
   function Object:getCoalition() return self.coalition end

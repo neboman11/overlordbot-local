@@ -135,7 +135,9 @@ OverlordAirfield = (function()
       and (not integer or value == math.floor(value))
   end
 
+  -- Mission tables carry numeric ids; runtime Unit:getID() returns a decimal string.
   local function idText(value)
+    if type(value) == 'string' and value:find('^[1-9]%d*$') and #value <= 10 then value = tonumber(value) end
     if number(value, 1, 2147483647, true) then return string.format('%d', value) end
     return nil
   end
