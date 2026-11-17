@@ -753,8 +753,11 @@ OverlordAirfield = (function()
     local okPoint, point = pcall(function() return point3(field.airbase:getPoint()) end)
     if not okPoint or not point then return out end
     local lat, lon = latLon(point)
-    if not lat then return out end
+    -- True bearing of map-grid north: the brain lays runways out on grid x/z with true - convergence.
+    local gridNorth = lat and trueBearing(point, 1, 0)
+    if not gridNorth then return out end
     out.alive, out.point, out.lat, out.lon = true, point, lat, lon
+    out.grid_convergence_deg = (gridNorth + 180) % 360 - 180
     out.wind_from_deg, out.wind_speed_mps = wind(point)
     out.altimeter_inhg = altimeter(point)
     return out

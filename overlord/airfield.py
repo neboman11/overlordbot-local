@@ -14,6 +14,7 @@ Request (hook -> brain)::
      "time": <model seconds>, "abs_time": <seconds since midnight>, "date": {"year", "month", "day"},
      "error": "<mission problems>" (optional),
      "airfields": [{"id", "name", "coalition": 0|1|2, "alive": bool, "point": {x, y, z}, "lat", "lon",
+                    "grid_convergence_deg": TRUE bearing of map-grid north (point x/z are grid, not true),
                     "wind_from_deg", "wind_speed_mps", "altimeter_inhg",          # optional each
                     "radios": [{"frequency_hz", "modulation": 0|1, "roles": ["ground"|"tower"|"approach"],
                                 "aliases": [str]}],
@@ -90,8 +91,7 @@ STRIP_MERGE_M = 100             # records of one physical strip (both ends repor
 RUNWAY_SIDE_MARGIN_M = 25       # occupancy footprint beyond the paved edge
 RUNWAY_END_MARGIN_M = 60
 HOLD_ACROSS_M = 400             # holding point: outside the footprint, this far from the edge at most
-HOLD_BEFORE_M, HOLD_INTO_M = 400, 900
-LINEUP_ALONG_M = 900
+HOLD_BEFORE_M = 400             # holding point: up to this far before the threshold, or beside any part
 LINEUP_HEADING_DEG = 30
 ROLLING_SPEED_MPS = 15
 FINAL_MAX_NM, FINAL_MAX_AGL_FT = 10, 3000
@@ -163,7 +163,7 @@ def _strip(raw, field, when):
     if not isinstance(raw, dict):
         raise ValueError("invalid runway")
     strip = {"id": _id(raw.get("id")), "point": _point(raw.get("point")),
-             "heading": _num(raw.get("heading_deg"), 0, 360) % 360,
+             "heading": _num(raw.get("heading_deg"), 0, 360) % 360, "convergence": field["convergence"],
              "length": _num(raw.get("length_m"), 1, 10000), "width": _num(raw.get("width_m"), 1, 500),
              "closed": _bool(raw.get("closed", False)), "ends": {}, "label_error": None}
     label = _parse_designator(raw.get("name"))
@@ -193,6 +193,7 @@ def _airfield(raw, when):
     entry = {"id": _id(raw.get("id")), "name": _utf8(raw.get("name")),
              "coalition": _num(raw.get("coalition"), 0, 2, integer=True), "alive": _bool(raw.get("alive")),
              "point": _point(raw.get("point")), "lat": lat, "lon": _num(raw.get("lon"), -180, 180),
+             "convergence": _num(raw.get("grid_convergence_deg"), -45, 45),
              "wind_from": _optional(raw.get("wind_from_deg"), 0, 360),
              "wind_speed": _optional(raw.get("wind_speed_mps"), 0, 100),
              "altimeter": _optional(raw.get("altimeter_inhg"), 25, 32.5),
@@ -327,18 +328,24 @@ def _local(origin, heading, point):
     return north * math.cos(rad) + east * math.sin(rad), -north * math.sin(rad) + east * math.cos(rad)
 
 
+def _grid(strip, heading):
+    """Map-grid bearing of a TRUE runway heading: DCS x/z are grid north/east, rotated from true."""
+    return heading - strip["convergence"]
+
+
 def _in_footprint(strip, point):
-    along, across = _local(strip["point"], strip["heading"], point)
+    along, across = _local(strip["point"], _grid(strip, strip["heading"]), point)
     return (abs(along) <= strip["length"] / 2 + RUNWAY_END_MARGIN_M
             and abs(across) <= strip["width"] / 2 + RUNWAY_SIDE_MARGIN_M)
 
 
 def _from_threshold(strip, heading, point):
-    """(along, across) from the threshold of the runway end flown on ``heading``."""
-    rad = math.radians(heading)
+    """(along, across) from the threshold of the runway end flown on TRUE ``heading``."""
+    grid = _grid(strip, heading)
+    rad = math.radians(grid)
     half = strip["length"] / 2
     threshold = {"x": strip["point"]["x"] - math.cos(rad) * half, "z": strip["point"]["z"] - math.sin(rad) * half}
-    return _local(threshold, heading, point)
+    return _local(threshold, grid, point)
 
 
 def _end(field, designator):
@@ -361,23 +368,24 @@ def _at_hold(field, designator, track):
     if strip is None or track is None or track["in_air"] or _on_any_runway(field, track["point"]):
         return False
     along, across = _from_threshold(strip, heading, track["point"])
-    return -HOLD_BEFORE_M <= along <= HOLD_INTO_M and abs(across) <= strip["width"] / 2 + HOLD_ACROSS_M
+    return -HOLD_BEFORE_M <= along <= strip["length"] and abs(across) <= strip["width"] / 2 + HOLD_ACROSS_M
 
 
 def _at_crossing(field, designator, track):
     strip, _ = _end(field, designator)
     if strip is None or track is None or track["in_air"] or _on_any_runway(field, track["point"]):
         return False
-    along, across = _local(strip["point"], strip["heading"], track["point"])
+    along, across = _local(strip["point"], _grid(strip, strip["heading"]), track["point"])
     return abs(along) <= strip["length"] / 2 and abs(across) <= strip["width"] / 2 + HOLD_ACROSS_M
 
 
 def _lined_up(field, designator, track):
+    """On the runway surface anywhere between the threshold and the far end, pointing down it."""
     strip, heading = _end(field, designator)
     if strip is None or track is None or track["in_air"]:
         return False
     along, across = _from_threshold(strip, heading, track["point"])
-    return (-RUNWAY_END_MARGIN_M <= along <= LINEUP_ALONG_M and abs(across) <= strip["width"] / 2
+    return (-RUNWAY_END_MARGIN_M <= along <= strip["length"] and abs(across) <= strip["width"] / 2
             and domain.diff_heading(round(track["heading"]), round(heading)) <= LINEUP_HEADING_DEG)
 
 

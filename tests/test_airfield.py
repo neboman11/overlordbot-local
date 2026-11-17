@@ -18,7 +18,7 @@ def radio(frequency, roles=('ground', 'tower', 'approach'), aliases=()):
 
 def field(fid='1', name='Ironwood', radios=None, x=0, elevation=100, **changes):
     value = {'id': fid, 'name': name, 'coalition': 2, 'alive': True,
-             'point': {'x': x, 'y': elevation, 'z': 0}, 'lat': 43.0, 'lon': 41.0,
+             'point': {'x': x, 'y': elevation, 'z': 0}, 'lat': 43.0, 'lon': 41.0, 'grid_convergence_deg': 0,
              'wind_from_deg': 90, 'wind_speed_mps': 5, 'altimeter_inhg': 29.92,
              'radios': radios if radios is not None else [radio(121000000)],
              'runways': [{'id': '09-27', 'name': '09', 'opposite_name': '27',
@@ -157,6 +157,32 @@ class MovementAuthorityTests(Base):
         self.assertEqual(self.svc._sessions['100'].phase, 'lineup')
         self.assertTrue(self.valid(claim))
         self.put('100', LINED_UP)
+        self.sync()
+        self.assertTrue(any('cleared for takeoff' in e['reply'] for e in self.events()))
+
+    def test_intersection_departure_lines_up_mid_runway(self):
+        self.put('100', PARKING)
+        self.sync()
+        self.say('Ironwood ground Viper one one request startup')
+        self.sync()
+        self.say('Ironwood ground Viper one one request taxi')
+        self.say('Ironwood ground Viper one one read back taxi to holding point runway zero nine, hold short')
+        self.put('100', (-150, 300))        # beside the runway, 1500 m past the threshold
+        self.sync()
+        self.assertIn('line up and wait', self.say('Ironwood tower Viper one one holding short')['reply'])
+        self.say('Ironwood tower Viper one one read back line up and wait runway zero nine')
+        self.put('100', (0, 300))
+        self.sync()
+        self.assertTrue(any('cleared for takeoff' in e['reply'] for e in self.events()))
+
+    def test_runway_geometry_uses_map_grid_not_true_north(self):
+        # Batumi-like: true runway heading 96, grid north 6 degrees west of true, so the strip lies on
+        # grid 090.  Laying it out on 096 would put this lined-up aircraft ~120 m off the centreline.
+        self.fields[0]['grid_convergence_deg'] = 6
+        self.fields[0]['runways'][0]['heading_deg'] = 96
+        self.to_hold()
+        self.say('Ironwood tower Viper one one read back line up and wait runway zero nine')
+        self.put('100', LINED_UP, heading=96)
         self.sync()
         self.assertTrue(any('cleared for takeoff' in e['reply'] for e in self.events()))
 

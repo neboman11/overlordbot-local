@@ -16,7 +16,7 @@ RADIO_TWO = '2:122000000:0'
 
 def airfield(fid='1', name='Ironwood', frequency=121000000, x=0):
     return {'id': fid, 'name': name, 'coalition': 2, 'alive': True,
-            'point': {'x': x, 'y': 100, 'z': 0}, 'lat': 43.0, 'lon': 41.0,
+            'point': {'x': x, 'y': 100, 'z': 0}, 'lat': 43.0, 'lon': 41.0, 'grid_convergence_deg': 0,
             'wind_from_deg': 90, 'wind_speed_mps': 3, 'altimeter_inhg': 29.92,
             'radios': [{'frequency_hz': frequency, 'modulation': 0,
                         'roles': ['ground', 'tower', 'approach'], 'aliases': [name]}],

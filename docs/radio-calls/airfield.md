@@ -139,7 +139,7 @@ flowchart TD
     D_CROSS_DONE(["ATC: roger, runway vacated, continue taxi to holding point runway [RUNWAY], hold short of all runways — returning to parking: roger, runway vacated, continue taxi to parking, hold short of all runways"])
 
   %% 4 · Tower: holding point, line up, takeoff
-    D_W_HOLD{{"TAXI — NO CALL: stop at holding point runway [RUNWAY], 400 m before to 900 m past the threshold, off every runway"}}
+    D_W_HOLD{{"TAXI — NO CALL: stop at holding point runway [RUNWAY], up to 400 m before the threshold or beside any part of it, off every runway"}}
     D_HOLD["`YOU: **[FIELD] tower, [CALLSIGN], holding short runway [RUNWAY]**`"]
     D_HOLD_NEG(["ATC: negative, not observed at the holding point runway [RUNWAY], report holding short"])
     D_HOLD_RBFIRST(["ATC: unable, read back taxi clearance first"])
@@ -149,7 +149,7 @@ flowchart TD
     D_LU_CLR(["ATC: runway [RUNWAY], line up and wait, read back"])
     D_LU_RB["`YOU: **[FIELD] tower, [CALLSIGN], readback runway [RUNWAY], line up and wait**`"]
     D_LU_OK(["ATC: readback correct, line up and wait runway [RUNWAY], report lined up"])
-    D_W_LINEUP{{"TAXI — NO CALL: line up on runway [RUNWAY] within 900 m of the threshold, heading within 30 degrees"}}
+    D_W_LINEUP{{"TAXI — NO CALL: line up anywhere on runway [RUNWAY] from the threshold to the far end, heading within 30 degrees"}}
     D_LINEDUP["`YOU: **[FIELD] tower, [CALLSIGN], lined up runway [RUNWAY]**`"]
     D_LINEDUP_NEG(["ATC: negative, not observed lined up runway [RUNWAY]"])
     D_LINEDUP_HOLD(["ATC: hold position runway [RUNWAY], stand by for takeoff clearance"])

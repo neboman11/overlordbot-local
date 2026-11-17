@@ -519,6 +519,7 @@ check('native runway course is negated grid, converted to true; ends merged; par
   eq(r.name, '09')
   eq(r.opposite_name, '27')
   near(r.heading_deg, 93, 0.5, 'true heading of the 09 end (grid 90 + 3 convergence)')
+  near(iron.grid_convergence_deg, 3, 0.01, 'true bearing of grid north exported for brain x/z geometry')
   eq(r.length_m, 2400)
   eq(r.width_m, 60)
   eq(r.point.x, 0)
