@@ -268,6 +268,8 @@ class EndpointPolicyTests(Fixture):
         release, started = threading.Event(), threading.Event()
         lookups = []
         def resolve(*args, **kwargs):
+            if args[0] != 'local-llm.invalid':     # other tests' background threads resolve their own hosts
+                raise socket.gaierror('not this client')
             lookups.append(args)
             started.set()
             release.wait(2)
