@@ -117,6 +117,7 @@ COMMANDS = [
     ("checkIn", re.compile(r"\bcheck(?:ing)? in\b|\bon station\b")),
     ("readback", re.compile(r"\bread ?back\b")),
     ("repeatLine", re.compile(r"\b(?:say again|repeat|confirm) (?:line|remarks)\b")),
+    ("sayAgain", re.compile(r"\bsay again\b|\brepeat\b")),
     # "breath", "breathe", "break" and "breed" are how Whisper hears "brief" on the radio.
     ("requestBrief", re.compile(
         r"\b(?:ready (?:for|to copy)|request(?:ing)?|send) (?:the )?"
@@ -132,7 +133,7 @@ COMMANDS = [
     ("requestLaser", re.compile(r"\b(?:request(?:ing)? |need )?(?:the )?(?:laser|lase|lasing)(?: on)?\b")),
     ("requestMark", re.compile(r"\b(?:request(?:ing)?|need) (?:a |the )?(?:mark|smoke|sparkle|ir pointer|"
                                r"illumination|illum)\b|\b(?:mark|smoke|sparkle) (?:the )?target\b")),
-    ("abort", re.compile(r"\babort(?:ing)?\b")),
+    ("abort", re.compile(r"\babort(?:ing)?\b|\bcancel\b|\bbelay\b")),
     ("requestBda", re.compile(r"\b(?:request(?:ing)?|say|send|ready for) (?:the )?(?:bda|b d a|battle damage)"
                               r"|\bbda\b")),
     ("attackComplete", re.compile(r"\boff (?:target|safe|dry|hot|left|right|north|south|east|west)\b"
@@ -387,7 +388,7 @@ def _live(task):
 
 class _Session:
     __slots__ = ("key", "caller", "origin", "task", "phase", "contact", "cleared", "marked", "revision",
-                 "touched", "cancel")
+                 "touched", "cancel", "stage", "lost", "was_cleared", "last")
 
     def __init__(self, key, caller, revision):
         self.key, self.caller, self.origin, self.revision = key, caller, revision, revision
@@ -396,6 +397,10 @@ class _Session:
         self.contact = self.cleared = self.marked = False   # marked: acknowledged smoke/illumination
         self.touched = time.monotonic()
         self.cancel = None             # (revision, intent) of the latest abort/laser-off reply
+        self.stage = 0                 # procedure resets; events stay valid until the next one
+        self.lost = None               # why the task was interrupted (target, controller or link)
+        self.was_cleared = False       # a clearance was live when the task was interrupted
+        self.last = None               # (message, target, revision) of the latest reply, for "say again"
 
 
 class Controller:
@@ -598,9 +603,10 @@ class Controller:
             previous = self._tasks
             self._seq, self._model_time, self._received = seq, model_time, time.monotonic()
             self._tasks, self._error = tasks, error
+            switching_off = {c["task"] for c in self._outbox.values() if c["op"] == "laser_off"}
             for command_id, status, reason in acks:
                 self._acknowledge(command_id, status, reason)
-            self._spot_changes(previous)
+            self._spot_changes(previous, switching_off)
             self._refresh()
             return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq,
                     "commands": self._pending_commands(), "cancel": list(self._cancel)}
@@ -645,17 +651,21 @@ class Controller:
             session.marked = True
             self._event(session, f"{name} on the target", target=True)
         else:
-            self._event(session, f"unable mark, {reason or status}")
+            self._event(session, f"unable {name}, {reason or status}")
 
-    def _spot_changes(self, previous):
-        """Report spots the mission terminated on its own (target or controller lost, lease expired)."""
+    def _spot_changes(self, previous, switching_off):
+        """Report spots the mission terminated on its own (target or controller lost, lease expired).
+
+        A spot going off because of a requested laser-off (queued or acknowledged in this very
+        exchange) is already reported by that acknowledgement.
+        """
+        switching_off = switching_off | {c["task"] for c in self._outbox.values() if c["op"] == "laser_off"}
         for task_id, old in previous.items():
             new = self._tasks.get(task_id)
             for kind in SPOTS:
-                if old[kind]["on"] and not (new and new[kind]["on"]):
+                if old[kind]["on"] and not (new and new[kind]["on"]) and task_id not in switching_off:
                     session = self._session_for(old[kind]["command"] or "")
-                    if session and not any(c["task"] == task_id and c["op"] == "laser_off"
-                                           for c in self._outbox.values()):
+                    if session:
                         self._event(session, "spot terminated" if kind == "laser" else "sparkle terminated")
 
     def _pending_commands(self):
@@ -683,7 +693,8 @@ class Controller:
         session = self._session_for(command_id)
         self._cancel_id(command_id, command)
         if session and command["op"] != "laser_off":
-            self._event(session, f"unable {'laser' if command['op'] == 'laser_on' else 'mark'}, no acknowledgement")
+            kind = "laser" if command["op"] == "laser_on" else command["kind"]
+            self._event(session, f"unable {'sparkle' if kind == 'ir' else kind}, no acknowledgement")
 
     def _cancel_id(self, command_id, command):
         """Cancel a command; a spot it still creates late has no owner and is switched off."""
@@ -737,23 +748,51 @@ class Controller:
     def _release_task(self, session):
         self._cancel_session_commands(session)
         session.task, session.phase = None, "checked_in"
-        session.contact = session.cleared = session.marked = False
+        session.contact = session.cleared = session.marked = session.was_cleared = False
+        session.lost, session.stage = None, session.stage + 1
 
     def _close(self, session):
         self._release_task(session)
         self._sessions.pop(session.key, None)
         self._bump(session)   # orphaned spots are switched off by the next exchange
 
+    @staticmethod
+    def _lost_reason(task, fresh):
+        if not fresh:
+            return "no live mission link"
+        if not task["target"]["alive"]:
+            return "target destroyed" if task["target"]["destroyed"] else "target not active"
+        return "controller not available"
+
+    @staticmethod
+    def _lost_reply(session):
+        """Why a procedure call cannot continue after the task was interrupted."""
+        follow = ", request BDA" if session.lost.startswith("target") else ", stand by"
+        return f"unable, {session.lost}{follow}"
+
     def _invalidate(self, session, task):
-        """Target/controller loss or a stale bridge: restart the procedure from a new brief."""
+        """Target/controller loss or a stale bridge: restart the procedure from a new brief.
+
+        The pilot is told why at once (a stale link cannot transmit), and later procedure calls
+        give the same reason instead of a generic refusal.
+        """
         pending = any(self._session_for(command_id) is session and command["op"] != "laser_off"
                       for command_id, command in self._outbox.items())
         if session.phase in ("briefed", "readback") or session.contact or session.cleared or session.marked \
                 or pending:
+            fresh = self._fresh()
+            cleared = session.cleared
             self._stop_spots(session, task)
             session.phase = "assigned"
+            session.lost, session.was_cleared = self._lost_reason(task, fresh), session.was_cleared or cleared
             session.contact = session.cleared = session.marked = False
+            session.stage += 1
             self._bump(session)
+            if fresh and session.lost.startswith("target"):
+                self._event(session, f"{session.lost}, request BDA when ready")
+            elif fresh:
+                self._event(session, f"abort abort abort, {session.lost}" if cleared
+                            else f"{session.lost}, brief cancelled, stand by")
 
     def _refresh(self):
         now = time.monotonic()
@@ -770,6 +809,17 @@ class Controller:
                 self._bump(session)
             elif not (fresh and _live(task)):
                 self._invalidate(session, task)
+                if session.lost and session.phase == "assigned" and fresh:
+                    reason = self._lost_reason(task, fresh)      # e.g. the link came back, the target did not
+                    if reason != session.lost:
+                        session.lost = reason
+                        session.stage += 1
+                        self._bump(session)
+                        self._event(session, f"{reason}, request BDA when ready" if reason.startswith("target")
+                                    else f"{reason}, brief cancelled, stand by")
+            elif session.lost:
+                session.lost = None     # link, target and controller are back: only a new brief is needed
+                self._bump(session)
             elif session.cleared and not self._mark_ok(session, task):
                 session.cleared = False     # the live mark this clearance depended on is gone
                 self._bump(session)
@@ -788,7 +838,7 @@ class Controller:
         self._events.append({"reply": domain._speech(session.caller, self.callsign, message), "role": "jtac",
                              "unit_id": unit_id, "coalition": coalition, "channel": self.channel,
                              "expires": time.time() + EVENT_TTL,
-                             "validation": self._validation(session, target or spot is not None, spot)})
+                             "validation": self._validation(session, target or spot is not None, spot, event=True)})
 
     def take_events(self, coalition, channel):
         """Asynchronous DCS acknowledgement notifications for the JTAC channel."""
@@ -801,10 +851,13 @@ class Controller:
                                  maxlen=MAX_EVENTS)
             return out
 
-    def _validation(self, session, target, spot=None, cancel=None):
+    def _validation(self, session, target, spot=None, cancel=None, event=False):
+        """Replies hold only until the pilot's next call (revision); unprompted events hold until the
+        procedure resets (stage), so a call made meanwhile never swallows a mark or laser report."""
         coalition, unit_id = session.key
         return {"role": "jtac", "channel": self.channel, "coalition": coalition, "unit_id": unit_id,
                 "epoch": self._epoch, "generation": self._generation, "revision": session.revision,
+                "event": event, "origin": session.origin, "stage": session.stage,
                 "target": target, "spot": spot[0] if spot else None, "spot_kind": spot[1] if spot else None,
                 "safety_cancel": cancel is not None, "action": cancel}
 
@@ -819,7 +872,12 @@ class Controller:
                     or not self._fresh():
                 return False
             session = self._sessions.get((validation.get("coalition"), validation.get("unit_id")))
-            if session is None or session.revision != validation.get("revision"):
+            if session is None:
+                return False
+            if validation.get("event") is True:
+                if session.origin != validation.get("origin") or session.stage != validation.get("stage"):
+                    return False
+            elif session.revision != validation.get("revision"):
                 return False
             if validation.get("safety_cancel") is True:
                 # Only the cancellation reply issued at exactly this revision qualifies.
@@ -878,23 +936,36 @@ class Controller:
                     reply.message = "unable, no live mission link"
             elif intent == "checkIn":
                 if session:
-                    self._close(session)
-                if len(self._sessions) >= MAX_SESSIONS:
-                    self._close(min(self._sessions.values(), key=lambda s: s.touched))
-                session = self._sessions[key] = _Session(key, reply.caller, next(self._revisions))
-                reply.message = self._check_in(coalition, session)
+                    # Checking in again keeps the task, brief and readback; it only re-states them.
+                    session.caller = reply.caller
+                    self._bump(session)
+                    reply.message = (self._check_in(coalition, session) if session.task is None
+                                     else "already checked in, " + self._status(session, parsed)[0])
+                else:
+                    if len(self._sessions) >= MAX_SESSIONS:
+                        self._close(min(self._sessions.values(), key=lambda s: s.touched))
+                    session = self._sessions[key] = _Session(key, reply.caller, next(self._revisions))
+                    reply.message = self._check_in(coalition, session)
+                session.last = (reply.message, False, session.revision)
                 answer["validation"] = self._validation(session, False)
             elif session is None:
                 reply.message = "unable, check in first"
+            elif intent == "sayAgain" and session.last and session.last[2] == session.revision:
+                # Nothing changed since the last reply: repeat it word for word under the same validity.
+                reply.message, target = session.last[:2]
+                answer["validation"] = self._validation(session, target)
             else:
                 self._bump(session)
-                message, target = getattr(self, "_" + intent)(session, parsed)
+                handler = self._status if intent == "sayAgain" else getattr(self, "_" + intent)
+                message, target = handler(session, parsed)
                 reply.message = message
                 if key in self._sessions and intent in ("abort", "laserOff"):
                     session.cancel = (session.revision, intent)
                     answer["validation"] = self._validation(session, False, cancel=intent)
                 elif key in self._sessions:
                     answer["validation"] = self._validation(session, target)
+                if key in self._sessions:
+                    session.last = (message, target, session.revision)
             answer["reply"] = reply.speech()
             return answer
 
@@ -931,6 +1002,10 @@ class Controller:
             return "no tasks available", False
         else:
             return f"say task number, available {self._task_list(tasks)}", False
+        if session.task == chosen["id"] and session.phase != "assigned":
+            # Already briefed: keep the brief and readback and give the next step instead.
+            return (f"task {domain.number_to_words(chosen['id'])}, {chosen['name']}, "
+                    f"{self._next_step(session, chosen)}"), True
         if session.task != chosen["id"]:
             previous = self._task_of(session)
             if previous:
@@ -938,6 +1013,21 @@ class Controller:
             self._release_task(session)
             session.task, session.phase = chosen["id"], "assigned"
         return f"task {domain.number_to_words(chosen['id'])}, {chosen['name']}, advise ready for brief", True
+
+    @staticmethod
+    def _readback_request(task):
+        readback = ", ".join("remarks" if LINES[k] == 10 else f"line {domain.number_to_words(LINES[k])}"
+                             for k in task["readback"])
+        return f"read back {readback}" if readback else "report contact"
+
+    def _next_step(self, session, task):
+        if session.phase == "briefed":
+            return self._readback_request(task)
+        if session.cleared:
+            return "report off target"
+        if session.contact:
+            return "call in with heading" if task["attack_heading"] else "call in"
+        return "report contact"
 
     def _line(self, task, number):
         b = task["brief"]
@@ -966,19 +1056,19 @@ class Controller:
         if task is None:
             return "unable, request task first", False
         if not _live(task):
-            return "unable, target or controller not available", False
+            reason = self._lost_reason(task, True)
+            return f"unable, {reason}" + (", request BDA" if reason.startswith("target") else ", stand by"), False
         missing = [key for key in REQUIRED_LINES if task["brief"][key] is None]
         if missing:
             where = "control type" if missing[0] == "type" else f"line {domain.number_to_words(LINES[missing[0]])}"
             return f"unable, task brief incomplete, missing {where}", False
         session.phase = "briefed"
-        session.contact = session.cleared = False
+        session.contact = session.cleared = session.was_cleared = False
+        session.lost = None
         lines = [self._line(task, n) for n in range(1, 10)]
         if task["brief"]["remarks"]:
             lines.append(self._line(task, 10))
-        readback = ", ".join("remarks" if LINES[k] == 10 else f"line {domain.number_to_words(LINES[k])}"
-                             for k in task["readback"])
-        tail = f"read back {readback}" if readback else "report contact"
+        tail = self._readback_request(task)
         if not task["readback"]:
             session.phase = "readback"
         brief = f"type {domain.number_to_words(task['brief']['type'])} control, " + ", ".join(lines) + f", {tail}"
@@ -989,7 +1079,7 @@ class Controller:
     def _repeatLine(self, session, parsed):
         task = self._task_of(session)
         if task is None or session.phase in ("checked_in", "assigned"):
-            return "unable, no brief issued", False
+            return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
         if parsed["line"] is None:
             return "say line number", False
         return self._line(task, parsed["line"]), True
@@ -997,7 +1087,7 @@ class Controller:
     def _readback(self, session, parsed):
         task = self._task_of(session)
         if task is None or session.phase in ("checked_in", "assigned"):
-            return "unable, no brief issued", False
+            return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
         mismatch = _readback_mismatch(parsed["readback"] or "", task)
         if mismatch:
             session.phase, session.contact, session.cleared = "briefed", False, False
@@ -1008,9 +1098,7 @@ class Controller:
     def _contact(self, session, parsed):
         task = self._task_of(session)
         if task is None or session.phase != "readback":
-            return "unable, readback required", False
-        if not _live(task):
-            return "target or controller not available, request BDA", False
+            return (self._lost_reply(session) if session.lost else "unable, readback required"), False
         session.contact = True
         return "copy contact, call in with heading" if task["attack_heading"] else "copy contact, call in", True
 
@@ -1020,13 +1108,9 @@ class Controller:
         if task is None:
             reason = "no task assigned"
         elif session.phase != "readback":
-            reason = "readback required"
+            reason = session.lost or "readback required"
         elif not session.contact:
             reason = "report contact"
-        elif not task["target"]["alive"]:
-            reason = "target not active"
-        elif not task["controller"]["alive"]:
-            reason = "controller not available"
         elif task["attack_heading"] and parsed["heading"] is None:
             reason = "say heading"
         elif task["attack_heading"] and not _heading_ok(parsed["heading"], task["attack_heading"]):
@@ -1043,13 +1127,11 @@ class Controller:
     def _requestMark(self, session, parsed):
         task = self._task_of(session)
         if task is None or session.phase in ("checked_in", "assigned"):
-            return "unable, no brief issued", False
+            return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
         kind = parsed["mark"] or next((m for m in task["marks"] if m != "laser"), None) or (
             "laser" if "laser" in task["marks"] else None)
         if kind not in task["marks"]:
             return f"unable, {kind or 'mark'} not available for this task", False
-        if not _live(task):
-            return "unable, target or controller not available", False
         if kind == "laser":
             if task["laser_code"] is None:
                 return "unable, no laser code assigned", False
@@ -1074,12 +1156,17 @@ class Controller:
         return "laser is off", False
 
     def _abort(self, session, parsed):
-        stopping = self._stop_spots(session, self._task_of(session))
-        session.cleared = session.contact = False
+        task = self._task_of(session)
+        stopping = self._stop_spots(session, task)
+        if stopping:
+            self._queue(session, task["id"], "laser_off", spoken=True)     # confirm the spot is off
+        session.cleared = session.contact = session.was_cleared = False
+        session.stage += 1      # mark and laser reports still queued are now obsolete
         return ("copy abort, laser off pending" if stopping else "copy abort"), False
 
     def _attackComplete(self, session, parsed):
-        cleared, session.cleared = session.cleared, False
+        cleared = session.cleared or session.was_cleared     # still true after a kill ended the task
+        session.cleared = session.was_cleared = False
         return ("copy off, request BDA when ready" if cleared else "copy off, no clearance was active"), False
 
     def _requestBda(self, session, parsed):
@@ -1098,6 +1185,9 @@ class Controller:
         task = self._task_of(session)
         if task is None:
             return "checked in, no task assigned", False
+        if session.lost and session.phase == "assigned":
+            follow = "request BDA" if session.lost.startswith("target") else "stand by"
+            return f"task {domain.number_to_words(task['id'])}, {task['name']}, {session.lost}, {follow}", False
         parts = [f"task {domain.number_to_words(task['id'])}, {task['name']}",
                  {"assigned": "awaiting brief", "briefed": "awaiting readback",
                   "readback": "readback complete"}[session.phase]]

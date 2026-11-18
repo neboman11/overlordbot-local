@@ -147,9 +147,13 @@ class RadioCallDocumentationTests(unittest.TestCase):
             self.assertTrue(text.startswith(prefix), text)
             message = text[len(prefix):]
             self.assertTrue(any(pattern.fullmatch(message) for pattern in heard[node_id]), (node_id, message))
+            return text
 
         def call(node_id, expected, **values):
-            expect(fixture.say(fill(labels[node_id], nodes[node_id]['values'] | values))['reply'], expected)
+            return expect(fixture.say(fill(labels[node_id], nodes[node_id]['values'] | values))['reply'], expected)
+
+        def repeated(previous):
+            self.assertEqual(call('J_SAYAGAIN', 'J_SAYAGAIN_R'), previous)
 
         def events(*expected):
             spoken = [event['reply'] for event in fixture.jtac.take_events(2, fixtures.CHANNEL)]
@@ -194,9 +198,47 @@ class RadioCallDocumentationTests(unittest.TestCase):
             call('J_LOFF', 'J_LOFF_PEND')
             off = next(c for c in fixture.bridge([lasing])['commands'] if c['op'] == 'laser_off')
             fixture.bridge(acks=[{'id': off['id'], 'status': 'done'}])
-            events('J_EV_LOFF', 'J_EV_TERM')
+            events('J_EV_LOFF')
             call('J_LOFF', 'J_LOFF_OFF')
-            call('J_ABORT', 'J_ABORT_R')
+            repeated(call('J_ABORT', 'J_ABORT_R'))
+            repeated(call('J_CHECKIN', 'J_CHECKIN_AGAIN'))
+            call('J_REQ_TASK_N', 'J_TASK_NEXT')
+            call('J_LASER', 'J_LASER_PEND')
+            laser = fixture.bridge()['commands'][0]
+            lasing = fixtures.task(laser={'on': True, 'command': laser['id']})
+            fixture.bridge([lasing], acks=[{'id': laser['id'], 'status': 'done'}])
+            events('J_EV_LASER')
+            self.assertIn('laser off pending', call('J_ABORT', 'J_ABORT_R'))
+            off = next(c for c in fixture.bridge([lasing])['commands'] if c['op'] == 'laser_off')
+            fixture.bridge(acks=[{'id': off['id'], 'status': 'done'}])
+            events('J_EV_LOFF')
+            call('J_MARK', 'J_MARK_PEND')
+            for _ in range(5):
+                fixture.clock.now += 4
+                fixture.bridge()
+            events('J_EV_FAIL')
+            call('J_CONTACT', 'J_CONTACT_HDG')
+            call('J_MARK', 'J_MARK_PEND')
+            smoke = fixture.bridge()['commands'][0]
+            fixture.bridge(acks=[{'id': smoke['id'], 'status': 'done'}])
+            events('J_EV_MARK')
+            call('J_IN_HDG', 'J_CLEARED')
+            fixture.bridge([fixtures.task(target={'alive': False, 'total': 3, 'remaining': 0, 'destroyed': True})])
+            events('J_EV_TGT')
+            call('J_CONTACT', 'J_LOST_R')
+            call('J_IN', 'J_NOCLR')
+            repeated(call('J_STATUS', 'J_STATUS_LOST'))
+            call('J_BRIEF', 'J_BRIEF_DEAD')
+            call('J_OFF', 'J_OFF_R')
+            call('J_BDA', 'J_BDA_KILL')
+            fixture.bridge()
+            call('J_BRIEF', 'J_BRIEF_R')
+            call('J_RB', 'J_RB_OK')
+            call('J_CONTACT', 'J_CONTACT_HDG')
+            fixture.bridge([fixtures.task(controller={'name': 'JTAC-1 Reaper', 'alive': False})])
+            events('J_EV_CTRL')
+            call('J_SAYAGAIN', 'J_STATUS_LOST')
+            call('J_RB', 'J_LOST_R')
             fixture.clock.now += 11
             call('J_STATUS', 'J_G_STALE')
             call('J_ABORT', 'J_STALE_CXL')

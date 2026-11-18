@@ -141,7 +141,9 @@ class BrainExtensionsTests(unittest.TestCase):
         clock[0] = 31
         self.assertFalse(brain.ready)
         progress = brain.respond(dict(request, text='Axeman Viper one one request task'))
-        self.assertIsNone(progress['reply'])
+        # Refused aloud instead of silently, with nothing a gateway could validate as a procedure reply.
+        self.assertEqual(progress['reply'], 'viper 1 1, Axeman, unable, no live tracking data, stand by')
+        self.assertNotIn('validation', progress)
         aborted = brain.respond(dict(request, text='Axeman Viper one one abort'))
         self.assertEqual(aborted['parsed']['intent'], 'abort')
         self.assertIn('abort', aborted['reply'].lower())

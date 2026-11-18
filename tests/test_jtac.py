@@ -464,7 +464,7 @@ class JtacTests(unittest.TestCase):
         response = self.bridge()
         self.assertEqual(response['commands'], [])
         self.assertEqual(response['cancel'], [command['id']])
-        self.assertIn('unable mark, no acknowledgement', self.jtac.take_events(2, CHANNEL)[0]['reply'])
+        self.assertIn('unable smoke, no acknowledgement', self.jtac.take_events(2, CHANNEL)[0]['reply'])
 
     def test_failed_acknowledgement_is_reported_not_success(self):
         self.bridge()
@@ -590,6 +590,98 @@ class JtacTests(unittest.TestCase):
         self.jtac.reset()
         self.assertFalse(self.jtac.ready)
         self.assertFalse(self.jtac.validate_reply(answer['validation']))
+
+    # -- pilot-visible procedure fixes --------------------------------------------------
+
+    def cleared_hot(self):
+        self.bridge()
+        self.brief_and_readback()
+        self.say('Axeman, Viper 1 1, contact')
+        command_id = self.laser_on()
+        self.jtac.take_events(2, CHANNEL)
+        self.assertIn('cleared hot', self.say('Axeman, Viper 1 1, in heading two seven zero')['reply'])
+        return command_id
+
+    def test_report_is_kept_when_the_pilot_transmits_before_it_plays(self):
+        self.bridge()
+        self.brief_and_readback()
+        self.say('Axeman, Viper 1 1, request mark')
+        command = self.bridge()['commands'][0]
+        self.bridge(acks=[{'id': command['id'], 'status': 'done'}])
+        self.say('Axeman, Viper 1 1, say status')            # a call before the smoke report plays
+        event = self.jtac.take_events(2, CHANNEL)[0]
+        self.assertIn('smoke on the target', event['reply'])
+        self.assertTrue(self.jtac.validate_reply(event['validation']))
+        self.say('Axeman, Viper 1 1, abort')
+        self.assertFalse(self.jtac.validate_reply(event['validation']), 'an abort makes the report obsolete')
+
+    def test_target_kill_while_cleared_is_reported_and_off_target_asks_for_bda(self):
+        command_id = self.cleared_hot()
+        self.bridge([task(laser={'on': True, 'command': command_id},
+                          target={'alive': False, 'total': 3, 'remaining': 0, 'destroyed': True})])
+        events = [e['reply'] for e in self.jtac.take_events(2, CHANNEL)]
+        self.assertIn('viper 1 1, Axeman, target destroyed, request BDA when ready', events)
+        self.assertEqual(self.say('Axeman, Viper 1 1, off target')['reply'],
+                         'viper 1 1, Axeman, copy off, request BDA when ready')
+        self.assertEqual(self.say('Axeman, Viper 1 1, contact')['reply'],
+                         'viper 1 1, Axeman, unable, target destroyed, request BDA')
+        self.assertIn('target destroyed, request BDA', self.say('Axeman, Viper 1 1, say status')['reply'])
+        self.assertIn('BDA, target destroyed', self.say('Axeman, Viper 1 1, request bda')['reply'])
+
+    def test_controller_loss_while_cleared_calls_abort(self):
+        command_id = self.cleared_hot()
+        self.bridge([task(controller={'name': 'JTAC-1 Reaper', 'alive': False},
+                          laser={'on': True, 'command': command_id})])
+        events = [e['reply'] for e in self.jtac.take_events(2, CHANNEL)]
+        self.assertIn('viper 1 1, Axeman, abort abort abort, controller not available', events)
+        self.assertIn('controller not available', self.say('Axeman, Viper 1 1, in heading two seven zero')['reply'])
+
+    def test_laser_off_is_reported_once(self):
+        self.bridge()
+        self.brief_and_readback()
+        command_id = self.laser_on()
+        self.jtac.take_events(2, CHANNEL)
+        self.say('Axeman, Viper 1 1, laser off')
+        off = self.bridge([task(laser={'on': True, 'command': command_id})])['commands'][0]
+        self.bridge(acks=[{'id': off['id'], 'status': 'done'}])
+        self.assertEqual([e['reply'] for e in self.jtac.take_events(2, CHANNEL)], ['viper 1 1, Axeman, laser off'])
+
+    def test_checking_in_again_keeps_the_brief_and_readback(self):
+        self.bridge()
+        self.brief_and_readback()
+        again = self.say('Axeman, Viper 1 1, checking in')['reply']
+        self.assertEqual(again, 'viper 1 1, Axeman, already checked in, task one, armor column, readback complete')
+        self.assertIn('copy contact', self.say('Axeman, Viper 1 1, contact')['reply'])
+
+    def test_same_task_again_gives_the_next_step_not_a_new_brief(self):
+        self.bridge()
+        self.brief_and_readback()
+        self.assertEqual(self.say('Axeman, Viper 1 1, request task one')['reply'],
+                         'viper 1 1, Axeman, task one, armor column, report contact')
+        self.assertIn('copy contact', self.say('Axeman, Viper 1 1, contact')['reply'])
+
+    def test_say_again_repeats_the_last_reply_only_while_it_is_current(self):
+        self.bridge()
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        brief = self.say('Axeman, Viper 1 1, ready for brief')
+        again = self.say('Axeman, Viper 1 1, say again')
+        self.assertEqual(again['reply'], brief['reply'])
+        self.assertTrue(self.jtac.validate_reply(again['validation']))
+        self.bridge([task(target={'alive': False, 'total': 3, 'remaining': 0})])
+        self.assertNotEqual(self.say('Axeman, Viper 1 1, say again')['reply'], brief['reply'])
+
+    def test_bare_cancel_aborts(self):
+        self.assertEqual(self.jtac.parse('Axeman, Viper 1 1, cancel', UNITS, 2)['intent'], 'abort')
+        self.assertEqual(self.jtac.parse('Axeman, Viper 1 1, cancel the laser', UNITS, 2)['intent'], 'laserOff')
+
+    def test_target_lost_during_a_stale_link_is_announced_when_the_link_returns(self):
+        self.bridge()
+        self.brief_and_readback()
+        self.clock.now += 11
+        self.bridge([task(target={'alive': False, 'total': 3, 'remaining': 0, 'destroyed': True})])
+        self.assertEqual([e['reply'] for e in self.jtac.take_events(2, CHANNEL)],
+                         ['viper 1 1, Axeman, target destroyed, request BDA when ready'])
 
 
 if __name__ == '__main__':

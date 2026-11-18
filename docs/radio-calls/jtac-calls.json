@@ -39,6 +39,7 @@
         {"id": "J_STATUS", "intent": "status", "values": {"CALLSIGN": "Viper one one"}},
         {"id": "J_ABORT", "intent": "abort", "values": {"CALLSIGN": "Viper one one"}},
         {"id": "J_LOFF", "intent": "laserOff", "values": {"CALLSIGN": "Viper one one"}},
+        {"id": "J_SAYAGAIN", "intent": "sayAgain", "values": {"CALLSIGN": "Viper one one"}},
         {"id": "J_CHECKOUT", "intent": "checkOut", "values": {"CALLSIGN": "Viper one one"}}
       ]
     }
@@ -51,6 +52,7 @@
     "requestBrief": ["J_BRIEF"],
     "requestTask": ["J_REQ_TASK", "J_REQ_TASK_N"],
     "laserOff": ["J_LOFF"],
+    "sayAgain": ["J_SAYAGAIN"],
     "requestLaser": ["J_LASER"],
     "requestMark": ["J_MARK"],
     "abort": ["J_ABORT"],

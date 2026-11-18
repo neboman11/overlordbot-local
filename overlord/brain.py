@@ -189,7 +189,15 @@ class Brain:
             else:
                 parsed = parser.parse(text, self.callsign, domain._known_groups(units))
             if not self.ready:
-                if not (is_jtac and parsed and parsed.get('intent') in ('abort', 'laserOff', 'checkOut')):
+                if is_jtac and parsed and parsed.get('intent') not in ('abort', 'laserOff', 'checkOut'):
+                    # The JTAC identifies callers from Tacview: say why it cannot work instead of staying silent.
+                    heard = parsed.get('transmitter') or {}
+                    caller = (f"{heard['group']} {heard['flight']} {heard['element']}"
+                              if heard.get('group') and heard.get('flight', -1) >= 0 and heard.get('element', -1) >= 0
+                              else domain.UNKNOWN_CALLER)
+                    return {'reply': domain._speech(caller, self.jtac.callsign, 'unable, no live tracking data, stand by'),
+                            'parsed': parsed, 'notes': 'Telemetry unavailable or stale'}
+                if not (is_jtac and parsed):
                     return {'reply': None, 'parsed': parsed, 'notes': 'Telemetry unavailable or stale'}
             if parsed and (parsed.get('blocked') or parsed.get('intent') not in (None, 'None')):
                 return self._answer(text, coalition, channel, generation, units, is_jtac)
