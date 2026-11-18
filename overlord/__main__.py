@@ -171,8 +171,8 @@ def main():
         from .speech import NativeSTT
         worker = NativeSTT()
         def transcribe(headers, body):
-            if headers.get_content_type() != 'audio/pcm' or not 3200 <= len(body) <= 480000 or len(body) % 2:
-                raise ValueError('expected 0.1-15 seconds 16000 Hz mono s16le audio/pcm')
+            if headers.get_content_type() != 'audio/pcm' or not 3200 <= len(body) <= 32 * 16000 * 2 or len(body) % 2:
+                raise ValueError('expected 0.1-32 seconds 16000 Hz mono s16le audio/pcm')
             prompt = headers.get('X-Prompt', '')
             if len(prompt) > 2048:
                 raise ValueError('prompt too long')

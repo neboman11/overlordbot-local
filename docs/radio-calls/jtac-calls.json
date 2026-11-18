@@ -12,6 +12,7 @@
       "markdown": "docs/radio-calls/jtac.md",
       "section": "Chart — JTAC procedure: check in to check out",
       "nodes": [
+        {"id": "J_RADIOCHECK", "intent": "radioCheck", "values": {"CALLSIGN": "Viper one one"}},
         {"id": "J_CHECKIN", "intent": "checkIn", "values": {"CALLSIGN": "Viper one one"}},
         {"id": "J_REQ_TASK", "intent": "requestTask", "values": {"CALLSIGN": "Viper one one"},
          "expected_fields": {"task": null}},
@@ -46,6 +47,7 @@
   ],
   "intent_coverage": {
     "checkOut": ["J_CHECKOUT"],
+    "radioCheck": ["J_RADIOCHECK"],
     "checkIn": ["J_CHECKIN"],
     "readback": ["J_RB"],
     "repeatLine": ["J_REPEAT", "J_REPEAT_RMK"],

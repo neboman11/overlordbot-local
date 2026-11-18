@@ -107,13 +107,16 @@ _LETTERS = {"alpha": "a", "alfa": "a", "bravo": "b", "charlie": "c", "delta": "d
             "foxtrot": "f", "golf": "g", "hotel": "h", "india": "i", "juliet": "j", "juliett": "j",
             "kilo": "k", "lima": "l", "mike": "m", "november": "n", "oscar": "o", "papa": "p",
             "quebec": "q", "romeo": "r", "sierra": "s", "tango": "t", "uniform": "u", "victor": "v",
-            "whiskey": "w", "whisky": "w", "xray": "x", "yankee": "y", "zulu": "z"}
+            "whiskey": "w", "whisky": "w", "xray": "x", "yankee": "y", "zulu": "z",
+            # Whisper spellings of phonetic letters heard on the radio
+            "mic": "m", "mick": "m", "mik": "m", "keilo": "k", "keelo": "k"}
 _MARK_WORDS = {"smoke": "smoke", "sparkle": "ir", "ir": "ir", "infrared": "ir", "pointer": "ir",
                "illumination": "illumination", "illum": "illumination", "laser": "laser"}
 
 # Earliest match wins; on an equal start the earlier entry wins.
 COMMANDS = [
     ("checkOut", re.compile(r"\bcheck(?:ing)? out\b")),
+    ("radioCheck", re.compile(r"\bradio check\b|\bcomms? check\b")),
     ("checkIn", re.compile(r"\bcheck(?:ing)? in\b|\bon station\b")),
     ("readback", re.compile(r"\bread ?back\b")),
     ("repeatLine", re.compile(r"\b(?:say again|repeat|confirm) (?:line|remarks)\b")),
@@ -156,26 +159,55 @@ _READBACK_FILLERS = {"feet", "foot", "ft", "elevation", "location", "grid", "lin
                      "miles", "mile", "nm", "nautical", "ip", "egress", "mark", "friendlies", "remarks",
                      "the", "and", "of", "is", "at", "a", "an", "copy", "roger", "read", "back", "readback",
                      "uh", "um", "over"}
+# Words a pilot (or Whisper) may put before the JTAC callsign.
+_LEADING_FILLERS = {"uh", "um", "er", "hey", "okay", "ok", "so", "and", "yeah", "hello"}
 
 
 def _readback_atoms(text):
     text = text.lower()
     text = re.sub(r"(?<![\w.])-(?=\d)", " minus ", re.sub(r"(?<![\w.])\+(?=\d)", " plus ", text))
     text = re.sub(r"(\d)\.(\d)", r"\1 point \2", text).replace("x-ray", "xray").replace("x ray", "xray")
-    for tok in _parser.tokenize(text):
-        if tok.n is not None:
-            yield "num", tok.d
-        elif tok.w in _LETTERS:
-            yield "letter", _LETTERS[tok.w]
-        elif tok.w in ("point", "decimal"):
-            yield "point", tok.w
-        elif tok.w in ("minus", "negative", "plus"):
-            yield "sign", tok.w
-        elif tok.w in _READBACK_FILLERS:
+    # Whisper punctuates clauses: "five point eight, five zero four" is two values, never 5.8504.
+    for index, clause in enumerate(re.split(r"(?<!\d),|,(?!\d)|[;?!]|\.(?!\d)", text)):
+        if index:
             yield "sep", None
-        else:
-            for piece in re.findall(r"\d+|[a-z]+", tok.w):
-                yield ("num" if piece.isdigit() else "letter" if len(piece) == 1 else "word"), piece
+        for tok in _parser.tokenize(clause):
+            yield from _token_atoms(tok)
+
+
+def _token_atoms(tok):
+    if tok.n is not None:
+        yield "num", tok.d
+    elif tok.w in _LETTERS:
+        yield "letter", _LETTERS[tok.w]
+    elif tok.w in ("point", "decimal"):
+        yield "point", tok.w
+    elif tok.w in ("minus", "negative", "plus"):
+        yield "sign", tok.w
+    elif tok.w in _READBACK_FILLERS:
+        yield "sep", None
+    else:
+        letters = _phonetic_run(tok.w)
+        if letters:
+            for letter in letters:
+                yield "letter", letter
+            return
+        for piece in re.findall(r"\d+|[a-z]+", tok.w):
+            yield ("num" if piece.isdigit() else "letter" if len(piece) == 1 else "word"), piece
+
+
+def _phonetic_run(word):
+    """Letters of phonetic words Whisper ran together ("kilomike" -> "km"), or None."""
+    if len(word) < 6 or not word.isalpha():
+        return None
+    best = {0: ""}
+    for end in range(1, len(word) + 1):
+        for start in range(max(0, end - 8), end):
+            if start in best and word[start:end] in _LETTERS:
+                best[end] = best[start] + _LETTERS[word[start:end]]
+                break
+    letters = best.get(len(word))
+    return letters if letters and len(letters) >= 2 else None
 
 
 def _readback_runs(text):
@@ -225,24 +257,45 @@ def _same_number(spoken, value, key):
     return heard == expected
 
 
-def _readback_mismatch(text, task):
-    """First readback field the transmission does not reproduce exactly, or None."""
-    heard, position = _readback_runs(text), 0
+def _readback_value_at(heard, position, key, task):
+    """Runs one readback field occupies starting at ``position``, or None."""
+    value = task["brief"][key]
+    if key in NUMERIC_LINES:
+        run = heard[position]
+        return 1 if run[0] == "num" and _same_number(run[1], value, key) else None
+    expected = [run[1] for run in _readback_runs(value)]
+    return len(expected) if [run[1] for run in heard[position:position + len(expected)]] == expected else None
+
+
+# "line four" names the line being read back; its number is not a readback value.
+_LINE_NUMBER = re.compile(r"\bline (?:one|two|three|four|five|six|seven|eight|nine|ten|\d{1,2})\b", re.IGNORECASE)
+
+
+def _readback_check(text, task, confirmed=()):
+    """Readback fields this transmission reproduces exactly, and the first field still owed.
+
+    Fields are found in brief order, each after the previous one, so a pilot may read back
+    the whole 9-line or add words ("okay", "line four") around the required values; each
+    value must still appear complete ("four five zero zero" never equals 450).
+    ``confirmed`` fields from earlier transmissions need not be repeated: a long readback
+    may be split over several calls.
+    Returns ``(matched, missing)``; ``missing`` is None once every field is read back.
+    """
+    heard, position, matched = _readback_runs(_LINE_NUMBER.sub(" ", text)), 0, set()
     for key in task["readback"]:
-        value = task["brief"][key]
-        if key in NUMERIC_LINES:
-            if position >= len(heard) or heard[position][0] != "num" \
-                    or not _same_number(heard[position][1], value, key):
-                return key
-            position += 1
-        else:
-            expected = [run[1] for run in _readback_runs(value)]
-            if [run[1] for run in heard[position:position + len(expected)]] != expected:
-                return key
-            position += len(expected)
-    if position != len(heard) and task["readback"]:
-        return task["readback"][-1]
-    return None
+        start, size = position, None
+        while start < len(heard):
+            size = _readback_value_at(heard, start, key, task)
+            if size:
+                break
+            start += 1
+        if size:
+            matched.add(key)
+            position = start + size
+        elif key not in confirmed:
+            break
+    done = matched | set(confirmed)
+    return matched, next((key for key in task["readback"] if key not in done), None)
 
 
 def _say_digits(value):
@@ -388,7 +441,7 @@ def _live(task):
 
 class _Session:
     __slots__ = ("key", "caller", "origin", "task", "phase", "contact", "cleared", "marked", "revision",
-                 "touched", "cancel", "stage", "lost", "was_cleared", "last")
+                 "touched", "cancel", "stage", "lost", "was_cleared", "last", "confirmed")
 
     def __init__(self, key, caller, revision):
         self.key, self.caller, self.origin, self.revision = key, caller, revision, revision
@@ -401,6 +454,7 @@ class _Session:
         self.lost = None               # why the task was interrupted (target, controller or link)
         self.was_cleared = False       # a clearance was live when the task was interrupted
         self.last = None               # (message, target, revision) of the latest reply, for "say again"
+        self.confirmed = set()         # readback fields already read back correctly for this brief
 
 
 class Controller:
@@ -477,14 +531,18 @@ class Controller:
     # -- parsing ----------------------------------------------------------
 
     def _receiver_end(self, toks):
+        """Tokens up to the end of the JTAC callsign (after any leading filler), or 0."""
+        lead = 0
+        while lead < len(toks) - 1 and toks[lead].w in _LEADING_FILLERS:
+            lead += 1
         for size in (3, 2, 1):
-            words = toks[:size]
+            words = toks[lead:lead + size]
             if len(words) < size or any(t.n is not None for t in words):
                 continue
             spoken = "".join(t.w for t in words)
-            if spoken == self._key or (len(self._sound) >= 4 and _parser._edits(
+            if spoken == self._key or spoken == "jtac" or (len(self._sound) >= 4 and _parser._edits(
                     _parser.phonetic(spoken), self._sound) <= (2 if len(self._sound) >= 6 else 1)):
-                return size
+                return lead + size
         return 0
 
     def parse(self, text, units, coalition):
@@ -751,6 +809,7 @@ class Controller:
     def _release_task(self, session):
         self._cancel_session_commands(session)
         session.task, session.phase = None, "checked_in"
+        session.confirmed = set()
         session.contact = session.cleared = session.marked = session.was_cleared = False
         session.lost, session.stage = None, session.stage + 1
 
@@ -787,6 +846,7 @@ class Controller:
             cleared = session.cleared
             self._stop_spots(session, task)
             session.phase = "assigned"
+            session.confirmed = set()
             session.lost, session.was_cleared = self._lost_reason(task, fresh), session.was_cleared or cleared
             session.contact = session.cleared = session.marked = False
             session.stage += 1
@@ -842,6 +902,13 @@ class Controller:
                              "unit_id": unit_id, "coalition": coalition, "channel": self.channel,
                              "expires": time.time() + EVENT_TTL,
                              "validation": self._validation(session, target or spot is not None, spot, event=True)})
+
+    def readback_phrases(self, coalition):
+        """Readback values of this coalition's tasks, to prime speech recognition (grid letters)."""
+        with self._lock:
+            return [str(task["brief"][key]) for _, task in sorted(self._tasks.items())
+                    if task["coalition"] == coalition for key in task["readback"]
+                    if key not in NUMERIC_LINES and task["brief"][key]]
 
     def take_events(self, coalition, channel):
         """Asynchronous DCS acknowledgement notifications for the JTAC channel."""
@@ -925,6 +992,8 @@ class Controller:
             answer = {"parsed": parsed, "notes": None}
             if intent == "None":
                 reply.message = "say again"
+            elif intent == "radioCheck":
+                reply.message = "loud and clear"
             elif intent == "checkOut":
                 if session:
                     self._close(session)
@@ -1035,7 +1104,8 @@ class Controller:
     def _line(self, task, number):
         b = task["brief"]
         if number == 1:
-            return f"line one, IP {b['ip']}"
+            ip = b["ip"]
+            return f"line one, {ip}" if ip.lower().startswith("ip ") else f"line one, IP {ip}"
         if number == 2:
             return f"line two, heading {_say_digits(b['heading'])}" + (f", {b['offset']}" if b["offset"] else "")
         if number == 3:
@@ -1067,6 +1137,7 @@ class Controller:
             return f"unable, task brief incomplete, missing {where}", False
         session.phase = "briefed"
         session.contact = session.cleared = session.was_cleared = False
+        session.confirmed = set()
         session.lost = None
         lines = [self._line(task, n) for n in range(1, 10)]
         if task["brief"]["remarks"]:
@@ -1091,10 +1162,18 @@ class Controller:
         task = self._task_of(session)
         if task is None or session.phase in ("checked_in", "assigned"):
             return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
-        mismatch = _readback_mismatch(parsed["readback"] or "", task)
-        if mismatch:
+        # Lines read back earlier count only while the readback is still owed; once it is complete,
+        # a new readback is checked on its own, so a wrong one is refused instead of "correct".
+        confirmed = session.confirmed if session.phase == "briefed" else set()
+        matched, missing = _readback_check(parsed["readback"] or "", task, confirmed)
+        session.confirmed = confirmed | matched
+        if missing:
             session.phase, session.contact, session.cleared = "briefed", False, False
-            return f"negative readback, {self._line(task, LINES[mismatch])}", True
+            message = f"negative readback, {self._line(task, LINES[missing])}"
+            if matched:
+                done = ", ".join(f"line {domain.number_to_words(n)}" for n in sorted({LINES[k] for k in matched}))
+                return f"copy {done}, {message}", True
+            return message, True
         session.phase = "readback"
         return "readback correct, report contact", True
 

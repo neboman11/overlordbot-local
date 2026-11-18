@@ -85,6 +85,25 @@ class GatewayRecoveryTests(unittest.TestCase):
         self.assertGreaterEqual(gateway.tts.post.call_args.kwargs['limit'], 2 * 16000 * 75)
         client.transmit.assert_called_once()
 
+    def test_unanswered_call_is_logged_and_stt_gets_a_lead_in(self):
+        gateway = Gateway()
+        client = Mock(connected=True)
+        client.clients = {'pilot': {'Name': 'Viper 1-1'}}
+        gateway.client = client
+        gateway.stt = Mock()
+        gateway.stt.post.return_value = b'{"text":"Taxman Viper one one checking in"}'
+        gateway.brain = Mock()
+        gateway.brain.post.side_effect = lambda *a, **k: (gateway.stop.set(), b'{"reply": null}')[1]
+        gateway.jobs.put((client, 'pilot', {'packets': {1: (1, b'opus')}, 'last': time.monotonic()}))
+        codec = Mock()
+        codec.decode.return_value = b'\0\1' * 1600
+        with patch('overlord.gateway.Opus', return_value=codec), patch('builtins.print') as printed:
+            gateway._process()
+        pcm = gateway.stt.post.call_args.args[1]
+        self.assertTrue(pcm.startswith(b'\0' * 8000) and pcm.endswith(b'\0\1' * 1600))
+        logged = [json.loads(call.args[0]) for call in printed.call_args_list]
+        self.assertIn({'event': 'unanswered', 'heard': 'Taxman Viper one one checking in', 'notes': None}, logged)
+
 
 if __name__ == '__main__':
     unittest.main()

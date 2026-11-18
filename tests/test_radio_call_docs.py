@@ -119,7 +119,7 @@ class RadioCallDocumentationTests(unittest.TestCase):
                                      {'kind': 'player', 'group': 'viper', 'flight': 1, 'element': 1}, call)
                     expect_fields(self, parsed, node.get('expected_fields', {}))
                     if node['intent'] == 'readback':
-                        self.assertIsNone(jtac._readback_mismatch(parsed['readback'], task), call)
+                        self.assertIsNone(jtac._readback_check(parsed['readback'], task)[1], call)
                     if parsed['heading'] is not None:
                         self.assertTrue(jtac._heading_ok(parsed['heading'], task['attack_heading']), call)
                     documented.add(node['intent'])

@@ -67,7 +67,7 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `SRS_FREQUENCY_HZ` | `251000000` | AWACS/legacy ATC frequency, Hz; never overrides native carrier or airfield radios | No |
 | `SRS_MODULATION` | `0` | 0 AM, 1 FM | No |
 | `BOT_CALLSIGN` | `Overlord` | Gateway display name and brain parser receiver | No |
-| `EOT_SECONDS` | `0.2` | Silence between UDP packets declaring end of transmission, accepted range 0.08–2 | No |
+| `EOT_SECONDS` | `0.5` | Silence between UDP packets declaring end of transmission, accepted range 0.08–2; shorter values split calls on network jitter | No |
 | `STT_PROMPT` | `Overlord, Viper one one, bogey dope, request picture, declare, inbound, ready to taxi, airfield, BRAA.` | Whisper vocabulary bias; tailor callsigns/airfields for mission | No |
 | `STT_URLS` | `http://stt-worker:8082` | Ordered remote STT base URLs, comma-separated | No; do not embed credentials in URLs |
 | `TTS_URLS` | `http://tts-worker:8083` | Ordered remote TTS base URLs, comma-separated | No |
@@ -660,7 +660,7 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 - Physical Xeon E5-2650 v2 inference is measured; complete radio reply timings were measured on Ryzen. Human/friends' SRS recordings were not available: corpus/audio checks use explicitly labeled synthetic local Piper speech, not human accuracy certification.
 - Proper nouns remain a weakness: fresh synthetic calls have produced “and Afra/and our for” for Anapa and occasional ignored calls. Fixed recordings make functional regression repeatable; they do not hide or solve general acoustic accuracy. Reply retranscription can also alter numbers/names. Validate human SRS recordings and operational phraseology before relying on ATC instructions.
 - One frequency and modulation per gateway. Reply path is half-duplex; receive audio during own transmission is discarded. No radio encryption/decryption, terrain line-of-sight model or concurrent overlapping-voice separation is implemented.
-- End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Segments are capped at 15 seconds; overload drops rather than retaining unbounded audio.
+- End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Calls are capped at 30 seconds; overload drops rather than retaining unbounded audio. Transcripts the controllers do not answer are logged as `unanswered` events.
 - Whisper confidence is a model token probability summary when present, not calibrated command correctness. Optional local NLP classifies only verified, explicitly addressed requests; it is not a substitute for acoustic accuracy or deterministic readback checks. No cloud fallback exists.
 - Tacview positions/metadata cannot prove DCS runway occupancy, clearance authority or arbitrary mission-task assignment. JTAC acts only on explicitly mission-authored tasks and live companion data; the bridge is not an unrestricted mission-command API.
 - Companion Lua/API harness checks do not establish actual in-game DCS acceptance. Validate mission installation, hook permissions, line-of-sight/marking behavior, abort cleanup, and every configured SRS frequency on the target DCS build. Carrier procedures are simplified; full LSO automation is not included.

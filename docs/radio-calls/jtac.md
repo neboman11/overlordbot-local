@@ -2,7 +2,7 @@
 
 This guide lists the exact transmissions the live JTAC controller (`overlord/jtac.py`, routed by `overlord/brain.py`) accepts on its own SRS frequency, and what it says back. It was traced from source after `2e6b83c`. It describes what this implementation does. It is not real-world JTAC, JFIRE or NATO close air support procedure, and it adds no phrase the code does not accept.
 
-There is one chart. It covers the whole procedure in a single connected flow: check in, task selection, nine-line brief, line repeats, readback and retries, contact, marks and laser (pending, acknowledged, failed, terminated), inbound call and clearance, off target, BDA, abort, laser off, status, say again, check out, and the mission changes that interrupt your task (announced) or reset it silently.
+There is one chart. It covers the whole procedure in a single connected flow: radio check, check in, task selection, nine-line brief, line repeats, readback (split over several calls if needed) and retries, contact, marks and laser (pending, acknowledged, failed, terminated), inbound call and clearance, off target, BDA, abort, laser off, status, say again, check out, and the mission changes that interrupt your task (announced) or reset it silently.
 
 Validation manifest: [`jtac-calls.json`](jtac-calls.json). It gives sample values for every `YOU` node, taken from the test fixture `tests/test_jtac.py`. `tests/test_radio_call_docs.py` parses every call with the real JTAC grammar and replays the main path, refusals included, against the controller to check the replies printed here.
 
@@ -23,18 +23,19 @@ Pilot claims never replace mission state. `contact` is required before clearance
 
 ## Operator rules (apply to every call)
 
-1. **Call shape:** `Axeman, [CALLSIGN], <one command>`. Open with the JTAC callsign. Up to three words are tried as the receiver, and a close phonetic match is accepted (`jtac.py` 479-488). The callsign is the server's `JTAC_CALLSIGN` setting, `Axeman` by default; replace it if your server uses another. `this is` / `from` after the callsign are skipped. Then your flight callsign (`Viper one one`; a modex is **not** accepted here), then **one** command phrase. The command phrase that starts earliest wins, and on a tie the earlier entry of the grammar list wins (`jtac.py` 114-144, 506-510). Do not chain two commands.
-2. **Frequency and coalition.** Axeman only answers on its own SRS channel (default 252.000 MHz AM, coalition 2) and only to aircraft of that coalition. Anything else gets no reply (`jtac.py` 890-900).
+1. **Call shape:** `Axeman, [CALLSIGN], <one command>`. Open with the JTAC callsign. Filler words before it (`uh`, `um`, `er`, `hey`, `okay`, `ok`, `so`, `and`, `yeah`, `hello`) are skipped, up to three words are then tried as the receiver, and a close phonetic match is accepted; `JTAC` is accepted as the receiver too (`jtac.py` 163, 533-546). The callsign is the server's `JTAC_CALLSIGN` setting, `Axeman` by default; replace it if your server uses another. `this is` / `from` after the callsign are skipped. Then your flight callsign (`Viper one one`; a modex is **not** accepted here), then **one** command phrase. The command phrase that starts earliest wins, and on a tie the earlier entry of the grammar list wins (`jtac.py` 117-147, 564-568). Do not chain two commands.
+2. **Frequency and coalition.** Axeman only answers on its own SRS channel (default 252.000 MHz AM, coalition 2) and only to aircraft of that coalition. Anything else gets no reply (`jtac.py` 968-971).
 3. **Identity.** Your callsign must match exactly one live unit of your coalition. Otherwise: `say again your callsign`, `i could not fully recognize your callsign`, `i could not find you on scope` or `I found more than one unit with a matching callsign` (`domain.py` 1172-1198).
-4. **Check in first.** Every procedure call before `checking in` gets `unable, check in first`. `checking out` works with or without a session. Checking in **again** keeps your task, brief and readback and answers `already checked in, ` followed by the `say status` reply (or the task list if you hold no task) (`jtac.py` 931-944).
-5. **Negation voids positive calls.** In `checking in`, `request task`, `ready for brief`, `readback`, `contact`, `in`, `request mark/smoke/sparkle/illumination`, `request laser` and `off target`, any `no`, `not`, `negative`, `dont`, `do not`, `unable`, `lost`, `stop`, `cease` or `terminate` makes the call `say again` (`jtac.py` 147-152, 525-532). `negative contact` is not a report. For a readback, only the words before `readback` are checked.
-6. **Abort and cancel.** `abort`, `cancel` and `belay` are all **abort**: contact and clearance are cancelled, any spot of your task is switched off (confirmed by a `laser off` event), and mark or laser reports still due are dropped. An `abort`, `cancel` or `belay` anywhere in a positive call turns the whole call into an abort (`request laser, abort`). `request laser off`, `cancel the laser`, `negative laser`, `terminate laser`, `no laser` are all **laser off**, never a laser request or an abort (`jtac.py` 128-130, 136, 525-528, 1152-1159).
-7. **Readbacks start with the word `readback`.** `roger` or `copy` is not a readback. Read back only the lines named after `read back` in the brief, in brief order, with nothing extra. See [Readback dictionary](#readback-dictionary).
-8. **Live mission link required.** If the mission bridge snapshot is missing or older than `DCS_STALE_SECONDS` (10 s default), every call except `checking out`, `abort` and `laser off` gets `unable, no live mission link`. `abort` and `laser off` still cancel locally and end `…, no live mission link` (`jtac.py` 923-930). If Tacview telemetry is stale, every other call gets `unable, no live tracking data, stand by`, addressed to your callsign as heard or to `station calling` (`brain.py` 191-201).
-9. **Interruptions are announced.** If the target dies, the controller is lost or the link goes stale after your brief, readback, contact or clearance, you go back to `awaiting brief`: clearance, contact, readback and acknowledged marks are dropped and spots are switched off. With a live link Axeman says why at once: `target destroyed, request BDA when ready` / `target not active, request BDA when ready`, or `abort abort abort, controller not available` (you were cleared) / `controller not available, brief cancelled, stand by`. A stale link cannot transmit. Until a new brief, procedure calls answer `unable, <reason>, request BDA` (target) or `unable, <reason>, stand by` (controller), and `in` answers `continue, no clearance, <reason>`. Once target and controller are back, ask for the brief again, read back, report contact (`jtac.py` 760-819).
-10. **Marks and laser are pending until acknowledged.** `stand by, … pending` only means the request is queued. The mission must acknowledge the DCS result within 15 s, and Axeman then transmits an EVENT. A required mark is satisfied by an acknowledged smoke or illumination, or your own spot still live (`jtac.py` 86, 629-669, 821-823). See [Marks and laser](#marks-and-laser).
-11. **Say again.** `say again` repeats Axeman's last reply to you word for word if nothing has changed since. Otherwise it answers like `say status`. `say again line <n>` / `say again remarks` repeat a brief line (`jtac.py` 947-956).
+4. **Check in first.** Every procedure call before `checking in` gets `unable, check in first`. `radio check` and `checking out` work with or without a session. Checking in **again** keeps your task, brief and readback and answers `already checked in, ` followed by the `say status` reply (or the task list if you hold no task) (`jtac.py` 995-1024).
+5. **Negation voids positive calls.** In `checking in`, `request task`, `ready for brief`, `readback`, `contact`, `in`, `request mark/smoke/sparkle/illumination`, `request laser` and `off target`, any `no`, `not`, `negative`, `dont`, `do not`, `unable`, `lost`, `stop`, `cease` or `terminate` makes the call `say again` (`jtac.py` 150-155, 581-589). `negative contact` is not a report. For a readback, only the words before `readback` are checked.
+6. **Abort and cancel.** `abort`, `cancel` and `belay` are all **abort**: contact and clearance are cancelled, any spot of your task is switched off (confirmed by a `laser off` event), and mark or laser reports still due are dropped. An `abort`, `cancel` or `belay` anywhere in a positive call turns the whole call into an abort (`request laser, abort`). `request laser off`, `cancel the laser`, `negative laser`, `terminate laser`, `no laser` are all **laser off**, never a laser request or an abort (`jtac.py` 133-135, 139, 583-586, 1228-1244).
+7. **Readbacks start with the word `readback`.** `roger` or `copy` is not a readback. Read back the lines named after `read back` in the brief, in brief order; extra words and other brief lines are ignored, and a long readback may be split over several calls. See [Readback dictionary](#readback-dictionary).
+8. **Live mission link required.** If the mission bridge snapshot is missing or older than `DCS_STALE_SECONDS` (10 s default), every call except `radio check`, `checking out`, `abort` and `laser off` gets `unable, no live mission link`. `abort` and `laser off` still cancel locally and end `…, no live mission link` (`jtac.py` 995-1008). If Tacview telemetry is stale, every other call, `radio check` included, gets `unable, no live tracking data, stand by`, addressed to your callsign as heard or to `station calling` (`brain.py` 191-201).
+9. **Interruptions are announced.** If the target dies, the controller is lost or the link goes stale after your brief, readback, contact or clearance, you go back to `awaiting brief`: clearance, contact, readback and acknowledged marks are dropped and spots are switched off. With a live link Axeman says why at once: `target destroyed, request BDA when ready` / `target not active, request BDA when ready`, or `abort abort abort, controller not available` (you were cleared) / `controller not available, brief cancelled, stand by`. A stale link cannot transmit. Until a new brief, procedure calls answer `unable, <reason>, request BDA` (target) or `unable, <reason>, stand by` (controller), and `in` answers `continue, no clearance, <reason>`. Once target and controller are back, ask for the brief again, read back, report contact (`jtac.py` 822-888).
+10. **Marks and laser are pending until acknowledged.** `stand by, … pending` only means the request is queued. The mission must acknowledge the DCS result within 15 s, and Axeman then transmits an EVENT. A required mark is satisfied by an acknowledged smoke or illumination, or your own spot still live (`jtac.py` 86, 687-730, 890-892). See [Marks and laser](#marks-and-laser).
+11. **Say again.** `say again` repeats Axeman's last reply to you word for word if nothing has changed since. Otherwise it answers like `say status`. `say again line <n>` / `say again remarks` repeat a brief line (`jtac.py` 1025-1031).
 12. **Local intent fallback.** With an LLM configured, an unrecognised call may be rewritten only into `ready for brief`, `request BDA` or `say status`. Everything else needs the phrases below (`brain.py` 202-221).
+13. **Transmission length.** One call may last up to 30 s; a pause of 0.5 s with no audio ends it (`gateway.py` 15, 40, 183-184). A longer call is cut and the rest heard as a new call. Read a long readback in two calls rather than one: lines already copied are kept. Calls Axeman does not answer are logged by the gateway as `unanswered` events with the text it heard.
 
 ## Placeholder dictionary
 
@@ -42,24 +43,26 @@ Sample values come from the test fixture `tests/test_jtac.py` (player `Viper 1-1
 
 | Placeholder | Pilot says | Sample | Source |
 |---|---|---|---|
-| `[CALLSIGN]` | Your flight callsign, digits spoken separately | `Viper one one` | `jtac.py` 528; `domain.py` 1172-1198 |
-| `[TASK]` | Task number from the task list, 1-99 | `one` | `jtac.py` 123-126, 530-531 |
-| `[LINE_NUMBER]` | Brief line one to nine (`remarks` has its own call) | `four` | `jtac.py` 119, 532-537 |
-| `[READBACK_VALUES]` | The values of the lines named after `read back`, in brief order | `elevation four five zero, kilo mike one two three four` | `jtac.py` 227-244 |
-| `[MARK_KIND]` | `smoke`, `sparkle` (or `IR pointer`), `illumination`, or `mark` to let Axeman pick | `smoke` | `jtac.py` 111-112, 131-132, 1047-1048 |
-| `[ATTACK_HEADING]` | Your inbound heading, up to three digits | `two seven zero` | `jtac.py` 538-547 |
+| `[CALLSIGN]` | Your flight callsign, digits spoken separately | `Viper one one` | `jtac.py` 591; `domain.py` 1172-1198 |
+| `[TASK]` | Task number from the task list, 1-99 | `one` | `jtac.py` 129-132, 593-594 |
+| `[LINE_NUMBER]` | Brief line one to nine (`remarks` has its own call) | `four` | `jtac.py` 122, 595-600 |
+| `[READBACK_VALUES]` | The values of the lines named after `read back`, in brief order | `elevation four five zero, kilo mike one two three four` | `jtac.py` 166-298 |
+| `[MARK_KIND]` | `smoke`, `sparkle` (or `IR pointer`), `illumination`, or `mark` to let Axeman pick | `smoke` | `jtac.py` 113-114, 136-138, 1206-1212 |
+| `[ATTACK_HEADING]` | Your inbound heading, up to three digits | `two seven zero` | `jtac.py` 601-610 |
 
 Reply-only placeholders (you never say these):
 
 | Placeholder | Axeman says |
 |---|---|
-| `[TASK_LIST]` | `task <n>, <name>` for each live task of your coalition no other pilot holds, comma separated, ending `and <n> more` past 600 characters (`jtac.py` 901-910) |
+| `[TASK_LIST]` | `task <n>, <name>` for each live task of your coalition no other pilot holds, comma separated, ending `and <n> more` past 600 characters (`jtac.py` 1044-1053) |
 | `[TASK_NAME]` | Mission-authored task name, for example `armor column` |
 | `[CONTROL_TYPE]` | `one`, `two` or `three` |
-| `[IP]`, `[OFFSET]`, `[DESCRIPTION]`, `[LOCATION]`, `[MARK]`, `[FRIENDLIES]`, `[EGRESS]`, `[REMARKS]` | Mission-authored brief text, verbatim. Offset and remarks are optional |
-| `[HEADING]`, `[DISTANCE]`, `[ELEVATION]` | Brief numbers spoken digit by digit, for example `two seven zero`, `six point five`, `four five zero` (`jtac.py` 247-249) |
+| `[IP]` | Line one as Axeman says it: the mission's IP text with `IP` put in front unless the text already starts with `IP`, for example `IP Dog` (`jtac.py` 1106-1108) |
+| `[OFFSET]`, `[DESCRIPTION]`, `[LOCATION]`, `[MARK]`, `[FRIENDLIES]`, `[EGRESS]`, `[REMARKS]` | Mission-authored brief text, verbatim. Offset and remarks are optional |
+| `[HEADING]`, `[DISTANCE]`, `[ELEVATION]` | Brief numbers spoken digit by digit, for example `two seven zero`, `six point five`, `four five zero` (`jtac.py` 301-306) |
 | `[READBACK_LINES]` | The lines you must read back, for example `line four, line six` (`remarks` for line ten) |
-| `[LINE_TEXT]` | One brief line as Axeman speaks it, for example `line four, elevation four five zero feet`, `line six, KM 1234` (`jtac.py` 942-962) |
+| `[LINE_TEXT]` | One brief line as Axeman speaks it, for example `line four, elevation four five zero feet`, `line six, KM 1234` (`jtac.py` 1104-1125) |
+| `[COPIED_LINES]` | The readback lines matched in this call, for example `line four` or `line four, line six` |
 | `[MISSING_LINE]` | `control type` or `line <n>`: the first required line the mission did not author |
 | `[MARK_NAME]` | `smoke`, `illumination` or `sparkle` (IR). `request mark` picks the first non-laser mark the task offers, else the laser |
 | `[LASER_CODE]` | Four digits, for example `one six eight eight` |
@@ -99,6 +102,10 @@ flowchart TD
     J_G_NOSESSION(["REPLY: unable, check in first"])
     J_G_TRACK(["REPLY: unable, no live tracking data, stand by — Tacview telemetry is stale; abort, laser off and checking out are still answered; addressed to your callsign as heard, or station calling"])
 
+  %% 0 · Radio check: any time, no session or mission link needed
+    J_RADIOCHECK["`YOU: **Axeman, [CALLSIGN], radio check**`"]
+    J_RADIOCHECK_R(["REPLY: loud and clear — also for comms check; answered with or without a session and with the mission link stale; your session, if any, is unchanged"])
+
   %% 1 · Check in
     J_CHECKIN["`YOU: **Axeman, [CALLSIGN], checking in**`"]
     J_CHECKIN_R(["REPLY: checked in, available [TASK_LIST], request task when ready"])
@@ -117,8 +124,8 @@ flowchart TD
 
   %% 3 · Nine-line brief
     J_BRIEF["`YOU: **Axeman, [CALLSIGN], ready for brief**`"]
-    J_BRIEF_R(["REPLY: type [CONTROL_TYPE] control, line one, IP [IP], line two, heading [HEADING], [OFFSET], line three, distance [DISTANCE], line four, elevation [ELEVATION] feet, line five, [DESCRIPTION], line six, [LOCATION], line seven, mark [MARK], line eight, friendlies [FRIENDLIES], line nine, egress [EGRESS], remarks, [REMARKS], read back [READBACK_LINES] — the offset and remarks are spoken only when the mission authored them"])
-    J_BRIEF_NORB(["REPLY: type [CONTROL_TYPE] control, line one, IP [IP], … line nine, egress [EGRESS], report contact — task authored with no readback lines: the readback step is already complete"])
+    J_BRIEF_R(["REPLY: type [CONTROL_TYPE] control, line one, [IP], line two, heading [HEADING], [OFFSET], line three, distance [DISTANCE], line four, elevation [ELEVATION] feet, line five, [DESCRIPTION], line six, [LOCATION], line seven, mark [MARK], line eight, friendlies [FRIENDLIES], line nine, egress [EGRESS], remarks, [REMARKS], read back [READBACK_LINES] — the offset and remarks are spoken only when the mission authored them"])
+    J_BRIEF_NORB(["REPLY: type [CONTROL_TYPE] control, line one, [IP], … line nine, egress [EGRESS], report contact — task authored with no readback lines: the readback step is already complete"])
     J_BRIEF_LONG(["REPLY: brief exceeds one transmission, request lines one through nine individually, then read back [READBACK_LINES] — or — brief exceeds one transmission, request lines one through nine individually, then report contact"])
     J_BRIEF_NOTASK(["REPLY: unable, request task first"])
     J_BRIEF_DEAD(["REPLY: unable, target destroyed, request BDA — or — unable, target not active, request BDA — or — unable, controller not available, stand by"])
@@ -135,7 +142,8 @@ flowchart TD
   %% 5 · Readback
     J_RB["`YOU: **Axeman, [CALLSIGN], readback [READBACK_VALUES]**`"]
     J_RB_OK(["REPLY: readback correct, report contact"])
-    J_RB_BAD(["REPLY: negative readback, [LINE_TEXT] — names the first line that did not match and repeats it"])
+    J_RB_PART(["REPLY: copy [COPIED_LINES], negative readback, [LINE_TEXT] — the copied lines are kept; names and repeats the first line still owed"])
+    J_RB_BAD(["REPLY: negative readback, [LINE_TEXT] — no owed line matched in this call; names and repeats the first line still owed"])
 
   %% 6 · Contact
     J_CONTACT["`YOU: **Axeman, [CALLSIGN], contact**`"]
@@ -263,9 +271,11 @@ flowchart TD
   J_LOST_R edge_J_LOST_R__J_BRIEF@-.->|"controller back: new brief"| J_BRIEF
   J_NOBRIEF edge_J_NOBRIEF__J_BRIEF@-.-> J_BRIEF
   J_REPEAT_R edge_J_REPEAT_R__J_RB@-.->|"RETURN: read back"| J_RB
-  J_RB edge_J_RB__J_RB_OK@-->|"every readback value, in brief order, nothing extra"| J_RB_OK
-  J_RB edge_J_RB__J_RB_BAD@-->|"first value wrong, missing or extra"| J_RB_BAD
-  J_RB_BAD edge_J_RB_BAD__J_RB@-.->|"RETRY: read back the whole set again"| J_RB
+  J_RB edge_J_RB__J_RB_OK@-->|"every owed value found in brief order,<br/>in this call or earlier ones"| J_RB_OK
+  J_RB edge_J_RB__J_RB_PART@-->|"some owed values matched, not all"| J_RB_PART
+  J_RB edge_J_RB__J_RB_BAD@-->|"no owed value matched: wrong,<br/>incomplete or missing"| J_RB_BAD
+  J_RB_PART edge_J_RB_PART__J_RB@-.->|"RETRY from the named line on;<br/>copied lines need not be repeated"| J_RB
+  J_RB_BAD edge_J_RB_BAD__J_RB@-.->|"RETRY from the named line on"| J_RB
   J_RB edge_J_RB__J_NOBRIEF@-->|"no brief issued yet"| J_NOBRIEF
   J_RB edge_J_RB__J_LOST_R@-->|"task interrupted"| J_LOST_R
   J_RB_OK edge_J_RB_OK__J_CONTACT@--> J_CONTACT
@@ -414,6 +424,11 @@ flowchart TD
   J_LOFF edge_J_LOFF__J_STALE_CXL@-->|"link stale"| J_STALE_CXL
   J_STALE_CXL edge_J_STALE_CXL__J_START@-.->|"RETURN when the link is back"| J_START
   J_START edge_J_START__J_CHECKOUT@-->|"no session needed"| J_CHECKOUT
+  J_START edge_J_START__J_RADIOCHECK@-->|"any time, no session needed"| J_RADIOCHECK
+  J_ANY edge_J_ANY__J_RADIOCHECK@--> J_RADIOCHECK
+  J_RADIOCHECK edge_J_RADIOCHECK__J_RADIOCHECK_R@--> J_RADIOCHECK_R
+  J_RADIOCHECK_R edge_J_RADIOCHECK_R__J_START@-.->|"RETURN: check in, or carry on"| J_START
+  J_RADIOCHECK_R edge_J_RADIOCHECK_R__J_ANY@-.->|"RETURN to the current step"| J_ANY
   J_CHECKOUT edge_J_CHECKOUT__J_CHECKOUT_R@-->|"always, even with the link stale"| J_CHECKOUT_R
   J_CHECKOUT_R edge_J_CHECKOUT_R__J_END@--> J_END
 
@@ -428,27 +443,29 @@ flowchart TD
   class edge_J_G_HUB__J_G_SILENT,edge_J_G_HUB__J_G_ID,edge_J_G_HUB__J_G_STALE,edge_J_G_HUB__J_G_NONE,edge_J_G_HUB__J_G_NOSESSION,edge_J_G_HUB__J_G_TRACK,edge_J_CHECKIN__J_CHECKIN_NONE,edge_J_CHECKIN__J_CHECKIN_AGAIN,edge_J_REQ_TASK__J_TASK_PICK,edge_J_REQ_TASK__J_TASK_NONE,edge_J_REQ_TASK_N__J_TASK_NA,edge_J_BRIEF__J_BRIEF_NOTASK,edge_J_BRIEF__J_BRIEF_DEAD,edge_J_BRIEF__J_BRIEF_INC,edge_J_REPEAT__J_REPEAT_NUM,edge_J_REPEAT__J_NOBRIEF,edge_J_REPEAT_RMK__J_NOBRIEF,edge_J_REPEAT__J_LOST_R,edge_J_REPEAT_RMK__J_LOST_R,edge_J_RB__J_RB_BAD,edge_J_RB__J_NOBRIEF,edge_J_RB__J_LOST_R,edge_J_CONTACT__J_CONTACT_NORB,edge_J_CONTACT__J_LOST_R,edge_J_MARK__J_MARK_NA,edge_J_LASER__J_MARK_NA,edge_J_MARK__J_NOBRIEF,edge_J_LASER__J_NOBRIEF,edge_J_MARK__J_LOST_R,edge_J_LASER__J_LOST_R,edge_J_W_ACK__J_EV_FAIL,edge_J_EV_LASER__J_EV_TERM,edge_J_EV_SPARKLE__J_EV_TERM,edge_J_IN_HDG__J_NOCLR,edge_J_IN__J_NOCLR,edge_J_CLEARED__J_X_CLR,edge_J_BDA__J_NOTASK,edge_J_BRIEF_R__J_X_LOST,edge_J_RB_OK__J_X_LOST,edge_J_CONTACT_HDG__J_X_LOST,edge_J_CONTACT_R__J_X_LOST,edge_J_CLEARED__J_X_LOST,edge_J_EV_LASER__J_X_LOST,edge_J_EV_SPARKLE__J_X_LOST,edge_J_X_LOST__J_EV_TGT,edge_J_X_LOST__J_EV_CTRL,edge_J_X_LOST__J_X_STALE,edge_J_TASK_R__J_X_TASK,edge_J_RB_OK__J_X_TASK,edge_J_ANY__J_X_CLOSED,edge_J_STATUS__J_STATUS_LOST,edge_J_SAYAGAIN__J_STATUS_LOST,edge_J_LOFF__J_NOTASK,edge_J_ABORT__J_STALE_CXL,edge_J_LOFF__J_STALE_CXL errorFlow
   class edge_J_G_SILENT__J_START,edge_J_G_ID__J_START,edge_J_G_STALE__J_START,edge_J_G_NONE__J_START,edge_J_G_NOSESSION__J_CHECKIN,edge_J_G_TRACK__J_START,edge_J_CHECKIN_AGAIN__J_ANY,edge_J_W_TASKS__J_REQ_TASK,edge_J_TASK_PICK__J_REQ_TASK_N,edge_J_TASK_NONE__J_W_TASKS,edge_J_TASK_NA__J_REQ_TASK,edge_J_TASK_NEXT__J_ANY,edge_J_BRIEF_NOTASK__J_REQ_TASK,edge_J_BRIEF_DEAD__J_BDA,edge_J_BRIEF_DEAD__J_REQ_TASK_N,edge_J_BRIEF_INC__J_REQ_TASK_N,edge_J_REPEAT_NUM__J_REPEAT,edge_J_LOST_R__J_BDA,edge_J_LOST_R__J_BRIEF,edge_J_NOBRIEF__J_BRIEF,edge_J_REPEAT_R__J_RB,edge_J_RB_BAD__J_RB,edge_J_CONTACT_NORB__J_RB,edge_J_CONTACT_NORB__J_BRIEF,edge_J_MARK_NA__J_MARK,edge_J_EV_FAIL__J_MARK,edge_J_EV_FAIL__J_LASER,edge_J_EV_TERM__J_LASER,edge_J_EV_TERM__J_MARK,edge_J_NOCLR__J_CONTACT,edge_J_NOCLR__J_IN_HDG,edge_J_NOCLR__J_MARK,edge_J_NOCLR__J_LASER,edge_J_NOCLR__J_RB,edge_J_NOCLR__J_REQ_TASK,edge_J_NOCLR__J_BDA,edge_J_X_CLR__J_MARK,edge_J_NOTASK__J_REQ_TASK,edge_J_EV_CTRL__J_BRIEF,edge_J_X_STALE__J_BRIEF,edge_J_X_TASK__J_REQ_TASK,edge_J_X_CLOSED__J_START,edge_J_STATUS_LOST__J_BDA,edge_J_STATUS_LOST__J_BRIEF,edge_J_STATUS_R__J_ANY,edge_J_STATUS_NOTASK__J_REQ_TASK,edge_J_SAYAGAIN_R__J_ANY,edge_J_ABORT_R__J_CONTACT,edge_J_LOFF_OFF__J_ANY,edge_J_EV_LOFF__J_ANY,edge_J_STALE_CXL__J_START recoveryFlow
   class edge_J_START__J_CHECKIN,edge_J_CHECKIN__J_CHECKIN_R,edge_J_CHECKIN_R__J_REQ_TASK,edge_J_CHECKIN_R__J_REQ_TASK_N,edge_J_CHECKIN_NONE__J_W_TASKS,edge_J_REQ_TASK__J_TASK_R,edge_J_REQ_TASK_N__J_TASK_R,edge_J_TASK_R__J_BRIEF,edge_J_BRIEF__J_BRIEF_R,edge_J_BRIEF__J_BRIEF_NORB,edge_J_BRIEF__J_BRIEF_LONG,edge_J_BRIEF_R__J_RB,edge_J_BRIEF_NORB__J_CONTACT,edge_J_BRIEF_LONG__J_REPEAT,edge_J_BRIEF_LONG__J_REPEAT_RMK,edge_J_REPEAT__J_REPEAT_R,edge_J_REPEAT_RMK__J_REPEAT_R,edge_J_RB__J_RB_OK,edge_J_RB_OK__J_CONTACT,edge_J_CONTACT__J_CONTACT_HDG,edge_J_CONTACT__J_CONTACT_R,edge_J_CONTACT_HDG__J_IN_HDG,edge_J_CONTACT_R__J_IN,edge_J_MARK__J_MARK_PEND,edge_J_LASER__J_LASER_PEND,edge_J_MARK_PEND__J_W_ACK,edge_J_LASER_PEND__J_W_ACK,edge_J_W_ACK__J_EV_LASER,edge_J_W_ACK__J_EV_SPARKLE,edge_J_W_ACK__J_EV_MARK,edge_J_EV_LASER__J_CONTACT,edge_J_EV_SPARKLE__J_CONTACT,edge_J_EV_MARK__J_CONTACT,edge_J_EV_LASER__J_IN_HDG,edge_J_EV_SPARKLE__J_IN_HDG,edge_J_EV_MARK__J_IN_HDG,edge_J_EV_LASER__J_IN,edge_J_EV_SPARKLE__J_IN,edge_J_EV_MARK__J_IN,edge_J_MARK_LIVE__J_IN_HDG,edge_J_MARK_LIVE__J_IN,edge_J_IN_HDG__J_CLEARED,edge_J_IN__J_CLEARED,edge_J_CLEARED__J_FLY,edge_J_FLY__J_OFF,edge_J_OFF__J_OFF_R,edge_J_OFF_R__J_BDA,edge_J_BDA__J_BDA_KILL,edge_J_BDA__J_BDA_REM,edge_J_BDA_REM__J_IN_HDG,edge_J_BDA_REM__J_IN,edge_J_BDA_KILL__J_REQ_TASK_N,edge_J_BDA_KILL__J_CHECKOUT,edge_J_EV_TGT__J_BDA,edge_J_EV_TGT__J_OFF,edge_J_EV_CTRL__J_OFF,edge_J_ABORT__J_ABORT_R,edge_J_ABORT_R__J_EV_LOFF,edge_J_LOFF__J_LOFF_PEND,edge_J_LOFF_PEND__J_EV_LOFF,edge_J_START__J_CHECKOUT,edge_J_CHECKOUT__J_CHECKOUT_R,edge_J_CHECKOUT_R__J_END normalFlow
-  class edge_J_X_STALE__J_EV_TGT,edge_J_X_STALE__J_EV_CTRL errorFlow
-  class J_CHECKIN,J_REQ_TASK,J_REQ_TASK_N,J_BRIEF,J_REPEAT,J_REPEAT_RMK,J_RB,J_CONTACT,J_MARK,J_LASER,J_IN_HDG,J_IN,J_OFF,J_BDA,J_STATUS,J_SAYAGAIN,J_ABORT,J_LOFF,J_CHECKOUT pilotCall
+  class edge_J_X_STALE__J_EV_TGT,edge_J_X_STALE__J_EV_CTRL,edge_J_RB__J_RB_PART errorFlow
+  class edge_J_START__J_RADIOCHECK,edge_J_ANY__J_RADIOCHECK,edge_J_RADIOCHECK__J_RADIOCHECK_R neutralFlow
+  class edge_J_RB_PART__J_RB,edge_J_RADIOCHECK_R__J_START,edge_J_RADIOCHECK_R__J_ANY recoveryFlow
+  class J_RADIOCHECK,J_CHECKIN,J_REQ_TASK,J_REQ_TASK_N,J_BRIEF,J_REPEAT,J_REPEAT_RMK,J_RB,J_CONTACT,J_MARK,J_LASER,J_IN_HDG,J_IN,J_OFF,J_BDA,J_STATUS,J_SAYAGAIN,J_ABORT,J_LOFF,J_CHECKOUT pilotCall
   class J_G_SILENT,J_G_ID,J_G_STALE,J_G_NONE,J_G_NOSESSION,J_G_TRACK,J_TASK_NA,J_TASK_NONE,J_BRIEF_NOTASK,J_BRIEF_DEAD,J_BRIEF_INC,J_REPEAT_NUM,J_NOBRIEF,J_LOST_R,J_RB_BAD,J_CONTACT_NORB,J_MARK_NA,J_EV_FAIL,J_EV_TERM,J_NOCLR,J_X_CLR,J_NOTASK,J_X_LOST,J_EV_TGT,J_EV_CTRL,J_X_STALE,J_X_TASK,J_X_CLOSED,J_STATUS_LOST errorNode
-  class J_TASK_PICK,J_BRIEF_LONG,J_ABORT_R,J_LOFF_PEND,J_LOFF_OFF,J_EV_LOFF,J_STALE_CXL recoveryNode
+  class J_TASK_PICK,J_BRIEF_LONG,J_RB_PART,J_ABORT_R,J_LOFF_PEND,J_LOFF_OFF,J_EV_LOFF,J_STALE_CXL recoveryNode
 ```
 
 ## Readback dictionary
 
-`_readback_mismatch` (`jtac.py` 228-245) checks the text after the first `readback` / `read back`. Before it runs, `_readback` (1081-1090) requires a brief (`unable, no brief issued`, or `unable, [LOST], request BDA` / `unable, [LOST], stand by` after an interruption).
+`_readback_check` (`jtac.py` 274-298) checks the text after the first `readback` / `read back`. Before it runs, `_readback` (1161-1175) requires a brief (`unable, no brief issued`, or `unable, [LOST], request BDA` / `unable, [LOST], stand by` after an interruption).
 
 1. The mission decides which lines are read back. The brief ends `read back line four, line six` (or `remarks` for line ten). With no readback lines it ends `report contact` and you go straight to contact.
-2. Say the values **in brief order**: IP, heading, distance, elevation, description, location, mark, friendlies, egress, remarks. The offset is never read back.
-3. Numeric lines (heading, distance, elevation) compare as complete signed decimals: `six point five` or `6.5` is 6.5, `six five` is 65, `minus one two zero` is -120. A heading also matches modulo 360.
-4. Text lines compare as whole runs of digits, phonetic letters and words: `KM 1234` is read back `kilo mike one two three four` (`x-ray` and `x ray` both mean X).
-5. Labels and filler are ignored separators: `feet foot ft elevation location grid line heading distance miles mile nm nautical ip egress mark friendlies remarks the and of is at a an copy roger read back readback uh um over` (`jtac.py` 155-158). **Two numeric values in a row need a label between them:** `heading two seven zero elevation four five zero` passes, `two seven zero, four five zero` is heard as one number and fails.
-6. Extra or missing content fails. The reply names the **first** failing line and repeats it: `negative readback, line four, elevation four five zero feet`. Read back the whole set again.
-7. A failed readback after a correct one puts you back to `awaiting readback` and drops contact and clearance.
+2. Say the values **in brief order**: IP, heading, distance, elevation, description, location, mark, friendlies, egress, remarks. Each required value is looked for after the previous one, so extra words and other brief lines around them are ignored: you may read back the whole nine-line. The offset is never required.
+3. Numeric lines (heading, distance, elevation) compare as complete signed decimals: `six point five` or `6.5` is 6.5, `six five` is 65, `minus one two zero` is -120. A heading also matches modulo 360. A value must be complete: `four five zero zero` is 4500, never 450.
+4. Text lines compare as whole runs of digits, phonetic letters and words: `KM 1234` is read back `kilo mike one two three four` (`x-ray` and `x ray` both mean X). Phonetic words run together (`kilomike`) and the transcriber's spellings `mic`, `mick`, `mik` (mike) and `keilo`, `keelo` (kilo) are accepted (`jtac.py` 106-112, 199-210).
+5. Labels and filler are ignored separators: `feet foot ft elevation location grid line heading distance miles mile nm nautical ip egress mark friendlies remarks the and of is at a an copy roger read back readback uh um over` (`jtac.py` 158-161). `line` with a number (`line four`, `line six`) is skipped whole and never read as a value (`jtac.py` 271). A pause transcribed as a comma, period, `;`, `?` or `!` also separates values, so `two seven zero, four five zero` passes (`jtac.py` 166-175). **Only numbers run together with no label or pause join into one:** `two seven zero four five zero` is one number and fails.
+6. A readback may be split over several calls. Lines read back correctly are remembered until a new brief, a task change or release, or an interruption. Some owed lines matched in this call, not all: `copy line four, negative readback, line six, KM 1234`. None matched: `negative readback, line four, elevation four five zero feet`. Either reply names and repeats the **first** line still owed; read back from that line on. Once every line is covered: `readback correct, report contact`.
+7. A failed readback leaves you at `awaiting readback` with contact and clearance dropped. Once every line has been read back, a further readback is checked on its own: a correct one answers `readback correct, report contact` again, a wrong one is refused and drops you back to `awaiting readback`.
 
 | Brief line | Axeman says | You read back (sample) |
 |---|---|---|
-| 1 IP | `line one, IP [IP]` | `IP dog` |
+| 1 IP | `line one, [IP]` | `IP dog` |
 | 2 heading | `line two, heading [HEADING], [OFFSET]` | `heading two seven zero` |
 | 3 distance | `line three, distance [DISTANCE]` | `distance six point five` |
 | 4 elevation | `line four, elevation [ELEVATION] feet` | `elevation four five zero` |
@@ -459,7 +476,7 @@ flowchart TD
 | 9 egress | `line nine, egress [EGRESS]` | `north to IP cat` |
 | remarks | `remarks, [REMARKS]` | the remarks words |
 
-Fixture readback (lines four and six): `Axeman, Viper one one, readback elevation four five zero, kilo mike one two three four`.
+Fixture readback (lines four and six): `Axeman, Viper one one, readback elevation four five zero, kilo mike one two three four`. Split over two calls: `readback elevation four five zero` (`copy line four, negative readback, line six, KM 1234`), then `readback kilo mike one two three four` (`readback correct, report contact`).
 
 ## Marks and laser
 
@@ -473,15 +490,15 @@ Fixture readback (lines four and six): `Axeman, Viper one one, readback elevatio
 | `laser off` | `copy, laser off pending` or `laser is off` | `laser off` / `unable laser off, [REASON]` | Ends a spot-based mark |
 | `abort` with a spot on | `copy abort, laser off pending` | `laser off` / `unable laser off, [REASON]` | Ends every mark |
 
-- A mark the task does not offer gets `unable, <mark> not available for this task`. A laser with no authored code gets `unable, no laser code assigned` (`jtac.py` 1127-1134).
-- Asking again while a request is pending re-sends the same `stand by` reply. Nothing new is queued (`jtac.py` 707-711).
+- A mark the task does not offer gets `unable, <mark> not available for this task`. A laser with no authored code gets `unable, no laser code assigned` (`jtac.py` 1206-1216).
+- Asking again while a request is pending re-sends the same `stand by` reply. Nothing new is queued (`jtac.py` 768-772).
 - `laser off` switches off **every** spot of your task, laser and IR, and is confirmed by one `laser off` event. `abort` does the same.
-- The mission may end a spot by itself (lease expired, mission-side switch-off). You then hear `spot terminated` or `sparkle terminated`, and a clearance that depended on that spot is withdrawn silently. When the spot goes off because the target or controller was lost, only that interruption report is spoken (`jtac.py` 656-672, 817-819).
-- EVENTs are held for 10 s and checked just before they are spoken. Your other calls in between do not cancel them. An event is dropped instead of spoken late once the procedure resets (abort, task change, interruption, check out) or the spot it reports is gone (`jtac.py` 87, 830-889; `brain.py` 333-349).
+- The mission may end a spot by itself (lease expired, mission-side switch-off). You then hear `spot terminated` or `sparkle terminated`, and a clearance that depended on that spot is withdrawn silently. When the spot goes off because the target or controller was lost, only that interruption report is spoken (`jtac.py` 714-730, 886-888).
+- EVENTs are held for 10 s and checked just before they are spoken. Your other calls in between do not cancel them. An event is dropped instead of spoken late once the procedure resets (abort, task change, interruption, check out) or the spot it reports is gone (`jtac.py` 87, 899-964; `brain.py` 333-350).
 
 ## Clearance conditions
 
-`in heading [ATTACK_HEADING]` / `in` is checked in this order (`jtac.py` 1099-1119). The first unmet condition is the reason in `continue, no clearance, [NO_CLEARANCE_REASON]`:
+`in heading [ATTACK_HEADING]` / `in` is checked in this order (`jtac.py` 1184-1204). The first unmet condition is the reason in `continue, no clearance, [NO_CLEARANCE_REASON]`:
 
 | Reason | Fix |
 |---|---|
@@ -500,7 +517,7 @@ With every condition met: `cleared hot`, or `cleared to engage` for a type three
 
 | Call | Wrong context reply |
 |---|---|
-| Anything except `checking in` / `checking out` with no session | `unable, check in first` |
+| Anything except `radio check` / `checking in` / `checking out` with no session | `unable, check in first` |
 | `ready for brief` with no task | `unable, request task first` |
 | `ready for brief` while the target or controller is dead | `unable, [LOST], request BDA` / `unable, controller not available, stand by` |
 | `say again line …` / `readback …` / `request mark` / `request laser` before a brief | `unable, no brief issued` |
@@ -511,11 +528,12 @@ With every condition met: `cleared hot`, or `cleared to engage` for a type three
 | `laser off` / `request BDA` with no task | `unable, no task assigned` |
 | `cleared hot`, `negative contact`, an unrecognised call | `say again` |
 
-## Intent coverage (16 JTAC intents)
+## Intent coverage (17 JTAC intents)
 
-| Intent (`jtac.py` 115-144) | Canonical phrase | Chart nodes |
+| Intent (`jtac.py` 117-147) | Canonical phrase | Chart nodes |
 |---|---|---|
 | checkOut | `checking out` | J_CHECKOUT |
+| radioCheck | `radio check` (also `comms check`) | J_RADIOCHECK |
 | checkIn | `checking in` (also `on station`) | J_CHECKIN |
 | readback | `readback …` | J_RB |
 | repeatLine | `say again line <n>` / `say again remarks` (also `repeat`, `confirm`) | J_REPEAT, J_REPEAT_RMK |
@@ -536,16 +554,17 @@ With every condition met: `cleared hot`, or `cleared to engage` for a type three
 
 | Topic | Source |
 |---|---|
-| Procedure summary, bridge protocol, readback rules | `overlord/jtac.py` 1-73 |
-| Grammar, earliest-match rule, negation/abort scope | 106-152, 479-560 |
-| Readback validator | 155-245 |
-| Task, brief, mark and laser validation | 257-386 |
-| Acknowledgements, spot loss, expiry, command queue | 564-728 |
-| Session reset, interruption and its reasons, stale refresh, mark requirement | 730-823 |
-| Events and reply validation | 830-889 |
-| Call dispatch, check in, say again, live-link guard | 890-964 |
-| Handlers (task, next step, brief, line, readback, contact, inbound, marks, laser off, abort, off, BDA, status) | 966-1202 |
-| Brain routing, tracking guard, local intent fallback, events | `overlord/brain.py` 183-221, 333-375 |
+| Procedure summary, bridge protocol, readback rules | `overlord/jtac.py` 1-74 |
+| Grammar, earliest-match rule, negation/abort scope, receiver fillers | 106-163, 533-618 |
+| Readback validator | 158-298 |
+| Task, brief, mark and laser validation | 310-439 |
+| Acknowledgements, spot loss, expiry, command queue | 622-787 |
+| Session reset, interruption and its reasons, stale refresh, mark requirement | 791-892 |
+| Events, recognition vocabulary and reply validation | 899-964 |
+| Call dispatch, radio check, check in, say again, live-link guard | 966-1042 |
+| Handlers (task, next step, brief, line, readback, contact, inbound, marks, laser off, abort, off, BDA, status) | 1044-1287 |
+| Brain routing, tracking guard, local intent fallback, events | `overlord/brain.py` 183-221, 333-377 |
+| Call length, end of transmission, unanswered-call log | `overlord/gateway.py` 13-15, 40, 183-184, 260-264 |
 | Caller identity replies | `overlord/domain.py` 1172-1198 |
 | Mission configuration fields | `dcs/jtac-config.example.lua` |
 | Behaviour tests | `tests/test_jtac.py` |

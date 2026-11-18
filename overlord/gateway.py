@@ -10,6 +10,12 @@ from .srs import Opus, SRSClient
 # Longest reply audio accepted from TTS: two minutes of 16 kHz mono s16le, above the
 # ~75 s a 1000-character controller reply (the brain's limit, e.g. a JTAC brief) produces.
 MAX_REPLY_AUDIO_BYTES = 120 * 16000 * 2
+# Longest pilot transmission kept as one call (a full 9-line readback runs 20+ s); STT accepts it
+# plus the lead-in.  Opus packets are 40 ms.
+MAX_CALL_SECONDS = 30
+# Silence put before each call: Whisper drops the first word of audio that starts mid-speech,
+# which is where the JTAC/ATC callsign is.
+LEAD_IN = b'\0' * (16000 * 2 // 4)
 
 
 class Gateway:
@@ -31,7 +37,7 @@ class Gateway:
         self.voice = os.environ.get('TTS_VOICE', '') or None   # TTS worker default voice when unset
         self.carrier_id = carrier_id
         self.airfield = bool(airfield)
-        self.eot = float(os.environ.get('EOT_SECONDS', '.2'))
+        self.eot = float(os.environ.get('EOT_SECONDS', '.5'))
         if not .08 <= self.eot <= 2:
             raise ValueError('EOT_SECONDS must be between .08 and 2')
         if self.airfield:
@@ -174,7 +180,8 @@ class Gateway:
                         else:
                             METRICS.add('transmissions_dropped_total')
                     for speaker, state in list(streams.items()):
-                        if now - state['last'] > self.eot or now - state['first'] > 15 or len(state['packets']) >= 375:
+                        if now - state['last'] > self.eot or now - state['first'] > MAX_CALL_SECONDS \
+                                or len(state['packets']) >= MAX_CALL_SECONDS * 25:
                             del streams[speaker]
                             self._enqueue(client, speaker, state)
             except (OSError, ConnectionError, PermissionError, ValueError) as error:
@@ -238,7 +245,7 @@ class Gateway:
                         continue
                     started = time.monotonic()
                     prompt = (self.prompt + ' ' + self.vocabulary)[:2048]
-                    transcript = json.loads(self.stt.post('/transcribe', pcm, 'audio/pcm', {'X-Prompt': prompt}))
+                    transcript = json.loads(self.stt.post('/transcribe', LEAD_IN + pcm, 'audio/pcm', {'X-Prompt': prompt}))
                     METRICS.observe('stt', time.monotonic() - started)
                     text = transcript.get('text', '').strip()
                     if not text:
@@ -252,6 +259,9 @@ class Gateway:
                     answer = json.loads(self.brain.post('/respond', json.dumps(request).encode()))
                     if not answer.get('reply'):
                         METRICS.add('parse_failures_total')
+                        # Calls the controller ignored (e.g. callsign not recognised) are otherwise invisible.
+                        print(json.dumps({'event': 'unanswered', 'heard': text,
+                                          'notes': answer.get('notes')}), flush=True)
                         continue
                 started = time.monotonic()
                 speech = {'text': answer['reply'], **({'voice': self.voice} if self.voice else {})}

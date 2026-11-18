@@ -116,7 +116,7 @@ class JtacTests(unittest.TestCase):
                                 'request task when ready')
         self.assertIn('task one, armor column', self.say('Axeman, Viper 1 1, request task')['reply'])
         brief = self.say('Axeman, Viper 1 1, ready for brief')['reply']
-        for line in ('type two control', 'line one, IP IP Dog', 'heading two seven zero, offset left',
+        for line in ('type two control', 'line one, IP Dog', 'heading two seven zero, offset left',
                      'distance six point five', 'elevation four five zero feet', 'line six, KM 1234',
                      'remarks, final attack heading', 'read back line four, line six'):
             self.assertIn(line, brief)
@@ -158,7 +158,8 @@ class JtacTests(unittest.TestCase):
                 ('elevation four five zero, kilo mike one two three four five six seven eight nine', 'line six'),
                 ('elevation four five zero, kilo mike one two three four five six seven', 'line six'),
                 ('elevation four five, kilo mike one two three four five six seven eight', 'line four'),
-                ('kilo mike one two three four five six seven eight, elevation four five zero', 'line four')):
+                ('kilo mike one two three four five six seven eight, elevation four five zero', 'line six')):
+            self.say('Axeman, Viper 1 1, ready for brief')     # a new brief forgets lines already read back
             reply = self.say(f'Axeman, Viper 1 1, readback {wrong}')['reply']
             self.assertIn(f'negative readback, {line}', reply, wrong)
         for right in ('elevation four hundred fifty feet, location kilo mike twelve thirty four fifty six seventy eight',
@@ -194,12 +195,16 @@ class JtacTests(unittest.TestCase):
             (['elevation'], {'elevation': -120}, 'minus one two zero', True),
             (['elevation'], {'elevation': -120}, 'one two zero', False),
             (['heading', 'elevation'], {}, 'heading two seven zero elevation four five zero', True),
-            (['heading', 'elevation'], {}, 'two seven zero, four five zero', False),
+            (['heading', 'elevation'], {}, 'two seven zero four five zero', False),
             (['heading', 'elevation'], {}, 'heading two seven zero elevation four five zero zero', False),
             (['location'], {}, 'kilo mike one two three four', True),
             (['location'], {}, 'kilo mike one two three four five', False),
             (['location'], {}, 'kilo one two three four', False),
-            (['elevation'], {}, 'elevation four five five, elevation four five zero', False),
+            (['elevation'], {}, 'line four, elevation four five zero feet', True),
+            (['elevation', 'location'], {}, 'IP Dog, heading two seven zero, offset left, six point five, '
+             'four five zero, three tanks on the road, kilo mike one two three four, laser one six eight eight', True),
+            (['elevation', 'location'], {}, 'four five zero, kilomike one two three four', True),
+            (['elevation', 'location'], {}, 'four five zero, kilo mic one two three four', True),
         ]
         for readback, brief, text, accepted in cases:
             with self.subTest(text=text, readback=readback):
@@ -689,6 +694,34 @@ class JtacTests(unittest.TestCase):
         self.bridge([task(target={'alive': False, 'total': 3, 'remaining': 0, 'destroyed': True})])
         self.assertEqual([e['reply'] for e in self.jtac.take_events(2, CHANNEL)],
                          ['viper 1 1, Axeman, target destroyed, request BDA when ready'])
+
+    # -- reported on the radio: 2026-11-18 session ------------------------------------
+
+    def test_readback_split_over_two_transmissions_is_kept(self):
+        self.bridge()
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        self.say('Axeman, Viper 1 1, ready for brief')
+        first = self.say('Axeman, Viper 1 1, readback, line four elevation, four five zero feet')['reply']
+        self.assertIn('copy line four, negative readback, line six', first)
+        self.assertIn('readback correct', self.say('Axeman, Viper 1 1, readback grid kilo mike 1234')['reply'])
+        self.say('Axeman, Viper 1 1, ready for brief')
+        self.assertIn('negative readback, line four', self.say('Axeman, Viper 1 1, readback kilo mike 1234')['reply'])
+        self.say('Axeman, Viper 1 1, readback elevation four five zero, kilo mike 1234')
+        self.assertIn('negative readback, line four', self.say('Axeman, Viper 1 1, readback kilo mike 1234')['reply'])
+
+    def test_callsign_after_filler_or_as_jtac_is_heard(self):
+        for text in ('Uh, Axeman, Viper 1 1, checking in', 'Okay Axeman, Viper 1 1, checking in',
+                     'JTAC, Viper 1 1, checking in', 'Axman, Viper 1 1, checking in'):
+            self.assertEqual(self.jtac.parse(text, UNITS, 2)['intent'], 'checkIn', text)
+        self.assertIsNone(self.jtac.parse('Viper 1 1, checking in', UNITS, 2))
+
+    def test_radio_check_and_brief_ip_wording(self):
+        self.assertIn('loud and clear', self.say('Axeman, Viper 1 1, radio check')['reply'])
+        self.bridge()
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        self.assertIn('line one, IP Dog, line two', self.say('Axeman, Viper 1 1, ready for brief')['reply'])
 
 
 if __name__ == '__main__':
