@@ -7,6 +7,10 @@ import time
 from .http import METRICS, Remote
 from .srs import Opus, SRSClient
 
+# Longest reply audio accepted from TTS: two minutes of 16 kHz mono s16le, above the
+# ~75 s a 1000-character controller reply (the brain's limit, e.g. a JTAC brief) produces.
+MAX_REPLY_AUDIO_BYTES = 120 * 16000 * 2
+
 
 class Gateway:
     """One SRS radio. Per-instance overrides never touch os.environ; unset ones use env defaults."""
@@ -24,6 +28,7 @@ class Gateway:
         self.frequency = float(os.environ.get('SRS_FREQUENCY_HZ', '251000000')) if frequency is None else float(frequency)
         self.modulation = int(os.environ.get('SRS_MODULATION', '0')) if modulation is None else int(modulation)
         self.name = os.environ.get('BOT_CALLSIGN', 'Overlord') if name is None else name
+        self.voice = os.environ.get('TTS_VOICE', '') or None   # TTS worker default voice when unset
         self.carrier_id = carrier_id
         self.airfield = bool(airfield)
         self.eot = float(os.environ.get('EOT_SECONDS', '.2'))
@@ -249,7 +254,8 @@ class Gateway:
                         METRICS.add('parse_failures_total')
                         continue
                 started = time.monotonic()
-                pcm = self.tts.post('/synthesize', json.dumps({'text': answer['reply']}).encode())
+                speech = {'text': answer['reply'], **({'voice': self.voice} if self.voice else {})}
+                pcm = self.tts.post('/synthesize', json.dumps(speech).encode(), limit=MAX_REPLY_AUDIO_BYTES)
                 METRICS.observe('tts', time.monotonic() - started)
                 if not pcm or len(pcm) % 2:
                     raise ValueError('TTS returned invalid PCM')

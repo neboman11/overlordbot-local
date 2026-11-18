@@ -117,8 +117,10 @@ COMMANDS = [
     ("checkIn", re.compile(r"\bcheck(?:ing)? in\b|\bon station\b")),
     ("readback", re.compile(r"\bread ?back\b")),
     ("repeatLine", re.compile(r"\b(?:say again|repeat|confirm) (?:line|remarks)\b")),
+    # "breath", "breathe", "break" and "breed" are how Whisper hears "brief" on the radio.
     ("requestBrief", re.compile(
-        r"\b(?:ready (?:for|to copy)|request(?:ing)?|send) (?:the )?(?:brief|briefing|(?:nine|9) ?line)\b"
+        r"\b(?:ready (?:for|to copy)|request(?:ing)?|send) (?:the )?"
+        r"(?:brief|briefs|briefing|breath|breathe|break|breed|(?:nine|9) ?line)\b"
         r"|\bready to copy\b")),
     ("requestTask", re.compile(r"\b(?:request(?:ing)?|ready for|need|say) (?:a |the )?(?:task|tasking)\b"
                                r"|\btask (?:number )?(?=(?:\d|one|two|three|four|five|six|seven|eight|nine|"

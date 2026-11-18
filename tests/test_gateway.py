@@ -49,7 +49,7 @@ class GatewayRecoveryTests(unittest.TestCase):
             b'{"valid":false}',
         ]
         gateway.tts = Mock()
-        def synthesize(*args):
+        def synthesize(*args, **kwargs):
             # Simulate abort/revocation while speech synthesis is in progress.
             gateway.stop.set()
             return b'\0\0' * 1600
@@ -60,6 +60,30 @@ class GatewayRecoveryTests(unittest.TestCase):
         with patch('overlord.gateway.Opus', return_value=codec):
             gateway._process()
         client.transmit.assert_not_called()
+
+    def test_long_reply_is_spoken_in_the_role_voice(self):
+        # A full JTAC 9-line is ~75 s of audio (~2.4 MB); it once failed the 1 MiB worker response cap.
+        with patch.dict('os.environ', {'TTS_VOICE': 'en_US-bryce-medium'}):
+            gateway = Gateway()
+        client = Mock(connected=True)
+        client.clients = {'pilot': {'Name': 'Viper 1-1'}}
+        gateway.client = client
+        client.transmit.side_effect = lambda pcm: gateway.stop.set()     # one reply, then end the loop
+        gateway.stt = Mock()
+        gateway.stt.post.return_value = b'{"text":"Axeman Viper one one ready for brief"}'
+        gateway.brain = Mock()
+        gateway.brain.post.return_value = json.dumps({'reply': 'type two control, line one, ...'}).encode()
+        gateway.tts = Mock()
+        gateway.tts.post.return_value = b'\0\0' * 16000 * 75
+        gateway.jobs.put((client, 'pilot', {'packets': {1: (1, b'opus')}, 'last': time.monotonic()}))
+        codec = Mock()
+        codec.decode.return_value = b'\0\0' * 1600
+        with patch('overlord.gateway.Opus', return_value=codec):
+            gateway._process()
+        _, body = gateway.tts.post.call_args.args[:2]
+        self.assertEqual(json.loads(body)['voice'], 'en_US-bryce-medium')
+        self.assertGreaterEqual(gateway.tts.post.call_args.kwargs['limit'], 2 * 16000 * 75)
+        client.transmit.assert_called_once()
 
 
 if __name__ == '__main__':

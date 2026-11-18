@@ -305,6 +305,11 @@ class JtacTests(unittest.TestCase):
             parsed = self.jtac.parse(f'Axeman, Viper 1 1, {text}', UNITS, 2)
             self.assertEqual((parsed['intent'], parsed['blocked']), (intent, blocked), text)
 
+    def test_misheard_brief_request_still_requests_the_brief(self):
+        # Real STT output for "ready for brief" on the JTAC frequency.
+        for text in ('ready for breath', 'ready for break', 'ready for the brief', 'request nine line'):
+            self.assertEqual(self.jtac.parse(f'Axeman, Viper 1 1, {text}', UNITS, 2)['intent'], 'requestBrief', text)
+
     def test_literal_signs_and_decimals_in_readback(self):
         cases = [
             (['elevation'], {}, '-450', False), (['elevation'], {}, '+450', True), (['elevation'], {}, '450', True),

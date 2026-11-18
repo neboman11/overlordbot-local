@@ -363,8 +363,9 @@ class Brain:
             with self.world.locked_snapshot() as (_, units):
                 callsigns = spoken_callsigns(name for unit in units if unit['coalition'] == coalition
                                              for name in (unit.get('pilot'), unit.get('callsign')))
-            return {'events': events, 'vocabulary': [self.jtac.callsign, 'check in', 'nine line', 'readback',
-                                                    'contact', 'abort', 'laser on', 'laser off'] + callsigns}
+            return {'events': events, 'vocabulary': [self.jtac.callsign, 'checking in', 'request task', 'ready for brief',
+                                                    'nine line', 'readback', 'contact', 'in hot', 'off target',
+                                                    'abort', 'laser on', 'laser off'] + callsigns}
         with self.lock, self.world.locked_snapshot() as (generation, units):
             self._sync_generation(generation)
             out = []

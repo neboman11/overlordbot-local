@@ -175,7 +175,7 @@ class Remote:
         self.token = os.environ.get('API_TOKEN', '') if token is None else token
         self.opener = urllib.request.build_opener(NoRedirect)
 
-    def post(self, path, body, content_type='application/json', headers=None):
+    def post(self, path, body, content_type='application/json', headers=None, limit=MAX_BODY):
         failures = []
         for url in self.urls:
             request_headers = {'Content-Type': content_type, **(headers or {})}
@@ -184,9 +184,9 @@ class Remote:
             request = urllib.request.Request(url + path, data=body, headers=request_headers)
             try:
                 with self.opener.open(request, timeout=self.timeout) as response:
-                    result = response.read(MAX_BODY + 1)
-                    if len(result) > MAX_BODY:
-                        raise ValueError('worker response exceeds 1 MiB')
+                    result = response.read(limit + 1)
+                    if len(result) > limit:
+                        raise ValueError(f'worker response exceeds {limit} bytes')
                     return result
             except urllib.error.HTTPError as error:
                 if error.code < 500:
