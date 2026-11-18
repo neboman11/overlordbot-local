@@ -683,6 +683,13 @@ class JtacTests(unittest.TestCase):
         self.assertEqual([e['reply'] for e in self.jtac.take_events(2, CHANNEL)],
                          ['viper 1 1, Axeman, target destroyed, request BDA when ready'])
 
+    def test_spot_lost_with_its_target_gives_only_the_target_report(self):
+        command_id = self.cleared_hot()
+        self.bridge([task(laser={'on': True, 'command': command_id})])
+        self.bridge([task(target={'alive': False, 'total': 3, 'remaining': 0, 'destroyed': True})])
+        self.assertEqual([e['reply'] for e in self.jtac.take_events(2, CHANNEL)],
+                         ['viper 1 1, Axeman, target destroyed, request BDA when ready'])
+
 
 if __name__ == '__main__':
     unittest.main()

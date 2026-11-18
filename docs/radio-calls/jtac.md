@@ -155,7 +155,7 @@ flowchart TD
     J_EV_SPARKLE(["EVENT: sparkle on the target"])
     J_EV_MARK(["EVENT: [MARK_NAME] on the target — smoke or illumination"])
     J_EV_FAIL(["EVENT: unable laser, [REASON] — or — unable [MARK_NAME], [REASON] — [REASON] is the mission's failure reason or status, or no acknowledgement after 15 s"])
-    J_EV_TERM(["EVENT: spot terminated — or — sparkle terminated — the mission switched your spot off: target or controller lost, or its lease expired"])
+    J_EV_TERM(["EVENT: spot terminated — or — sparkle terminated — the mission switched your spot off on its own, e.g. its lease expired; with the target or controller lost you get that interruption report instead"])
 
   %% 8 · Inbound and clearance
     J_IN_HDG["`YOU: **Axeman, [CALLSIGN], in heading [ATTACK_HEADING]**`"]
@@ -476,7 +476,7 @@ Fixture readback (lines four and six): `Axeman, Viper one one, readback elevatio
 - A mark the task does not offer gets `unable, <mark> not available for this task`. A laser with no authored code gets `unable, no laser code assigned` (`jtac.py` 1127-1134).
 - Asking again while a request is pending re-sends the same `stand by` reply. Nothing new is queued (`jtac.py` 707-711).
 - `laser off` switches off **every** spot of your task, laser and IR, and is confirmed by one `laser off` event. `abort` does the same.
-- The mission may end a spot by itself (target or controller lost, lease expired). You then hear `spot terminated` or `sparkle terminated`, and a clearance that depended on that spot is withdrawn silently (`jtac.py` 656-669, 817-819).
+- The mission may end a spot by itself (lease expired, mission-side switch-off). You then hear `spot terminated` or `sparkle terminated`, and a clearance that depended on that spot is withdrawn silently. When the spot goes off because the target or controller was lost, only that interruption report is spoken (`jtac.py` 656-672, 817-819).
 - EVENTs are held for 10 s and checked just before they are spoken. Your other calls in between do not cancel them. An event is dropped instead of spoken late once the procedure resets (abort, task change, interruption, check out) or the spot it reports is gone (`jtac.py` 87, 830-889; `brain.py` 333-349).
 
 ## Clearance conditions

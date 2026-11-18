@@ -654,16 +654,19 @@ class Controller:
             self._event(session, f"unable {name}, {reason or status}")
 
     def _spot_changes(self, previous, switching_off):
-        """Report spots the mission terminated on its own (target or controller lost, lease expired).
+        """Report spots the mission terminated on its own (lease expired, mission side switch-off).
 
         A spot going off because of a requested laser-off (queued or acknowledged in this very
-        exchange) is already reported by that acknowledgement.
+        exchange) is already reported by that acknowledgement, and one that went off with its target
+        or controller is covered by the interruption report that follows in the same exchange.
         """
         switching_off = switching_off | {c["task"] for c in self._outbox.values() if c["op"] == "laser_off"}
         for task_id, old in previous.items():
             new = self._tasks.get(task_id)
+            if task_id in switching_off or (new is not None and not _live(new)):
+                continue
             for kind in SPOTS:
-                if old[kind]["on"] and not (new and new[kind]["on"]) and task_id not in switching_off:
+                if old[kind]["on"] and not (new and new[kind]["on"]):
                     session = self._session_for(old[kind]["command"] or "")
                     if session:
                         self._event(session, "spot terminated" if kind == "laser" else "sparkle terminated")
