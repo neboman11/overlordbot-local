@@ -15,6 +15,7 @@ import json
 import logging
 import math
 import os
+import re
 import signal
 import subprocess
 import threading
@@ -246,37 +247,46 @@ def speech_chunks(text, limit=TTS_CHUNK_CHARS):
 
 
 class NativeTTS:
-    """Piper voice loaded once on the ONNX Runtime CPU provider.
+    """Piper voices loaded once on the ONNX Runtime CPU provider; one voice per radio role.
 
     Environment (constructor arguments override):
-      PIPER_MODEL    /models/en_US-ljspeech-medium.onnx (22050 Hz native, resampled to 16000)
-      PIPER_CONFIG   PIPER_MODEL + '.json'
-      PIPER_VOICE    en_US-ljspeech-medium (the only voice name synthesize accepts)
-      PIPER_THREADS  0 (ONNX Runtime default intra-op threads)
+      PIPER_VOICES     en_US-ljspeech-medium: comma-separated voice names; the first is the default.
+                       Each name loads <PIPER_MODEL_DIR>/<name>.onnx and its .onnx.json config.
+      PIPER_MODEL_DIR  /models
+      PIPER_THREADS    0 (ONNX Runtime default intra-op threads)
     """
 
-    def __init__(self, model=None, config=None, voice=None, threads=None):
+    def __init__(self, voices=None, model_dir=None, threads=None):
         import numpy as np
         import onnxruntime
         from piper import PiperVoice
         from piper.config import PiperConfig
         self._np = np
-        self.model = model or _env('PIPER_MODEL', '/models/en_US-ljspeech-medium.onnx')
-        self.config = config or _env('PIPER_CONFIG', self.model + '.json')
-        self.voice = voice or _env('PIPER_VOICE', 'en_US-ljspeech-medium')
+        names = voices or [v.strip() for v in _env('PIPER_VOICES', 'en_US-ljspeech-medium').split(',') if v.strip()]
+        if not names or len(set(names)) != len(names) or any(not re.fullmatch(r'[A-Za-z0-9_.-]+', n) for n in names):
+            raise ValueError('PIPER_VOICES must list distinct voice names')
+        model_dir = model_dir or _env('PIPER_MODEL_DIR', '/models')
         self.threads = int(threads if threads is not None else _env('PIPER_THREADS', '0'))
+        self.voice, self.voices = names[0], tuple(names)
+        self.model = os.path.join(model_dir, self.voice + '.onnx')
         start = time.monotonic()
-        with open(self.config, encoding='utf-8') as handle:
-            piper_config = PiperConfig.from_dict(json.load(handle))
         options = onnxruntime.SessionOptions()
         options.intra_op_num_threads = self.threads
-        session = onnxruntime.InferenceSession(self.model, sess_options=options, providers=['CPUExecutionProvider'])
-        self._voice = PiperVoice(session=session, config=piper_config)
-        self.native_rate = piper_config.sample_rate
+        # No arena: each voice would otherwise keep its peak working set after every reply.
+        options.enable_cpu_mem_arena = False
+        self._voices = {}
+        for name in names:
+            model = os.path.join(model_dir, name + '.onnx')
+            with open(model + '.json', encoding='utf-8') as handle:
+                piper_config = PiperConfig.from_dict(json.load(handle))
+            session = onnxruntime.InferenceSession(model, sess_options=options, providers=['CPUExecutionProvider'])
+            self._voices[name] = (PiperVoice(session=session, config=piper_config), piper_config.sample_rate)
+        self.native_rate = self._voices[self.voice][1]
         self._lock = threading.Lock()
         self._closed = False
-        if not self.synthesize('Ready.'):
-            raise RuntimeError(f'Piper voice {self.model} produced no audio')
+        for name in names:
+            if not self.synthesize('Ready.', name):
+                raise RuntimeError(f'Piper voice {name} produced no audio')
         self.load_seconds = time.monotonic() - start
 
     @property
@@ -287,18 +297,19 @@ class NativeTTS:
         """Text -> 16000 Hz mono s16le PCM."""
         if self._closed:
             raise RuntimeError('NativeTTS is closed')
-        if voice not in (None, self.voice):
-            raise ValueError(f'voice {voice!r} is not loaded; available: {self.voice}')
+        if voice is not None and voice not in self._voices:
+            raise ValueError(f'voice {voice!r} is not loaded; available: {", ".join(self.voices)}')
+        piper, native_rate = self._voices[voice or self.voice]
         np = self._np
         pause = np.zeros(round(TTS_CLAUSE_PAUSE_SECONDS * SAMPLE_RATE), dtype='<i2')
         parts = []
         for clause in speech_chunks(text):
             with self._lock:
-                audio = [chunk.audio_float_array for chunk in self._voice.synthesize(clause)]
+                audio = [chunk.audio_float_array for chunk in piper.synthesize(clause)]
             if not audio:
                 continue
             # Resampled per clause too: the polyphase index matrix is ~400 bytes per output sample.
-            audio = resample(np.concatenate(audio), self.native_rate, SAMPLE_RATE)
+            audio = resample(np.concatenate(audio), native_rate, SAMPLE_RATE)
             if parts:
                 parts.append(pause)
             parts.append((np.clip(audio, -1.0, 1.0) * 32767.0).round().astype('<i2'))
@@ -306,7 +317,7 @@ class NativeTTS:
 
     def close(self):
         self._closed = True
-        self._voice = None
+        self._voices = {}
 
     def __enter__(self):
         return self

@@ -74,6 +74,7 @@ services:
       SRS_FREQUENCY_HZ: ${SRS_FREQUENCY_HZ:-251000000}
       SRS_MODULATION: ${SRS_MODULATION:-0}
       BOT_CALLSIGN: ${BOT_CALLSIGN:-Overlord}
+      TTS_VOICE: ${AWACS_TTS_VOICE:-en_US-ljspeech-medium}
       STT_URLS: ${STT_URLS:-http://stt-worker:8082}
       TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
       BRAIN_URL: http://brain:8081
@@ -92,6 +93,7 @@ services:
       SRS_FREQUENCY_HZ: ${JTAC_SRS_FREQUENCY_HZ:-252000000}
       SRS_MODULATION: ${JTAC_SRS_MODULATION:-0}
       BOT_CALLSIGN: ${JTAC_CALLSIGN:-Axeman}
+      TTS_VOICE: ${JTAC_TTS_VOICE:-en_US-bryce-medium}
       STT_PROMPT: "Axeman, Viper one one, check in, nine line, readback, contact, mark, laser on, laser off, abort."
       STT_URLS: ${STT_URLS:-http://stt-worker:8082}
       TTS_URLS: ${TTS_URLS:-http://tts-worker:8083}
@@ -114,6 +116,7 @@ services:
       BRAIN_URL: http://brain:8081
       API_TOKEN: ${API_TOKEN:-}
       HTTP_PORT: '8084'
+      TTS_VOICE: ${CARRIER_TTS_VOICE:-en_US-kristin-medium}
       CARRIER_GATEWAY_POLL_SECONDS: ${CARRIER_GATEWAY_POLL_SECONDS:-1}
       CARRIER_GATEWAY_STALE_SECONDS: ${CARRIER_GATEWAY_STALE_SECONDS:-15}
     depends_on: [srs, brain, stt-worker, tts-worker]
@@ -132,6 +135,7 @@ services:
       BRAIN_URL: http://brain:8081
       API_TOKEN: ${API_TOKEN:-}
       HTTP_PORT: '8085'
+      TTS_VOICE: ${AIRFIELD_TTS_VOICE:-en_US-john-medium}
       AIRFIELD_GATEWAY_POLL_SECONDS: ${AIRFIELD_GATEWAY_POLL_SECONDS:-1}
       AIRFIELD_GATEWAY_STALE_SECONDS: ${AIRFIELD_GATEWAY_STALE_SECONDS:-15}
     depends_on: [srs, brain, stt-worker, tts-worker]

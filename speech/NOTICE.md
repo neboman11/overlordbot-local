@@ -12,11 +12,13 @@ fetched at image build time from the pinned location and verified.
 | numpy, protobuf, flatbuffers, packaging, pathvalidate | see requirements-speech.txt | BSD-3-Clause, BSD-3-Clause, Apache-2.0, Apache-2.0/BSD-2-Clause, MIT | PyPI | site-packages dist-info |
 | Whisper tiny.en (ggml) | HF `ggerganov/whisper.cpp` rev `5359861c739e955e79d9a303bcbc70fb988958b1` | MIT | models.lock.json | `/models/ggml-tiny.en.bin` |
 | Piper voice en_US-ljspeech-medium | HF `rhasspy/piper-voices` rev `cf910fb59f1d79ab3b625a63993a108751c6c25d`, path `en/en_US/ljspeech/medium/` | public domain: MODEL_CARD states LJ Speech dataset licence "public domain"; trainer Bryce Beattie publishes it as public domain ("use these for any legal and ethical purpose", https://brycebeattie.com/files/tts/); repository tagged MIT | models.lock.json | `/models/en_US-ljspeech-medium.onnx{,.json}`, `/models/en_US-ljspeech-medium.MODEL_CARD` |
+| Piper voices en_US-john-medium, en_US-bryce-medium, en_US-kristin-medium | HF `rhasspy/piper-voices` rev `cf910fb59f1d79ab3b625a63993a108751c6c25d`, paths `en/en_US/{john,bryce,kristin}/medium/` | public domain: each MODEL_CARD states licence "public domain" (john and kristin: LibriVox recordings; bryce: the trainer's own voice); trainer Bryce Beattie publishes them as public domain (https://brycebeattie.com/files/tts/) | models.lock.json | `/models/en_US-{john,bryce,kristin}-medium.onnx{,.json}` and `.MODEL_CARD` |
 
 Exact URLs, sizes and SHA256 for every model file: `/app/models.lock.json`.
 
-Voice: LJ Speech (https://keithito.com/LJ-Speech-Dataset/) is public-domain LibriVox audio. The voice
-is 22050 Hz natively; NativeTTS resamples it to 16000 Hz. Its config selects espeak-ng voice `en`.
+Voices: LJ Speech (https://keithito.com/LJ-Speech-Dataset/) is public-domain LibriVox audio. All four
+voices are 22050 Hz natively; NativeTTS resamples them to 16000 Hz. Each config selects espeak-ng voice `en`.
+Gateways pick a voice per radio role (`TTS_VOICE`); see DEPLOY.md.
 
 GPL-3.0 piper-tts combined with AGPL-3.0 code is permitted by section 13 of both licences;
 corresponding source for piper-tts and espeak-ng is at the URLs above.

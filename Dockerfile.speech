@@ -78,9 +78,8 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app \
     WHISPER_SERVER=/usr/local/bin/whisper-server \
     WHISPER_THREADS=4 \
     WHISPER_PORT=18080 \
-    PIPER_MODEL=/models/en_US-ljspeech-medium.onnx \
-    PIPER_CONFIG=/models/en_US-ljspeech-medium.onnx.json \
-    PIPER_VOICE=en_US-ljspeech-medium \
+    PIPER_VOICES=en_US-ljspeech-medium,en_US-john-medium,en_US-bryce-medium,en_US-kristin-medium \
+    PIPER_MODEL_DIR=/models \
     PIPER_THREADS=0 \
     WHISPER_CPP_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
 USER 10001

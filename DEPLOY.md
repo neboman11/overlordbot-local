@@ -71,6 +71,7 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `STT_PROMPT` | `Overlord, Viper one one, bogey dope, request picture, declare, inbound, ready to taxi, airfield, BRAA.` | Whisper vocabulary bias; tailor callsigns/airfields for mission | No |
 | `STT_URLS` | `http://stt-worker:8082` | Ordered remote STT base URLs, comma-separated | No; do not embed credentials in URLs |
 | `TTS_URLS` | `http://tts-worker:8083` | Ordered remote TTS base URLs, comma-separated | No |
+| `TTS_VOICE` | empty (worker default) | Gateway's Piper voice, one of the TTS worker's `PIPER_VOICES`. Shipped roles: AWACS `en_US-ljspeech-medium`, airfield ATC `en_US-john-medium`, JTAC `en_US-bryce-medium`, carrier `en_US-kristin-medium` | No |
 | `BRAIN_URL` | `http://brain:8081` | Brain base URL | No |
 | `TACVIEW_HOST` | `tacview` | Existing real-time telemetry hostname | No |
 | `TACVIEW_PORT` | `42674` | Telemetry TCP port | No |
@@ -101,9 +102,8 @@ Environment variables are read at process startup. Paths are image-internal unle
 | `WHISPER_PORT` | `18080` | Internal native server loopback port, not an external worker API | No |
 | `WHISPER_STARTUP_TIMEOUT` | `120` | Model loading deadline, seconds | No |
 | `WHISPER_REQUEST_TIMEOUT` | `60` | Internal native inference deadline, seconds | No |
-| `PIPER_MODEL` | `/models/en_US-ljspeech-medium.onnx` | Loaded TTS model | No |
-| `PIPER_CONFIG` | `PIPER_MODEL` + `.json` | Piper model metadata/config | No |
-| `PIPER_VOICE` | `en_US-ljspeech-medium` | Sole allowed voice identifier per worker | No |
+| `PIPER_VOICES` | all four bundled voices, `en_US-ljspeech-medium` first | Comma-separated voices loaded once; the first is the default for requests without a voice. All four public-domain voices are baked into the image | No |
+| `PIPER_MODEL_DIR` | `/models` | Directory holding `<voice>.onnx` and `<voice>.onnx.json` | No |
 | `PIPER_THREADS` | `0` | ONNX intra-op threads; 0 is engine default. **Set 4 on Xeon**; demo uses 4. | No |
 
 No Discord token is used or supported; DCSServerBot remains its owner. Local LLM inference is optional and uses no cloud credentials or fallback. DCS JTAC/carrier control uses the bundled companion protocol, not DCS-gRPC.
