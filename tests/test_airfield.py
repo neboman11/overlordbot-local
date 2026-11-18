@@ -355,6 +355,12 @@ class IdentityAndRadioTests(Base):
         self.assertNotIn('transfer_unit_id', answer)
         self.assertEqual(self.watch(), set())
 
+    def test_bridge_response_lists_only_the_airfields_overlord_serves(self):
+        # The companion silences DCS's built-in ATC at exactly these airfields.
+        self.assertEqual(self.sync()['served'], ['1', '2'])
+        self.fields[1]['alive'] = False
+        self.assertEqual(self.sync()['served'], ['1'])
+
     def test_enrolment_reports_the_transfer_unit(self):
         self.assertEqual(self.say('Ironwood ground Viper one one request startup')['transfer_unit_id'], '100')
 

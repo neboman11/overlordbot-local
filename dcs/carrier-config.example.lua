@@ -16,6 +16,11 @@ controller answers "unable" wherever CASE or weather facts are missing.
 Top level:
   leaseSeconds  5-60 (default 15): watched aircraft are dropped when no fresh
                 accepted brain response arrives for this long (mission time)
+  silenceNativeAtcTypes  list of ship types whose built-in DCS ATC is
+                radio-silenced while the brain is answering for them
+                (default { "Stennis" }); Supercarriers (CVN_7x) are left out by
+                default because their LSO and deck crew rely on the player's
+                own comms-menu calls; restored when the lease lapses
   carriers      table keyed by the exact ship UNIT name from the mission editor
 
 Per carrier (all optional; omit what you do not know):

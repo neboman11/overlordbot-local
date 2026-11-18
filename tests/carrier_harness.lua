@@ -294,6 +294,9 @@ local function newMission(opts)
     Unit = { getByName = function(n) return W.units[n] end },
     Group = { getByName = function() return nil end },
     StaticObject = { getByName = function() return nil end },
+    Airbase = { getByName = function(n)
+      return W.units[n] and { setRadioSilentMode = function(_, on) W.silent[n] = on end } or nil
+    end },
     Spot = {},
     land = { isVisible = function() return true end, getHeight = function() return 0 end },
     trigger = { action = {} },
@@ -1005,6 +1008,20 @@ check('carriers-only hook never calls the JTAC entry point', function()
   eq(#H.on('/dcs/exchange'), 0)
   for _, call in ipairs(H.calls) do assert(not call.code:find('OverlordJTAC', 1, true), 'jtac called') end
   H.cleanup()
+end)
+
+check('built-in ATC is silenced on served Stennis carriers only, never on the Supercarrier', function()
+  local W = newMission()
+  W.silent = {}
+  bridge(W, 'e1')
+  bridge(W, 'e1', accept(W, {}, { served = { '101', '102' } }))
+  eq(W.silent[CVN74], true, 'served Stennis silenced')
+  eq(W.silent[CVN71], nil, 'Supercarrier keeps its built-in ATC')
+  for _ = 1, 17 do
+    W.advance(1)
+    bridge(W, 'e1')
+  end
+  eq(W.silent[CVN74], false, 'lapsed lease restores built-in ATC')
 end)
 
 print(string.format('%d passed, %d failed (offline doubles; not a real DCS acceptance test)', passed, failures))

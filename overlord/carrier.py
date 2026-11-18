@@ -27,7 +27,8 @@ Request (hook -> brain)::
 
 Response::
 
-    {"version": 1, "accepted": true, "epoch", "seq", "watch": [{"unit_id", "incarnation", "carrier_id"}]}
+    {"version": 1, "accepted": true, "epoch", "seq", "watch": [{"unit_id", "incarnation", "carrier_id"}],
+     "served": [carrier id]}      # carriers answered for; the companion may silence their built-in ATC
     {"version": 1, "accepted": false, "error": "stale sequence" | "retired epoch", "epoch", "seq", "watch": []}
 
 DCS coordinates: x north, z east, y altitude MSL, metres.  An empty Lua table may
@@ -486,7 +487,8 @@ class CarrierService:
                     session.issued_seq = seq
                 watch.append({"unit_id": session.unit_id, "incarnation": session.incarnation,
                               "carrier_id": session.carrier_id})
-            return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq, "watch": watch}
+            served = sorted(self._lanes, key=lambda cid: (len(cid), cid))
+            return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq, "watch": watch, "served": served}
 
     @staticmethod
     def _rejected(reason, epoch, seq):

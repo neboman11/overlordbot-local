@@ -444,7 +444,14 @@ the installation PVC is preserved.
 For manual installation with `autoLoad` disabled, add a MISSION START **DO SCRIPT FILE** trigger loading
 `dcs/overlord_airfield.lua`. Optionally load an adapted
 `dcs/airfield-config.example.lua` immediately before it. That optional mission
-configuration contains operating facts only:
+configuration contains operating facts only.
+
+While the brain is answering for an airfield, the companion radio-silences DCS's
+built-in ATC there (`Airbase:setRadioSilentMode`); the carrier companion does the
+same for Stennis-type ships only, leaving Supercarrier ATC/LSO untouched. Silence
+is lifted as soon as Overlord stops serving a station or its lease lapses.
+Opt out with `silenceNativeAtc = false` (airfields) or
+`silenceNativeAtcTypes = {}` (carriers):
 
 ```lua
 OverlordAirfieldConfig = {

@@ -291,6 +291,7 @@ local function newMission(opts)
   end
   function Base:isExist() return self.alive end
   function Base:getPoint() return { x = self.x, y = self.y, z = self.z } end
+  function Base:setRadioSilentMode(on) W.silent[self.name] = on end
   function Base:getRunways() return self.runways end
   function Base:getParking() W.parkingCalls = W.parkingCalls + 1; return self.parking end
   function W.base(spec)
@@ -369,7 +370,8 @@ local function newMission(opts)
     Unit = { getByName = function(n) return W.units[n] end },
     Group = { getByName = function() return nil end },
     StaticObject = { getByName = function() return nil end },
-    Airbase = { Category = { AIRDROME = 0, HELIPAD = 1, SHIP = 2 } },
+    Airbase = { Category = { AIRDROME = 0, HELIPAD = 1, SHIP = 2 },
+                getByName = function(n) for _, b in ipairs(W.bases) do if b.name == n then return b end end end },
     Spot = {},
     land = { isVisible = function() return true end, getHeight = function() return 0 end },
     trigger = { action = {} },
@@ -1873,6 +1875,24 @@ check('an OverlordJSON the scripting state already has is kept, not replaced', f
   assert(logged(H, 'OverlordJSON already present'))
   eq(#H.on('/dcs/exchange'), 2)
   H.cleanup()
+end)
+
+check('built-in ATC is silenced only at served airfields and only while the brain answers', function()
+  local W = newMission()
+  W.silent = {}
+  bridge(W, 'e1')
+  bridge(W, 'e1', accept(W, {}, { served = { '21', '99' } }))
+  eq(W.silent.Ironwood, true, 'served airfield silenced')
+  eq(W.silent.Maple, nil, 'unserved airfield untouched')
+  bridge(W, 'e1', accept(W, {}, { served = {} }))
+  eq(W.silent.Ironwood, false, 'no longer served: built-in ATC restored')
+  bridge(W, 'e1', accept(W, {}, { served = { '21' } }))
+  eq(W.silent.Ironwood, true)
+  for _ = 1, 17 do
+    W.advance(1)
+    bridge(W, 'e1')
+  end
+  eq(W.silent.Ironwood, false, 'lapsed lease restores built-in ATC')
 end)
 
 print(string.format('%d passed, %d failed (offline doubles; not a real DCS acceptance test)', passed, failures))

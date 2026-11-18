@@ -29,7 +29,9 @@ Request (hook -> brain)::
                                "airfield_id": id | null, "time"}]}]}
 
 Response: ``{"version": 1, "accepted": bool, "epoch", "seq", "watch": [{"unit_id", "incarnation",
-"airfield_id"}], "error"?}``.
+"airfield_id"}], "served": [airfield id], "error"?}``.  ``served`` lists the airfields this
+controller is answering for; the companion silences DCS's built-in ATC there only while
+accepted responses keep arriving.
 
 A malformed envelope (version, epoch, seq, time, date, list sizes, duplicate ids) raises
 ``ValueError`` before any state changes; one invalid airfield, player or aircraft record is
@@ -636,7 +638,8 @@ class AirfieldService:
                     session.issued_seq = seq
                 watch.append({"unit_id": session.unit_id, "incarnation": session.incarnation,
                               "airfield_id": session.airfield_id})
-            return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq, "watch": watch}
+            served = sorted(self._control, key=lambda fid: (len(fid), fid))
+            return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq, "watch": watch, "served": served}
 
     @staticmethod
     def _rejected(reason, epoch, seq):

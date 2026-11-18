@@ -17,6 +17,9 @@ controller picks the runway from live wind and gives no pattern direction.
 Top level:
   leaseSeconds  5-60 (default 15): watched aircraft are dropped when no fresh
                 accepted brain response arrives for this long (mission time)
+  silenceNativeAtc  true (default) or false: while the brain is answering for
+                an airfield, DCS's built-in ATC there is radio-silenced; it is
+                restored when Overlord stops serving it or the lease lapses
   airfields     table keyed by the exact native airbase name as DCS reports it
 
 Per airfield (all optional; omit what you do not know):

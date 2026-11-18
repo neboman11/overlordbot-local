@@ -143,6 +143,11 @@ class CarrierTests(unittest.TestCase):
 
     # -- registry, radios, routing ---------------------------------------------------
 
+    def test_bridge_response_lists_only_the_carriers_overlord_serves(self):
+        # The companion silences DCS's built-in ATC on exactly these ships.
+        self.assertEqual(self.bridge()['served'], ['71', '72'])
+        self.assertEqual(self.bridge(ships=[ship(), ship('72', 'Lincoln', None)])['served'], ['71'])
+
     def test_registry_preserves_mission_radios_and_disables_every_clash_explicitly(self):
         ships = [ship('71', frequency=127500000), ship('72', 'Lincoln', 127500200),
                  ship('73', 'Vinson', 127500399), ship('74', 'Stennis', 251000150),

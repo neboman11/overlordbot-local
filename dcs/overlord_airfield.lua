@@ -307,7 +307,14 @@ OverlordAirfield = (function()
 
   local overrides = {}
   for key in pairs(cfg) do
-    if key ~= 'leaseSeconds' and key ~= 'airfields' then fail('config ' .. label(key) .. ' rejected') end
+    if key ~= 'leaseSeconds' and key ~= 'airfields' and key ~= 'silenceNativeAtc' then
+      fail('config ' .. label(key) .. ' rejected')
+    end
+  end
+  local silenceNativeAtc = true
+  if cfg.silenceNativeAtc ~= nil then
+    if type(cfg.silenceNativeAtc) == 'boolean' then silenceNativeAtc = cfg.silenceNativeAtc
+    else fail('config silenceNativeAtc rejected') end
   end
   if cfg.leaseSeconds ~= nil then
     if number(cfg.leaseSeconds, 5, 60) then lease = cfg.leaseSeconds else fail('config leaseSeconds rejected') end
@@ -1052,10 +1059,31 @@ OverlordAirfield = (function()
     end
   end
 
+  -- DCS's built-in ATC is silenced only at airfields the brain confirms Overlord is answering for,
+  -- and only while accepted responses keep arriving: a lapsed lease or the mission end restores it.
+  local silenced = {}
+
+  local function setSilent(name, on)
+    return pcall(function() Airbase.getByName(name):setRadioSilentMode(on) end)
+  end
+
+  local function silence(names)
+    for name in pairs(silenced) do
+      if not names[name] then
+        setSilent(name, false)
+        silenced[name] = nil
+      end
+    end
+    for name in pairs(names) do
+      if not silenced[name] and setSilent(name, true) then silenced[name] = true end
+    end
+  end
+
   local function expire(now)
     if state.last == nil or now - state.last > lease then
       state.last = nil
       actors = {}
+      silence({})
     end
   end
 
@@ -1191,6 +1219,14 @@ OverlordAirfield = (function()
         state.consumed, state.last = state.seq, now
         acknowledge(state.seq)
         applyWatch(message.watch, transient)
+        local wanted = {}
+        if silenceNativeAtc and type(message.served) == 'table' then
+          for _, id in ipairs(message.served) do
+            local field = type(id) == 'string' and fieldById[id]
+            if field then wanted[field.name] = true end
+          end
+        end
+        silence(wanted)
       end
     end
     state.seq = state.seq + 1
@@ -1200,6 +1236,7 @@ OverlordAirfield = (function()
   function M.stop()
     state.running = false
     catalog, actors = {}, {}
+    silence({})
   end
 
   world.addEventHandler({ onEvent = function(_, event) onEvent(event) end })

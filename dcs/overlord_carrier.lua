@@ -269,7 +269,22 @@ OverlordCarrier = (function()
   -- Operational configuration: CASE/weather/profile only ------------------------
 
   for key in pairs(cfg) do
-    if key ~= 'leaseSeconds' and key ~= 'carriers' then fail('config ' .. label(key) .. ' rejected') end
+    if key ~= 'leaseSeconds' and key ~= 'carriers' and key ~= 'silenceNativeAtcTypes' then
+      fail('config ' .. label(key) .. ' rejected')
+    end
+  end
+  -- Ship types whose built-in DCS ATC Overlord replaces.  Supercarriers keep theirs by default:
+  -- their LSO and deck crew depend on the player's own comms-menu calls.
+  local silentTypes = { Stennis = true }
+  if cfg.silenceNativeAtcTypes ~= nil then
+    if type(cfg.silenceNativeAtcTypes) ~= 'table' then
+      fail('config silenceNativeAtcTypes rejected')
+    else
+      silentTypes = {}
+      for _, kind in ipairs(cfg.silenceNativeAtcTypes) do
+        if text(kind) then silentTypes[kind] = true else fail('config silenceNativeAtcTypes entry rejected') end
+      end
+    end
   end
   if cfg.leaseSeconds ~= nil then
     if number(cfg.leaseSeconds, 5, 60) then lease = cfg.leaseSeconds else fail('config leaseSeconds rejected') end
@@ -620,10 +635,31 @@ OverlordCarrier = (function()
     end
   end
 
+  -- DCS's built-in ATC is silenced only on carriers the brain confirms Overlord is answering for,
+  -- and only while accepted responses keep arriving: a lapsed lease or the mission end restores it.
+  local silenced = {}
+
+  local function setSilent(name, on)
+    return pcall(function() Airbase.getByName(name):setRadioSilentMode(on) end)
+  end
+
+  local function silence(names)
+    for name in pairs(silenced) do
+      if not names[name] then
+        setSilent(name, false)
+        silenced[name] = nil
+      end
+    end
+    for name in pairs(names) do
+      if not silenced[name] and setSilent(name, true) then silenced[name] = true end
+    end
+  end
+
   local function expire(now)
     if state.last == nil or now - state.last > lease then
       state.last = nil
       actors = {}
+      silence({})
     end
   end
 
@@ -738,6 +774,14 @@ OverlordCarrier = (function()
         state.consumed, state.last = state.seq, now
         acknowledge(state.seq)
         applyWatch(message.watch, transient)
+        local wanted = {}
+        if type(message.served) == 'table' then
+          for _, id in ipairs(message.served) do
+            local carrier = type(id) == 'string' and carrierById[id]
+            if carrier and silentTypes[carrier.type] then wanted[carrier.name] = true end
+          end
+        end
+        silence(wanted)
       end
     end
     state.seq = state.seq + 1
@@ -747,6 +791,7 @@ OverlordCarrier = (function()
   function M.stop()
     state.running = false
     catalog, actors = {}, {}
+    silence({})
   end
 
   world.addEventHandler({ onEvent = function(_, event) onEvent(event) end })
