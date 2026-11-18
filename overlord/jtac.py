@@ -282,7 +282,7 @@ def _readback_check(text, task, confirmed=()):
     Returns ``(matched, missing)``; ``missing`` is None once every field is read back.
     """
     heard, position, matched = _readback_runs(_LINE_NUMBER.sub(" ", text)), 0, set()
-    for key in task["readback"]:
+    for key in _owed(task):
         start, size = position, None
         while start < len(heard):
             size = _readback_value_at(heard, start, key, task)
@@ -295,7 +295,17 @@ def _readback_check(text, task, confirmed=()):
         elif key not in confirmed:
             break
     done = matched | set(confirmed)
-    return matched, next((key for key in task["readback"] if key not in done), None)
+    return matched, next((key for key in _owed(task) if key not in done), None)
+
+
+def _owed(task):
+    """Readback lines the pilot can actually read back: the brief must contain them (no remarks, nothing owed)."""
+    return [key for key in task["readback"] if task["brief"][key] is not None]
+
+
+def _labelled(label, value):
+    """``label value`` unless the mission's text already starts with the label ("IP Dog", "egress west")."""
+    return value if value.lower().startswith(label.lower() + " ") else f"{label} {value}"
 
 
 def _say_digits(value):
@@ -907,7 +917,7 @@ class Controller:
         """Readback values of this coalition's tasks, to prime speech recognition (grid letters)."""
         with self._lock:
             return [str(task["brief"][key]) for _, task in sorted(self._tasks.items())
-                    if task["coalition"] == coalition for key in task["readback"]
+                    if task["coalition"] == coalition for key in _owed(task)
                     if key not in NUMERIC_LINES and task["brief"][key]]
 
     def take_events(self, coalition, channel):
@@ -1088,9 +1098,10 @@ class Controller:
 
     @staticmethod
     def _readback_request(task):
-        readback = ", ".join("remarks" if LINES[k] == 10 else f"line {domain.number_to_words(LINES[k])}"
-                             for k in task["readback"])
-        return f"read back {readback}" if readback else "report contact"
+        owed = ["remarks" if LINES[k] == 10 else f"line {domain.number_to_words(LINES[k])}" for k in _owed(task)]
+        if not owed:
+            return "report contact"
+        return "read back " + (owed[0] if len(owed) == 1 else ", ".join(owed[:-1]) + " and " + owed[-1])
 
     def _next_step(self, session, task):
         if session.phase == "briefed":
@@ -1104,8 +1115,7 @@ class Controller:
     def _line(self, task, number):
         b = task["brief"]
         if number == 1:
-            ip = b["ip"]
-            return f"line one, {ip}" if ip.lower().startswith("ip ") else f"line one, IP {ip}"
+            return f"line one, {_labelled('IP', b['ip'])}"
         if number == 2:
             return f"line two, heading {_say_digits(b['heading'])}" + (f", {b['offset']}" if b["offset"] else "")
         if number == 3:
@@ -1117,11 +1127,11 @@ class Controller:
         if number == 6:
             return f"line six, {b['location']}"
         if number == 7:
-            return f"line seven, mark {b['mark']}"
+            return f"line seven, {_labelled('mark', b['mark'])}"
         if number == 8:
-            return f"line eight, friendlies {b['friendlies']}"
+            return f"line eight, {_labelled('friendlies', b['friendlies'])}"
         if number == 9:
-            return f"line nine, egress {b['egress']}"
+            return f"line nine, {_labelled('egress', b['egress'])}"
         return f"remarks, {b['remarks']}" if b["remarks"] else "no remarks"
 
     def _requestBrief(self, session, parsed):
@@ -1143,9 +1153,12 @@ class Controller:
         if task["brief"]["remarks"]:
             lines.append(self._line(task, 10))
         tail = self._readback_request(task)
-        if not task["readback"]:
+        if not _owed(task):
             session.phase = "readback"
-        brief = f"type {domain.number_to_words(task['brief']['type'])} control, " + ", ".join(lines) + f", {tail}"
+        # "end of brief" marks where the 9-line stops and the instruction starts; run together
+        # after line nine it was easy to miss over a 45 s transmission.
+        brief = (f"type {domain.number_to_words(task['brief']['type'])} control, " + ", ".join(lines)
+                 + f", end of brief, {tail}")
         if len(domain._speech(session.caller, self.callsign, brief)) > MAX_REPLY_CHARS:
             return f"brief exceeds one transmission, request lines one through nine individually, then {tail}", True
         return brief, True

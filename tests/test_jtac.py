@@ -118,7 +118,7 @@ class JtacTests(unittest.TestCase):
         brief = self.say('Axeman, Viper 1 1, ready for brief')['reply']
         for line in ('type two control', 'line one, IP Dog', 'heading two seven zero, offset left',
                      'distance six point five', 'elevation four five zero feet', 'line six, KM 1234',
-                     'remarks, final attack heading', 'read back line four, line six'):
+                     'remarks, final attack heading', 'end of brief, read back line four and line six'):
             self.assertIn(line, brief)
         self.assertLessEqual(len(brief), jtac.MAX_REPLY_CHARS)
         self.assertIn('line four, elevation four five zero feet',
@@ -722,6 +722,18 @@ class JtacTests(unittest.TestCase):
         self.say('Axeman, Viper 1 1, checking in')
         self.say('Axeman, Viper 1 1, request task')
         self.assertIn('line one, IP Dog, line two', self.say('Axeman, Viper 1 1, ready for brief')['reply'])
+
+    def test_empty_readback_line_is_not_owed_and_labels_are_not_doubled(self):
+        # Mission task: readback {elevation, location, remarks} with no remarks authored.
+        self.bridge([task(brief=dict(BRIEF, remarks=None, egress='egress west then north'),
+                          readback=['elevation', 'location', 'remarks'])])
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        brief = self.say('Axeman, Viper 1 1, ready for brief')['reply']
+        self.assertIn('line nine, egress west then north, end of brief, read back line four and line six', brief)
+        self.assertTrue(brief.endswith('read back line four and line six'), brief)
+        self.assertIn('readback correct',
+                      self.say('Axeman, Viper 1 1, readback elevation four five zero, kilo mike 1234')['reply'])
 
 
 if __name__ == '__main__':

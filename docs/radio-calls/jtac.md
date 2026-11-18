@@ -60,7 +60,7 @@ Reply-only placeholders (you never say these):
 | `[IP]` | Line one as Axeman says it: the mission's IP text with `IP` put in front unless the text already starts with `IP`, for example `IP Dog` (`jtac.py` 1106-1108) |
 | `[OFFSET]`, `[DESCRIPTION]`, `[LOCATION]`, `[MARK]`, `[FRIENDLIES]`, `[EGRESS]`, `[REMARKS]` | Mission-authored brief text, verbatim. Offset and remarks are optional |
 | `[HEADING]`, `[DISTANCE]`, `[ELEVATION]` | Brief numbers spoken digit by digit, for example `two seven zero`, `six point five`, `four five zero` (`jtac.py` 301-306) |
-| `[READBACK_LINES]` | The lines you must read back, for example `line four, line six` (`remarks` for line ten) |
+| `[READBACK_LINES]` | The lines you must read back, for example `line four and line six` (`remarks` for line ten). A line the mission marks for readback but left empty (usually remarks) is never asked for |
 | `[LINE_TEXT]` | One brief line as Axeman speaks it, for example `line four, elevation four five zero feet`, `line six, KM 1234` (`jtac.py` 1104-1125) |
 | `[COPIED_LINES]` | The readback lines matched in this call, for example `line four` or `line four, line six` |
 | `[MISSING_LINE]` | `control type` or `line <n>`: the first required line the mission did not author |
@@ -124,8 +124,8 @@ flowchart TD
 
   %% 3 · Nine-line brief
     J_BRIEF["`YOU: **Axeman, [CALLSIGN], ready for brief**`"]
-    J_BRIEF_R(["REPLY: type [CONTROL_TYPE] control, line one, [IP], line two, heading [HEADING], [OFFSET], line three, distance [DISTANCE], line four, elevation [ELEVATION] feet, line five, [DESCRIPTION], line six, [LOCATION], line seven, mark [MARK], line eight, friendlies [FRIENDLIES], line nine, egress [EGRESS], remarks, [REMARKS], read back [READBACK_LINES] — the offset and remarks are spoken only when the mission authored them"])
-    J_BRIEF_NORB(["REPLY: type [CONTROL_TYPE] control, line one, [IP], … line nine, egress [EGRESS], report contact — task authored with no readback lines: the readback step is already complete"])
+    J_BRIEF_R(["REPLY: type [CONTROL_TYPE] control, line one, [IP], line two, heading [HEADING], [OFFSET], line three, distance [DISTANCE], line four, elevation [ELEVATION] feet, line five, [DESCRIPTION], line six, [LOCATION], line seven, mark [MARK], line eight, friendlies [FRIENDLIES], line nine, egress [EGRESS], remarks, [REMARKS], end of brief, read back [READBACK_LINES] — the offset and remarks are spoken only when the mission authored them; mark, friendlies and egress are not said twice when the mission text already starts with that word"])
+    J_BRIEF_NORB(["REPLY: type [CONTROL_TYPE] control, line one, [IP], … line nine, egress [EGRESS], end of brief, report contact — task authored with no readback lines: the readback step is already complete"])
     J_BRIEF_LONG(["REPLY: brief exceeds one transmission, request lines one through nine individually, then read back [READBACK_LINES] — or — brief exceeds one transmission, request lines one through nine individually, then report contact"])
     J_BRIEF_NOTASK(["REPLY: unable, request task first"])
     J_BRIEF_DEAD(["REPLY: unable, target destroyed, request BDA — or — unable, target not active, request BDA — or — unable, controller not available, stand by"])
@@ -455,7 +455,7 @@ flowchart TD
 
 `_readback_check` (`jtac.py` 274-298) checks the text after the first `readback` / `read back`. Before it runs, `_readback` (1161-1175) requires a brief (`unable, no brief issued`, or `unable, [LOST], request BDA` / `unable, [LOST], stand by` after an interruption).
 
-1. The mission decides which lines are read back. The brief ends `read back line four, line six` (or `remarks` for line ten). With no readback lines it ends `report contact` and you go straight to contact.
+1. The mission decides which lines are read back. The brief ends `end of brief, read back line four and line six` (or `remarks` for line ten); listen for `end of brief`, the readback instruction follows it. A line marked for readback that the mission left empty (e.g. no remarks) is not asked for. With no readback lines the brief ends `end of brief, report contact` and you go straight to contact.
 2. Say the values **in brief order**: IP, heading, distance, elevation, description, location, mark, friendlies, egress, remarks. Each required value is looked for after the previous one, so extra words and other brief lines around them are ignored: you may read back the whole nine-line. The offset is never required.
 3. Numeric lines (heading, distance, elevation) compare as complete signed decimals: `six point five` or `6.5` is 6.5, `six five` is 65, `minus one two zero` is -120. A heading also matches modulo 360. A value must be complete: `four five zero zero` is 4500, never 450.
 4. Text lines compare as whole runs of digits, phonetic letters and words: `KM 1234` is read back `kilo mike one two three four` (`x-ray` and `x ray` both mean X). Phonetic words run together (`kilomike`) and the transcriber's spellings `mic`, `mick`, `mik` (mike) and `keilo`, `keelo` (kilo) are accepted (`jtac.py` 106-112, 199-210).
