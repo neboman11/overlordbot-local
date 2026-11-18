@@ -5,13 +5,14 @@ from pathlib import Path
 import re
 import unittest
 
-from overlord import airfield, airfield_parser, carrier, carrier_parser
+from overlord import airfield, airfield_parser, carrier, carrier_parser, jtac
 
 
 GUIDES = Path(__file__).resolve().parents[1] / 'docs' / 'radio-calls'
 FENCES = re.compile(r'^```mermaid\s*\n([\s\S]*?)^```\s*$', re.MULTILINE)
 LABELS = re.compile(r'\b([A-Za-z][A-Za-z0-9_-]*)\["((?:[^"\\]|\\.)*)"\]')
 PLACEHOLDERS = re.compile(r'\[([A-Z][A-Z0-9_]*)\]')
+HEARD = re.compile(r'^\s*([A-Za-z]\w*)\(\["(.*)"\]\)\s*$', re.MULTILINE)
 
 
 def call_labels(chart):
@@ -35,6 +36,21 @@ def expect_fields(test, actual, expected):
             expect_fields(test, current, value)
         else:
             test.assertEqual(current, value, name)
+
+
+def fill(template, values):
+    return PLACEHOLDERS.sub(lambda match: str(values[match[1]]), template)
+
+
+def heard_patterns(chart):
+    """Each REPLY/EVENT node's spoken alternatives as regexes; placeholders match any text."""
+    result = {}
+    for ident, raw in HEARD.findall(chart):
+        body = raw.split(':', 1)[1].strip()
+        alternatives = [part.split(' — ')[0] for part in body.split(' — or — ')]
+        result[ident] = [re.compile('.+'.join(map(re.escape, PLACEHOLDERS.split(alt)[::2])))
+                         for alt in alternatives]
+    return result
 
 
 class RadioCallDocumentationTests(unittest.TestCase):
@@ -77,6 +93,119 @@ class RadioCallDocumentationTests(unittest.TestCase):
             for intent, ids in manifest['intent_coverage'].items():
                 self.assertTrue(ids, intent)
                 self.assertLessEqual(set(ids), all_ids, intent)
+
+    def test_documented_jtac_calls_match_grammar_and_fixture_values(self):
+        from tests import test_jtac as fixtures
+
+        manifest = json.loads((GUIDES / 'jtac-calls.json').read_text())
+        charts = FENCES.findall((GUIDES / 'jtac.md').read_text())
+        self.assertEqual(len(charts), 1)
+        controller = jtac.Controller(callsign='Axeman', channel=fixtures.CHANNEL)
+        task = jtac._task(fixtures.task())
+        intents = {intent for intent, _ in jtac.COMMANDS}
+        documented, all_ids = set(), set()
+        for source, chart in zip(charts, manifest['charts'], strict=True):
+            labels = call_labels(source)
+            self.assertEqual(set(labels), {node['id'] for node in chart['nodes']}, chart['id'])
+            for node in chart['nodes']:
+                with self.subTest(chart=chart['id'], node=node['id']):
+                    call = fill(labels[node['id']], node['values'])
+                    self.assertNotRegex(call, PLACEHOLDERS)
+                    parsed = controller.parse(call, fixtures.UNITS, 2)
+                    self.assertIsNotNone(parsed, call)
+                    self.assertEqual(parsed['intent'], node['intent'], call)
+                    self.assertFalse(parsed['blocked'], call)
+                    self.assertEqual(parsed['transmitter'],
+                                     {'kind': 'player', 'group': 'viper', 'flight': 1, 'element': 1}, call)
+                    expect_fields(self, parsed, node.get('expected_fields', {}))
+                    if node['intent'] == 'readback':
+                        self.assertIsNone(jtac._readback_mismatch(parsed['readback'], task), call)
+                    if parsed['heading'] is not None:
+                        self.assertTrue(jtac._heading_ok(parsed['heading'], task['attack_heading']), call)
+                    documented.add(node['intent'])
+                    all_ids.add(node['id'])
+        self.assertEqual(documented, intents)
+        self.assertEqual(set(manifest['intent_coverage']), intents)
+        for intent, ids in manifest['intent_coverage'].items():
+            self.assertTrue(ids, intent)
+            self.assertLessEqual(set(ids), all_ids, intent)
+
+    def test_jtac_chart_replies_match_the_controller(self):
+        # Replays the chart's main path and its refusals against the real controller: every
+        # reply and event the pilot hears must be one the chart prints at that step.
+        from tests import test_jtac as fixtures
+
+        manifest = json.loads((GUIDES / 'jtac-calls.json').read_text())
+        nodes = {node['id']: node for chart in manifest['charts'] for node in chart['nodes']}
+        source = FENCES.findall((GUIDES / 'jtac.md').read_text())[0]
+        labels, heard = call_labels(source), heard_patterns(source)
+        fixture = fixtures.JtacTests('test_full_procedure_to_clearance_and_abort')
+        fixture.setUp()
+        prefix = 'viper 1 1, Axeman, '
+
+        def expect(text, node_id):
+            self.assertTrue(text.startswith(prefix), text)
+            message = text[len(prefix):]
+            self.assertTrue(any(pattern.fullmatch(message) for pattern in heard[node_id]), (node_id, message))
+
+        def call(node_id, expected, **values):
+            expect(fixture.say(fill(labels[node_id], nodes[node_id]['values'] | values))['reply'], expected)
+
+        def events(*expected):
+            spoken = [event['reply'] for event in fixture.jtac.take_events(2, fixtures.CHANNEL)]
+            self.assertEqual(len(spoken), len(expected), spoken)
+            for text, node_id in zip(spoken, expected):
+                expect(text, node_id)
+
+        try:
+            fixture.bridge()
+            call('J_REQ_TASK', 'J_G_NOSESSION')
+            call('J_CHECKIN', 'J_CHECKIN_R')
+            call('J_BRIEF', 'J_BRIEF_NOTASK')
+            call('J_REQ_TASK_N', 'J_TASK_NA', TASK='three')
+            call('J_REQ_TASK', 'J_TASK_R')
+            call('J_REPEAT', 'J_NOBRIEF')
+            call('J_BRIEF', 'J_BRIEF_R')
+            call('J_REPEAT', 'J_REPEAT_R')
+            call('J_REPEAT_RMK', 'J_REPEAT_R')
+            call('J_CONTACT', 'J_CONTACT_NORB')
+            call('J_RB', 'J_RB_BAD', READBACK_VALUES='elevation four five five, kilo mike one two three four')
+            call('J_RB', 'J_RB_OK')
+            call('J_IN_HDG', 'J_NOCLR')
+            call('J_CONTACT', 'J_CONTACT_HDG')
+            call('J_IN', 'J_NOCLR')
+            call('J_IN_HDG', 'J_NOCLR')
+            call('J_MARK', 'J_MARK_NA', MARK_KIND='illumination')
+            call('J_LASER', 'J_LASER_PEND')
+            laser = fixture.bridge()['commands'][0]
+            lasing = fixtures.task(laser={'on': True, 'command': laser['id']})
+            fixture.bridge([lasing], acks=[{'id': laser['id'], 'status': 'done'}])
+            events('J_EV_LASER')
+            call('J_LASER', 'J_MARK_LIVE')
+            call('J_STATUS', 'J_STATUS_R')
+            call('J_IN_HDG', 'J_CLEARED')
+            call('J_OFF', 'J_OFF_R')
+            call('J_OFF', 'J_OFF_NOCLR')
+            call('J_BDA', 'J_BDA_REM')
+            call('J_MARK', 'J_MARK_PEND')
+            smoke = next(c for c in fixture.bridge([lasing])['commands'] if c['op'] == 'mark')
+            fixture.bridge([lasing], acks=[{'id': smoke['id'], 'status': 'done'}])
+            events('J_EV_MARK')
+            call('J_LOFF', 'J_LOFF_PEND')
+            off = next(c for c in fixture.bridge([lasing])['commands'] if c['op'] == 'laser_off')
+            fixture.bridge(acks=[{'id': off['id'], 'status': 'done'}])
+            events('J_EV_LOFF', 'J_EV_TERM')
+            call('J_LOFF', 'J_LOFF_OFF')
+            call('J_ABORT', 'J_ABORT_R')
+            fixture.clock.now += 11
+            call('J_STATUS', 'J_G_STALE')
+            call('J_ABORT', 'J_STALE_CXL')
+            call('J_CHECKOUT', 'J_CHECKOUT_R')
+            call('J_STATUS', 'J_G_STALE')
+            fixture.bridge()
+            call('J_STATUS', 'J_G_NOSESSION')
+        finally:
+            fixture.doCleanups()
 
     def test_tower_status_preserves_takeoff_but_ordinary_mayday_aborts(self):
         from tests import test_airfield as fixtures

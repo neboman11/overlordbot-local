@@ -7,11 +7,13 @@
     {"id": "carrier-departure", "title": "Carrier launch", "family": "carrier", "source": "carrier.md", "index": 0,
      "start": "CL_W_SPAWN", "jumps": {"CL_GO_RECOVERY": ["carrier-recovery:CR_R_ASSIGN1", "carrier-recovery:CR_R_ASSIGN23"]}},
     {"id": "carrier-recovery", "title": "Carrier recovery", "family": "carrier", "source": "carrier.md", "index": 1,
-     "start": "CR_F_INBOUND", "jumps": {"CR_GO_LAUNCH": ["carrier-departure:CL_R_QUEUED"]}}
+     "start": "CR_F_INBOUND", "jumps": {"CR_GO_LAUNCH": ["carrier-departure:CL_R_QUEUED"]}},
+    {"id": "jtac", "title": "JTAC", "family": "jtac", "source": "jtac.md", "index": 0,
+     "start": "J_START", "jumps": {}}
   ],
   "placeholders": {
     "FIELD": {"label": "Airfield", "hint": "Kutaisi"},
-    "CALLSIGN": {"label": "Your callsign or modex", "hint": "Silver one two"},
+    "CALLSIGN": {"label": "Your callsign (ATC also takes your modex)", "hint": "Silver one two"},
     "CURRENT_ROLE": {"label": "Role on your frequency", "hint": "ground, tower or approach"},
     "RUNWAY": {"label": "Runway in use (from ATC)", "hint": "three one"},
     "CROSS_RUNWAY": {"label": "Runway to cross", "hint": "one eight"},
@@ -22,6 +24,11 @@
     "RADIAL": {"label": "Marshal radial", "hint": "one six four"},
     "DME": {"label": "Marshal DME", "hint": "two one"},
     "EAT_MINUTE": {"label": "Approach time, minute only", "hint": "zero five"},
-    "FUEL_STATE": {"label": "Fuel state", "hint": "five point two"}
+    "FUEL_STATE": {"label": "Fuel state", "hint": "five point two"},
+    "TASK": {"label": "Task number (from the JTAC task list)", "hint": "one"},
+    "LINE_NUMBER": {"label": "Brief line to repeat", "hint": "four"},
+    "READBACK_VALUES": {"label": "Readback values: the lines the JTAC named, in brief order", "hint": "elevation four five zero, kilo mike one two three four"},
+    "MARK_KIND": {"label": "Mark to request", "hint": "smoke, sparkle, illumination or mark"},
+    "ATTACK_HEADING": {"label": "Your inbound heading", "hint": "two seven zero"}
   }
 }
