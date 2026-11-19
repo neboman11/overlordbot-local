@@ -434,6 +434,33 @@ local function close(feature, failure)
   if failure then logError(feature, failure) end
 end
 
+-- Text the brain asks to show a player (e.g. the JTAC readback lines), sent as server chat to
+-- every connected player of that exact name.  Best effort: a missing player or API skips it.
+local MAX_CHAT, MAX_CHAT_TEXT = 12, 250   -- a heading line plus up to ten readback lines
+local function sendChat(body)
+  if not body:find('"chat":%s*%[%s*{') or type(net.json2lua) ~= 'function'
+      or type(net.send_chat_to) ~= 'function' then
+    return
+  end
+  local ok, message = pcall(net.json2lua, body)
+  if not ok or type(message) ~= 'table' or type(message.chat) ~= 'table' then return end
+  local players = {}
+  for _, id in ipairs(net.get_player_list() or {}) do
+    local name = net.get_player_info(id, 'name')
+    if type(name) == 'string' then
+      players[name] = players[name] or {}
+      table.insert(players[name], id)
+    end
+  end
+  for index, item in ipairs(message.chat) do
+    if index > MAX_CHAT then break end
+    if type(item) == 'table' and type(item.player) == 'string' and type(item.text) == 'string' then
+      local text = item.text:gsub('[%z\1-\31\127]', ' '):sub(1, MAX_CHAT_TEXT)
+      for _, id in ipairs(players[item.player] or {}) do pcall(net.send_chat_to, text, id) end
+    end
+  end
+end
+
 local function finish(feature, request)
   local response = table.concat(request.chunks)
   local status = tonumber(response:match('^HTTP/1%.%d (%d%d%d)'))
@@ -451,6 +478,7 @@ local function finish(feature, request)
   body = length and body:sub(1, length) or body
   close(feature, nil)
   feature.inbound = body
+  sendChat(body)
   feature.lastError = nil
 end
 

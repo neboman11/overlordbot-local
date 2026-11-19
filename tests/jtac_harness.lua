@@ -616,7 +616,10 @@ local function newHook(W, opts)
       getRealTime = function() return H.real end,
       setUserCallbacks = function(cb) H.callbacks = cb end,
     },
-    net = { dostring_in = dcsStates(H, W) },
+    net = { dostring_in = dcsStates(H, W), json2lua = decode,
+            get_player_list = function() return { 1, 2, 3 } end,
+            get_player_info = function(id, key) return key == 'name' and ({ 'Server', 'Silver 1-2', 'Viper 1-1' })[id] end,
+            send_chat_to = function(text, id) H.chats[#H.chats + 1] = { id = id, text = text } end },
     log = { write = function(_, _, m) H.logs[#H.logs + 1] = m end, ERROR = 1, WARNING = 2, INFO = 3 },
     lfs = { writedir = function() return dir .. '/' end, currentdir = function() return dir .. '/dcs' end },
     package = { path = '', cpath = '' },
@@ -702,6 +705,27 @@ check('hostile response bytes stay a string literal', function()
   eq(#W.spots, 0)
   H.cleanup()
   eq(first.body.seq, 1)
+end)
+
+check('chat lines in a brain response reach only the named player', function()
+  local W = standardMission()
+  local H = newHook(W)
+  H.chats = {}
+  H.callbacks.onSimulationStart()
+  H.exchange()
+  H.replies[1] = function(request)
+    local message = reply(request.body.epoch, {}, {}, request.body.seq)
+    message.chat = { { player = 'Silver 1-2', text = 'Axeman task 1 readback - L4: elevation 504 ft\n' },
+                     { player = 'Nobody', text = 'dropped' } }
+    return encode(message)
+  end
+  H.exchange()
+  eq(#H.chats, 1)
+  eq(H.chats[1].id, 2)
+  eq(H.chats[1].text, 'Axeman task 1 readback - L4: elevation 504 ft ')
+  H.exchange()
+  eq(#H.chats, 1, 'sent once')
+  H.cleanup()
 end)
 
 check('offline, stalled and rejecting brains never block or leak commands', function()

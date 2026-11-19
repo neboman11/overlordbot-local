@@ -735,6 +735,23 @@ class JtacTests(unittest.TestCase):
         self.assertIn('readback correct',
                       self.say('Axeman, Viper 1 1, readback elevation four five zero, kilo mike 1234')['reply'])
 
+    def test_brief_sends_each_readback_line_to_chat_once(self):
+        remarks = ('training target, controller is a friendly observer, '
+                   'final attack heading one eight five to two two five')
+        tasks = [task(brief=dict(BRIEF, remarks=remarks, location='grid kilo mike one two three four'),
+                      readback=['heading', 'elevation', 'location', 'remarks'])]
+        self.bridge(tasks)
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        self.assertEqual(self.bridge(tasks)['chat'], [])
+        self.say('Axeman, Viper 1 1, ready for brief')
+        chat = self.bridge(tasks)['chat']
+        self.assertEqual({item['player'] for item in chat}, {'Viper 1-1 | Bob'})
+        self.assertEqual([item['text'] for item in chat], [
+            'Axeman task 1 readback:', 'L2: heading 270', 'L4: elevation 450 ft', 'L6: KM 1234',
+            f'Remarks: {remarks}'])
+        self.assertEqual(self.bridge(tasks)['chat'], [])
+
 
 if __name__ == '__main__':
     unittest.main()

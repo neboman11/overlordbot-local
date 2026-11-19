@@ -38,7 +38,8 @@ Response (brain -> hook)::
     {"version": 1, "accepted": true, "epoch": "<epoch>", "seq": <request seq echoed>,
      "commands": [{"id": "<id>", "op": "laser_on" | "laser_off" | "mark", "task": <id>,
                    "deadline": <mission model time>, "kind": "smoke"|"ir"|"illumination"}],  # kind: mark only
-     "cancel": ["<id>", ...]}
+     "cancel": ["<id>", ...],
+     "chat": [{"player": "<DCS player name>", "text": "<one readback line>"}]}   # sent once, as server chat
 
     {"version": 1, "accepted": false, "error": "stale sequence" | "retired epoch",
      "epoch": "<epoch>", "seq": <request seq>, "commands": [], "cancel": []}
@@ -521,6 +522,7 @@ class Controller:
         self._cancel = OrderedDict()   # id -> (time cancelled, task id, op, kind) until the mission acknowledges
         self._owners = OrderedDict()   # command id -> (session key, session origin)
         self._events = deque(maxlen=MAX_EVENTS)
+        self._chat = deque(maxlen=MAX_EVENTS)   # {"player", "text"} for the hook to send as DCS chat
 
     def reset_generation(self, generation):
         """Telemetry generation changed: unit ids are new, so close every session."""
@@ -676,8 +678,9 @@ class Controller:
                 self._acknowledge(command_id, status, reason)
             self._spot_changes(previous, switching_off)
             self._refresh()
+            chat, self._chat = list(self._chat), deque(maxlen=MAX_EVENTS)
             return {"version": 1, "accepted": True, "epoch": epoch, "seq": seq,
-                    "commands": self._pending_commands(), "cancel": list(self._cancel)}
+                    "commands": self._pending_commands(), "cancel": list(self._cancel), "chat": chat}
 
     def _session_for(self, command_id):
         owner = self._owners.get(command_id)
@@ -1048,8 +1051,31 @@ class Controller:
                     answer["validation"] = self._validation(session, target)
                 if key in self._sessions:
                     session.last = (message, target, session.revision)
+                    if intent == "requestBrief" and session.phase == "briefed" and unit.get("pilot"):
+                        # Readback values as text, one chat line each, so the pilot can read them
+                        # off the chat window; long remarks never push the other lines out.
+                        for line in self._readback_card(self._task_of(session)):
+                            self._chat.append({"player": unit["pilot"], "text": line})
             answer["reply"] = reply.speech()
             return answer
+
+    def _readback_card(self, task):
+        parts = []
+        for key in _owed(task):
+            value = task["brief"][key]
+            if key == "heading":
+                text = f"heading {value:03d}"
+            elif key == "distance":
+                text = f"distance {value:g}"
+            elif key == "elevation":
+                text = f"elevation {value} ft"
+            elif key == "location" and any(word in _LETTERS for word in value.lower().split()):
+                # Spelled-out grid: "grid kilo mike eight seven three" -> "KM 873"
+                text = " ".join(run.upper() if kind == "letter" else run for kind, run in _readback_runs(value))
+            else:
+                text = value
+            parts.append(("Remarks" if LINES[key] == 10 else f"L{LINES[key]}") + f": {text}")
+        return [f"{self.callsign} task {task['id']} readback:"] + parts
 
     def _task_list(self, tasks):
         names, size = [], 0
