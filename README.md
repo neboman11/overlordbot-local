@@ -66,6 +66,10 @@ The companion Lua mission script and server hook in `dcs/` provide live task sta
 
 When the server auto-loads the JTAC companion, DCC exports with CAS JTAC enabled can supply tasks from the existing `DCC_CAS.groups` registry. An explicit `OverlordJTACConfig.tasks` list, including an empty one, takes precedence. Discovery reuses the controller, target group and laser code; it does not supply an authored nine-line. Tune the Overlord JTAC gateway frequency rather than assuming DCC's JTAC preset matches.
 
+Newer DCC exports supply a mission-local briefing refresh for eligible CAS tasks. Ask for a fresh brief to get the tracked unit's current simulated position; repeated lines and readbacks use the last brief issued to that pilot. This does not retarget the laser or change authored static briefs.
+Deploy the Overlord Lua companion and Python runtime from the same release: the companion
+publishes live briefs, and the Python runtime keeps the issued brief stable for readback.
+
 No downloaded reference documents or research corpus are shipped. Optional local research belongs in ignored `.research/`.
 
 ## Independent carrier radios

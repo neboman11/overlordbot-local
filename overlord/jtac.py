@@ -452,7 +452,7 @@ def _live(task):
 
 class _Session:
     __slots__ = ("key", "caller", "origin", "task", "phase", "contact", "cleared", "marked", "revision",
-                 "touched", "cancel", "stage", "lost", "was_cleared", "last", "confirmed")
+                 "touched", "cancel", "stage", "lost", "was_cleared", "last", "confirmed", "issued_brief")
 
     def __init__(self, key, caller, revision):
         self.key, self.caller, self.origin, self.revision = key, caller, revision, revision
@@ -466,6 +466,7 @@ class _Session:
         self.was_cleared = False       # a clearance was live when the task was interrupted
         self.last = None               # (message, target, revision) of the latest reply, for "say again"
         self.confirmed = set()         # readback fields already read back correctly for this brief
+        self.issued_brief = None
 
 
 class Controller:
@@ -676,6 +677,10 @@ class Controller:
             switching_off = {c["task"] for c in self._outbox.values() if c["op"] == "laser_off"}
             for command_id, status, reason in acks:
                 self._acknowledge(command_id, status, reason)
+            for session in self._sessions.values():
+                old, new = previous.get(session.task), tasks.get(session.task)
+                if session.marked and old and new and old["brief"]["location"] != new["brief"]["location"]:
+                    session.marked = False  # Fixed marks do not follow the refreshed grid.
             self._spot_changes(previous, switching_off)
             self._refresh()
             chat, self._chat = list(self._chat), deque(maxlen=MAX_EVENTS)
@@ -823,6 +828,7 @@ class Controller:
         self._cancel_session_commands(session)
         session.task, session.phase = None, "checked_in"
         session.confirmed = set()
+        session.issued_brief = None
         session.contact = session.cleared = session.marked = session.was_cleared = False
         session.lost, session.stage = None, session.stage + 1
 
@@ -860,6 +866,7 @@ class Controller:
             self._stop_spots(session, task)
             session.phase = "assigned"
             session.confirmed = set()
+            session.issued_brief = None
             session.lost, session.was_cleared = self._lost_reason(task, fresh), session.was_cleared or cleared
             session.contact = session.cleared = session.marked = False
             session.stage += 1
@@ -919,9 +926,11 @@ class Controller:
     def readback_phrases(self, coalition):
         """Readback values of this coalition's tasks, to prime speech recognition (grid letters)."""
         with self._lock:
-            return [str(task["brief"][key]) for _, task in sorted(self._tasks.items())
-                    if task["coalition"] == coalition for key in _owed(task)
-                    if key not in NUMERIC_LINES and task["brief"][key]]
+            tasks = [session.issued_brief for session in self._sessions.values()
+                     if session.key[0] == coalition and session.issued_brief is not None]
+            tasks.extend(task for _, task in sorted(self._tasks.items()) if task["coalition"] == coalition)
+            return list(dict.fromkeys(str(task["brief"][key]) for task in tasks for key in _owed(task)
+                                      if key not in NUMERIC_LINES and task["brief"][key]))
 
     def take_events(self, coalition, channel):
         """Asynchronous DCS acknowledgement notifications for the JTAC channel."""
@@ -1131,7 +1140,7 @@ class Controller:
 
     def _next_step(self, session, task):
         if session.phase == "briefed":
-            return self._readback_request(task)
+            return self._readback_request(session.issued_brief)
         if session.cleared:
             return "report off target"
         if session.contact:
@@ -1171,6 +1180,8 @@ class Controller:
         if missing:
             where = "control type" if missing[0] == "type" else f"line {domain.number_to_words(LINES[missing[0]])}"
             return f"unable, task brief incomplete, missing {where}", False
+        # A moving target can change the next brief, not the one the pilot heard.
+        session.issued_brief = {"brief": task["brief"], "readback": task["readback"]}
         session.phase = "briefed"
         session.contact = session.cleared = session.was_cleared = False
         session.confirmed = set()
@@ -1195,12 +1206,13 @@ class Controller:
             return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
         if parsed["line"] is None:
             return "say line number", False
-        return self._line(task, parsed["line"]), True
+        return self._line(session.issued_brief, parsed["line"]), True
 
     def _readback(self, session, parsed):
         task = self._task_of(session)
         if task is None or session.phase in ("checked_in", "assigned"):
             return (self._lost_reply(session) if session.lost else "unable, no brief issued"), False
+        task = session.issued_brief
         # Lines read back earlier count only while the readback is still owed; once it is complete,
         # a new readback is checked on its own, so a wrong one is refused instead of "correct".
         confirmed = session.confirmed if session.phase == "briefed" else set()
@@ -1243,7 +1255,7 @@ class Controller:
             session.cleared = False
             return f"continue, no clearance, {reason}", False
         session.cleared = True
-        return ("cleared to engage" if task["brief"]["type"] == 3 else "cleared hot"), True
+        return ("cleared to engage" if session.issued_brief["brief"]["type"] == 3 else "cleared hot"), True
 
     def _requestMark(self, session, parsed):
         task = self._task_of(session)

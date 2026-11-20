@@ -168,6 +168,9 @@ OverlordJTAC = (function()
         else ok = false end
       end
       if ok then
+        if type(raw.refreshBrief) == 'function' and task.target.unit then
+          task.refreshBrief = raw.refreshBrief
+        end
         tasks[id] = task
         order[#order + 1] = id
       else
@@ -429,10 +432,16 @@ OverlordJTAC = (function()
       if #targets > 0 then
         target.lat, target.lon, target.alt = coord.LOtoLL(targets[1]:getPoint())
       end
+      local brief = task.brief
+      if task.refreshBrief and #targets > 0 then
+        -- Only a mission-local callback; no code or coordinates come from the brain.
+        local ok, current = pcall(task.refreshBrief)
+        brief = ok and copyBrief(current, id) or {}
+      end
       out.tasks[#out.tasks + 1] = {
         id = id, name = task.name, coalition = task.coalition,
         controller = { name = task.controller, alive = controller ~= nil },
-        target = target, brief = task.brief, laser_code = task.laserCode, marks = task.marks,
+        target = target, brief = brief, laser_code = task.laserCode, marks = task.marks,
         readback = task.readback, attack_heading = task.attackHeading, require_mark = task.requireMark,
         laser = spotState(task.laser), ir = spotState(task.ir),
       }

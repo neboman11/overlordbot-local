@@ -109,6 +109,32 @@ class JtacTests(unittest.TestCase):
 
     # -- procedure --------------------------------------------------------------------
 
+    def test_moving_brief_refreshes_on_request_not_during_readback(self):
+        self.bridge()
+        self.say('Axeman, Viper 1 1, checking in')
+        self.say('Axeman, Viper 1 1, request task')
+        self.assertIn('KM 1234', self.say('Axeman, Viper 1 1, ready for brief')['reply'])
+        self.bridge([task(brief=dict(BRIEF, location='KM 5678'))])
+        self.assertIn('KM 1234', self.say('Axeman, Viper 1 1, say again line six')['reply'])
+        self.assertIn('readback correct', self.say(
+            'Axeman, Viper 1 1, readback elevation four five zero, kilo mike one two three four')['reply'])
+        self.assertIn('KM 5678', self.say('Axeman, Viper 1 1, ready for brief')['reply'])
+        self.assertIn('negative readback', self.say(
+            'Axeman, Viper 1 1, readback elevation four five zero, kilo mike one two three four')['reply'])
+        self.assertIn('readback correct', self.say(
+            'Axeman, Viper 1 1, readback elevation four five zero, kilo mike five six seven eight')['reply'])
+
+    def test_new_grid_invalidates_acknowledged_smoke_without_discarding_readback(self):
+        self.bridge()
+        self.brief_and_readback()
+        self.say('Axeman, Viper 1 1, contact')
+        self.say('Axeman, Viper 1 1, request smoke')
+        command = self.bridge()['commands'][0]
+        self.bridge(acks=[{'id': command['id'], 'status': 'done'}])
+        self.assertIn('cleared hot', self.say('Axeman, Viper 1 1, in heading two seven zero')['reply'])
+        self.bridge([task(brief=dict(BRIEF, location='KM 5678'))])
+        self.assertIn('mark not confirmed', self.say('Axeman, Viper 1 1, in heading two seven zero')['reply'])
+
     def test_full_procedure_to_clearance_and_abort(self):
         self.bridge()
         reply = self.say('Axeman, Viper 1 1, checking in')['reply']
