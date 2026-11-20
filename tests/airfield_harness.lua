@@ -356,7 +356,8 @@ local function newMission(opts)
   end
 
   local allowedNil = { OverlordAirfield = true, OverlordAirfieldConfig = true, OverlordCarrier = true,
-                       OverlordCarrierConfig = true, OverlordJTAC = true, OverlordJTACConfig = true }
+                       OverlordCarrierConfig = true, OverlordJTAC = true, OverlordJTACConfig = true,
+                       DCC_CAS = true }
   local base = {
     math = math, string = string, table = table, ipairs = ipairs, pairs = pairs, type = type,
     tostring = tostring, tonumber = tonumber, pcall = pcall, setmetatable = setmetatable, next = next,

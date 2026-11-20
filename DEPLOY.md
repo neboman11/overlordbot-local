@@ -272,7 +272,9 @@ the Compose demo still includes its replay service.
 
 The mission is authoritative: the companion reads each declared carrier ship
 unit's `frequency` in **Hz** and its `modulation` (native AM default). This
-includes Supercarriers. Group/aircraft MHz settings are not used or converted.
+includes Supercarriers. When a ship unit omits its frequency, the companion
+uses its ship group's valid frequency (MHz) and modulation as a pair.
+Aircraft frequencies are not used for carrier radios.
 There is no carrier frequency environment variable, override or allocator.
 Missing/invalid radios disable that carrier with a diagnostic. Any radios
 less than 200 Hz apart conflict, even across coalition/modulation; affected
@@ -662,7 +664,7 @@ HTTP admission is bounded to 32 connections before thread creation, four in-flig
 - One frequency and modulation per gateway. Reply path is half-duplex; receive audio during own transmission is discarded. No radio encryption/decryption, terrain line-of-sight model or concurrent overlapping-voice separation is implemented.
 - End-of-transmission detection is packet inactivity, not a DCS PTT signal. Long pauses can split a transmission. Calls are capped at 30 seconds; overload drops rather than retaining unbounded audio. Transcripts the controllers do not answer are logged as `unanswered` events.
 - Whisper confidence is a model token probability summary when present, not calibrated command correctness. Optional local NLP classifies only verified, explicitly addressed requests; it is not a substitute for acoustic accuracy or deterministic readback checks. No cloud fallback exists.
-- Tacview positions/metadata cannot prove DCS runway occupancy, clearance authority or arbitrary mission-task assignment. JTAC acts only on explicitly mission-authored tasks and live companion data; the bridge is not an unrestricted mission-command API.
+- Tacview positions/metadata cannot prove DCS runway occupancy, clearance authority or arbitrary mission-task assignment. JTAC uses live companion data and explicit tasks, or discovers task identities from DCC CAS exports when no explicit task list is set. Discovered tasks lack the authored nine-line required for the full radio procedure. The bridge is not an unrestricted mission-command API.
 - Companion Lua/API harness checks do not establish actual in-game DCS acceptance. Validate mission installation, hook permissions, line-of-sight/marking behavior, abort cleanup, and every configured SRS frequency on the target DCS build. Carrier procedures are simplified; full LSO automation is not included.
 - Native SRS/Tacview traffic is plaintext. Keep it on trusted network/VPN. Demo SRS attempts upstream checks/telemetry; its internal network blocks them. Official SRS shutdown may emit `ObjectDisposedException` after successful exchanges.
 - apt packages follow the pinned base image's distribution repositories; Python packages, models, speech source, image base and GitHub actions are pinned explicitly.

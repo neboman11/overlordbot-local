@@ -10,7 +10,8 @@ secrets.  The server hook (Scripts/Hooks/overlord_hook.lua) calls exactly one
 entry point, OverlordJTAC.bridge(epoch, inbound_json), about once a second and
 relays the returned JSON snapshot to the Overlord brain; JSON goes through
 OverlordJSON.encode/decode, the engine codec the hook installs first.  Commands from the brain
-are limited to laser_on, laser_off and mark for tasks authored in the config;
+are limited to laser_on, laser_off and mark for tasks authored in the config
+or discovered from DCC's CAS registry when no task list is set;
 each is executed through the DCS API (Spot.createLaser, Spot:setPoint,
 Spot:destroy, Spot.createInfraRed, trigger.action.smoke,
 trigger.action.illuminationBomb) and acknowledged with its actual result.
@@ -91,8 +92,50 @@ OverlordJTAC = (function()
     return ok and result == true
   end
 
+  local function discoverDccTasks()
+    local registry = type(DCC_CAS) == 'table' and DCC_CAS.groups
+    if type(registry) ~= 'table' then return {} end
+
+    local flights = {}
+    for flight in pairs(registry) do
+      if type(flight) == 'string' then flights[#flights + 1] = flight end
+    end
+    table.sort(flights)
+
+    local discovered, seen = {}, {}
+    for _, flight in ipairs(flights) do
+      local entry = registry[flight]
+      local controller = type(entry) == 'table' and entry.jtacName
+      local target = type(entry) == 'table' and entry.targetGroupName
+      if text(controller, 64) and text(target, 64) then
+        local key = controller .. '\0' .. target
+        local unit = not seen[key] and Unit.getByName(controller)
+        if unit then
+          local ok, side = pcall(function() return unit:getCoalition() end)
+          local coalition = ok and (side == COALITION.blue and 'blue' or side == COALITION.red and 'red')
+          if coalition then
+            if #discovered == 32 then
+              fail('DCC CAS discovery limited to 32 tasks')
+              break
+            end
+            local code = validLaserCode(entry.laserCode) and entry.laserCode or nil
+            discovered[#discovered + 1] = {
+              id = #discovered + 1, name = 'DCC CAS ' .. (#discovered + 1), coalition = coalition,
+              controller = controller, target = { group = target }, laserCode = code,
+              marks = code and { 'laser', 'smoke' } or { 'smoke' },
+            }
+            seen[key] = true
+          end
+        end
+      end
+    end
+    return discovered
+  end
+
+  local missionTasks = cfg.tasks
+  if missionTasks == nil then missionTasks = discoverDccTasks() end
   -- Configuration: invalid tasks are skipped and reported in the snapshot error.
-  for index, raw in ipairs(type(cfg.tasks) == 'table' and cfg.tasks or {}) do
+  for index, raw in ipairs(type(missionTasks) == 'table' and missionTasks or {}) do
     local id = type(raw) == 'table' and raw.id
     local target = type(raw) == 'table' and raw.target
     if not number(id, 1, 99, true) or tasks[id] then

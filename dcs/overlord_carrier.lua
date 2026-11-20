@@ -14,9 +14,12 @@ about once a second and relays the returned JSON snapshot to the brain's
 Carrier registry: every carrier ship unit in env.mission (fixed list of DCS
 carrier types, or a live unit with the native "Aircraft Carriers" attribute).
 Its radio is the ship UNIT's own mission-editor frequency, in Hz, and optional
-modulation (DCS default AM when omitted).  Nothing is allocated, converted or
-duplicated: a missing or non-integer-Hz frequency is reported as unavailable
-with an explicit error.  Group-level frequency fields (MHz) are never used.
+modulation (DCS default AM when omitted).  Only when the unit has no authored
+frequency does discovery fall back to the native ship GROUP's frequency (MHz,
+converted to integer Hz) and modulation (0/1, required; no default).  An
+authored unit frequency is authoritative even if invalid.  Nothing else is
+allocated or duplicated: a missing or invalid radio is reported as unavailable
+with an explicit error.
 Liveness, position, velocity and true heading come from the live unit.  CASE,
 ceiling and visibility come only from the optional operational config;
 altimeter from the config or atmosphere.getTemperatureAndPressure at sea
@@ -191,7 +194,7 @@ OverlordCarrier = (function()
     return ok and result == true
   end
 
-  local function addCarrier(raw, coalitionId, sideName)
+  local function addCarrier(raw, group, coalitionId, sideName)
     local id, name = idText(raw.unitId), raw.name
     if not id or not text(name) or not text(raw.type) then
       fail('carrier of type ' .. label(raw.type) .. ': no valid unitId/name/type')
@@ -206,7 +209,21 @@ OverlordCarrier = (function()
       return
     end
     local frequency, modulation = raw.frequency, raw.modulation
-    if modulation == nil then modulation = 0 end
+    if frequency == nil and type(group) == 'table' and number(group.frequency, 0, MAX_HZ / 1000000, false) then
+      -- DCC/native ship groups author the radio on the group (MHz, modulation 0/1); no unit frequency exists.
+      local hz = math.floor(group.frequency * 1000000 + 0.5)
+      if number(hz, MIN_HZ, MAX_HZ - 1, true) then
+        frequency = hz
+        modulation = group.modulation
+        if modulation == nil then
+          fail(label(name) .. ': group frequency without modulation')
+          frequency, modulation = nil, 0
+        end
+      end
+    elseif frequency ~= nil and modulation == nil then
+      modulation = 0
+    end
+    if frequency == nil and modulation == nil then modulation = 0 end
     if modulation ~= 0 and modulation ~= 1 then
       fail(label(name) .. ': modulation not 0/1')
       frequency, modulation = nil, 0
@@ -228,7 +245,7 @@ OverlordCarrier = (function()
       for _, raw in ipairs(type(units) == 'table' and units or {}) do
         if type(raw) == 'table' and type(raw.type) == 'string' and type(raw.name) == 'string'
             and (CARRIER_TYPES[raw.type] ~= nil or nativeCarrier(raw.name)) then
-          addCarrier(raw, COALITION[sideName], sideName)
+          addCarrier(raw, group, COALITION[sideName], sideName)
         end
       end
     end

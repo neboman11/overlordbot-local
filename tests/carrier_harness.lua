@@ -434,6 +434,52 @@ check('registry reads every carrier ship unit radio in Hz from env.mission witho
   eq(#W.forbidden, 0, 'forbidden globals')
 end)
 
+
+-- One DCC-style red ship per mission so each diagnostic is asserted on its own (error text is length-capped).
+local function groupRadio(group, unit)
+  local W = newMission({ config = false, mutate = function(W)
+    W.unit({ id = 501, name = 'DCC Ship', type = 'VINSON', coalition = 1, category = 3, x = -70000, z = 0 })
+    unit.unitId, unit.name, unit.type = 501, 'DCC Ship', 'VINSON'
+    group.name, group.units = 'DCC Group', { unit }
+    local red = W.mission.coalition.red.country[1].ship.group
+    red[#red + 1] = group
+  end })
+  local s = bridge(W, 'e1')
+  return carrier(s, '501'), s
+end
+
+check('ship group frequency/modulation is the fallback only when the unit has no frequency', function()
+  local c, s = groupRadio({ communication = true, frequency = 250, modulation = 0 }, {})   -- DCC export shape
+  eq(c.frequency_hz, 250000000, 'group MHz converted to integer Hz')
+  eq(c.modulation, 0, 'group modulation used')
+  eq(s.error:find('DCC Ship', 1, true), nil, 'no error for valid group radio')
+  c = groupRadio({ frequency = 251.5, modulation = 1 }, { modulation = 0 })
+  eq(c.frequency_hz, 251500000, 'fractional MHz')
+  eq(c.modulation, 1, 'group FM')
+  c = groupRadio({ frequency = 250, modulation = 1 }, { frequency = 260000000 })
+  eq(c.frequency_hz, 260000000, 'authored unit frequency beats group')
+  eq(c.modulation, 0, 'authored frequency without modulation stays AM')
+  c, s = groupRadio({ frequency = 250, modulation = 0 }, { frequency = 127.5 })
+  eq(c.frequency_hz, nil, 'invalid authored unit frequency is not replaced by group')
+  assert(s.error:find('DCC Ship: frequency not integer Hz', 1, true), s.error)
+  c, s = groupRadio({ name = 'No radio' }, {})
+  eq(c.frequency_hz, nil, 'group without frequency stays unavailable')
+  assert(s.error:find('DCC Ship: no frequency', 1, true), s.error)
+end)
+
+check('invalid group radio is unavailable with an error; nothing is guessed', function()
+  local c, s = groupRadio({ frequency = 250 }, { modulation = 0 })
+  eq(c.frequency_hz, nil, 'group frequency without modulation: no default')
+  assert(s.error:find('DCC Ship: group frequency without modulation', 1, true), s.error)
+  c, s = groupRadio({ frequency = 250, modulation = 7 }, {})
+  eq(c.frequency_hz, nil, 'invalid group modulation')
+  assert(s.error:find('DCC Ship: modulation not 0/1', 1, true), s.error)
+  for _, bad in ipairs({ 0 / 0, 1e9, 0.5, '250', -250 }) do
+    c, s = groupRadio({ frequency = bad, modulation = 0 }, {})
+    eq(c.frequency_hz, nil, 'invalid group frequency ' .. tostring(bad))
+    assert(s.error:find('DCC Ship: no frequency', 1, true), s.error)
+  end
+end)
 check('dead or inactive carriers are reported without position', function()
   local W = newMission()
   W.cvn71.alive = false

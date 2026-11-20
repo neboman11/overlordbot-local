@@ -224,7 +224,7 @@ local function newMission()
     end
   end
   -- Mission globals that may legitimately be undefined (the carrier companion is optional).
-  local allowedNil = { OverlordJTAC = true, OverlordJTACConfig = true, OverlordCarrier = true }
+  local allowedNil = { OverlordJTAC = true, OverlordJTACConfig = true, OverlordCarrier = true, DCC_CAS = true }
   local base = {
     math = math, string = string, table = table, ipairs = ipairs, pairs = pairs, type = type,
     tostring = tostring, tonumber = tonumber, pcall = pcall, setmetatable = setmetatable, next = next,
@@ -270,7 +270,7 @@ local function newMission()
   return W
 end
 
-local function standardMission(config)
+local function standardMission(config, dccGroups)
   local W = newMission()
   W.jtac = W.unit('JTAC-1 Reaper', 2, 0, 0)
   W.t1, W.t2, W.t3 = W.unit('T1', 1, 1000, 0), W.unit('T2', 1, 1010, 0), W.unit('T3', 1, 1020, 0)
@@ -289,6 +289,10 @@ local function standardMission(config)
         target = { group = 'Red Armor Column' }, laserCode = 1999 },
     },
   }
+  if dccGroups then
+    W.env.OverlordJTACConfig = config
+    W.env.DCC_CAS = { groups = dccGroups }
+  end
   compile(readFile(ROOT .. 'dcs/overlord_jtac.lua'), '@overlord_jtac.lua', W.env)()
   return W
 end
@@ -338,6 +342,38 @@ check('config validation keeps only valid tasks and reports errors', function()
   assert(s.error and s.error:find('task 2'), 'invalid task reported')
   eq(s.seq, 1)
   eq(#W.forbidden, 0, 'forbidden globals')
+end)
+
+check('DCC CAS registry provisions one live Overlord task per controller and target', function()
+  local cas = { jtacName = 'JTAC-1 Reaper', targetGroupName = 'Red Armor Column', laserCode = 1688 }
+  local W = standardMission(nil, {
+    ['Flight Two'] = cas,
+    ['Flight One'] = { jtacName = cas.jtacName, targetGroupName = cas.targetGroupName, laserCode = cas.laserCode },
+    ['Missing controller'] = { jtacName = 'missing', targetGroupName = cas.targetGroupName },
+  })
+  local snapshot = bridge(W, 'e1')
+  eq(#snapshot.tasks, 1, 'duplicate flight and missing controller do not add tasks')
+  eq(snapshot.tasks[1].coalition, 2)
+  eq(snapshot.tasks[1].target.remaining, 3)
+  eq(snapshot.tasks[1].laser_code, 1688)
+  snapshot = bridge(W, 'e1', reply('e1', { command('c1', 'laser_on') }))
+  eq(ackFor(snapshot, 'c1').status, 'done')
+  eq(W.live()[1].unit, W.jtac)
+
+  local authored = standardMission({ tasks = {} }, { ['Flight One'] = cas })
+  eq(#bridge(authored, 'e1').tasks, 0, 'an explicitly empty task list disables discovery')
+end)
+
+check('DCC discovery reports rather than publishing more than the brain task limit', function()
+  local groups = {}
+  for i = 1, 33 do
+    groups[string.format('Flight %02d', i)] = {
+      jtacName = 'JTAC-1 Reaper', targetGroupName = 'Target ' .. i, laserCode = 1688,
+    }
+  end
+  local snapshot = bridge(standardMission(nil, groups), 'e1')
+  eq(#snapshot.tasks, 32, 'only the allowed number of tasks is sent')
+  assert(snapshot.error and snapshot.error:find('limited to 32 tasks', 1, true))
 end)
 
 check('laser on executes Spot.createLaser once and replays its acknowledgement', function()

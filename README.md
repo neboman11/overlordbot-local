@@ -64,6 +64,8 @@ JTAC uses **a second SRS gateway on a separate frequency**: default AWACS/ATC 25
 
 The companion Lua mission script and server hook in `dcs/` provide live task state, marking, and laser control. JTAC uses mission-authored briefs/restrictions, checks readbacks and contact reports, and supports abort and BDA/status. Marking/laser success requires a DCS acknowledgement; stale state blocks progression. Secrets remain server-side, not inside downloadable missions. See [DEPLOY.md](DEPLOY.md) for installation, exact settings, command sequence, and verification limits.
 
+When the server auto-loads the JTAC companion, DCC exports with CAS JTAC enabled can supply tasks from the existing `DCC_CAS.groups` registry. An explicit `OverlordJTACConfig.tasks` list, including an empty one, takes precedence. Discovery reuses the controller, target group and laser code; it does not supply an authored nine-line. Tune the Overlord JTAC gateway frequency rather than assuming DCC's JTAC preset matches.
+
 No downloaded reference documents or research corpus are shipped. Optional local research belongs in ignored `.research/`.
 
 ## Independent carrier radios
@@ -73,8 +75,9 @@ and `DCS_BRIDGE_TOKEN`, install `dcs/overlord_carrier.lua` in the mission, and e
 `features = {"jtac", "carriers"}` in the private server hook (or `{"carriers"}` alone).
 See [DEPLOY.md](DEPLOY.md#independent-carrier-operations) for installation and calls.
 
-Each carrier uses its **existing mission ship-unit frequency**, including
-Supercarriers. No frequency list or allocator is configured in the bot. Every
+Each carrier prefers its **existing mission ship-unit frequency**, including
+Supercarriers. If the ship has no frequency, Overlord uses a valid ship-group
+radio (MHz), as authored by DCC. No frequency list or allocator is configured in the bot. Every
 carrier has its own radio, aircraft sessions and recovery/departure lane.
 Frequencies less than 200 Hz apart, including enabled AWACS/JTAC channels, are
 disabled with diagnostics rather than silently reassigned.
