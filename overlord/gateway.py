@@ -219,6 +219,8 @@ class Gateway:
                     except queue.Full:
                         METRICS.add('notifications_dropped_total')
             except (OSError, ValueError, ConnectionError):
+                # Never prime STT with an earlier mission's callsigns and airfields.
+                self.vocabulary = ''
                 METRICS.add('notification_poll_errors_total')
 
     def _process(self):

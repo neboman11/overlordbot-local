@@ -45,6 +45,7 @@ names.  Open vocabulary (unknown group names) is taken as spoken.
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import re
@@ -439,10 +440,29 @@ def _encyclopedia_airfields() -> set:
     return {v for v in AIRFIELD_ALIASES.values() if norm(strip_airbase_suffixes(v)) in bundled}
 
 
-# Airfields matched by sound: only those the bot serves (bundled data), so that a
-# misheard Caucasus name is not taken for a similar-sounding airfield elsewhere.
+# Airfields matched by sound: only those the bot can serve, so that a misheard name is
+# never taken for a similar-sounding airfield on another map.
 _SERVED = _encyclopedia_airfields()
 AIRFIELD_SOUNDS = _keyed({k: v for k, v in AIRFIELD_ALIASES.items() if v in _SERVED})
+
+
+@functools.lru_cache(maxsize=8)
+def airfield_sounds(airfields: Optional[frozenset] = None) -> dict:
+    """Sound keys for a misheard airfield name: the current mission's airdromes when known
+    (each by its catalogue spellings, else its own name), otherwise the bundled airfields."""
+    if not airfields:
+        return AIRFIELD_SOUNDS
+    names = {}
+    for name in airfields:
+        spoken = norm(strip_airbase_suffixes(name))
+        canon = AIRFIELD_ALIASES.get(norm(name)) or AIRFIELD_ALIASES.get(spoken)
+        if canon and canon != "nearest":
+            names.update({k: v for k, v in AIRFIELD_ALIASES.items() if v == canon})
+        else:
+            names[spoken] = name
+    return _keyed(names)
+
+
 BULLSEYE_SOUND = phonetic("bullseye")
 
 # Command phrases matched by sound when no phrase matches literally
@@ -511,7 +531,7 @@ def _awacs_set(bot_callsign: Optional[str]) -> set:
     return awacs
 
 
-def _airfield_before(toks: list[Tok], i: int, awacs: set):
+def _airfield_before(toks: list[Tok], i: int, awacs: set, sounds: dict):
     """Airfield name spoken before the controller word at ``i``: (start, name, spoken)."""
     for back in range(min(4, i), 0, -1):
         length, canon = _match(toks, i - back, AIRFIELD_ALIASES, maxlen=back)
@@ -521,7 +541,7 @@ def _airfield_before(toks: list[Tok], i: int, awacs: set):
         span = toks[i - back:i]
         if not all(t.is_word for t in span):
             continue
-        canon = _closest("".join(t.w for t in span), AIRFIELD_SOUNDS)
+        canon = _closest("".join(t.w for t in span), sounds)
         if canon:
             return i - back, canon, " ".join(t.w for t in span)
     if i > 0 and toks[i - 1].is_word and toks[i - 1].w not in FILLERS and toks[i - 1].w not in awacs:
@@ -529,7 +549,7 @@ def _airfield_before(toks: list[Tok], i: int, awacs: set):
     return i, None, None
 
 
-def _receivers(toks: list[Tok], bot_callsign: Optional[str]):
+def _receivers(toks: list[Tok], bot_callsign: Optional[str], sounds: dict):
     """All receiver candidates as (start, end, receiver dict), sorted by start."""
     awacs = _awacs_set(bot_callsign)
     out = []
@@ -544,7 +564,7 @@ def _receivers(toks: list[Tok], bot_callsign: Optional[str]):
         elif t.w in COMMANDERS:
             out.append((i, i + 1, {"kind": "commander", "callsign": t.w}))
         elif t.w in CONTROLLERS:
-            start, name, spoken = _airfield_before(toks, i, awacs)
+            start, name, spoken = _airfield_before(toks, i, awacs, sounds)
             out.append((start, i + 1, {"kind": "airfield", "name": name, "spoken": spoken,
                                        "controller": t.w}))
     if toks and toks[0].n is None:
@@ -649,7 +669,8 @@ def parse_callsign(toks: list[Tok], allow_group_only: bool,
     return {"kind": kind, "group": group, "flight": flight, "element": element}
 
 
-def _subject(toks: list[Tok], known_groups: Optional[set], bot_key: Optional[str]) -> Optional[dict]:
+def _subject(toks: list[Tok], known_groups: Optional[set], bot_key: Optional[str],
+             sounds: dict) -> Optional[dict]:
     rest = [t for t in toks if not (t.n is None and t.w in FILLERS | {"friendly", "is", "to", "for"})]
     for i in range(len(rest)):
         if rest[i].n is not None:
@@ -678,7 +699,7 @@ def _subject(toks: list[Tok], known_groups: Optional[set], bot_key: Optional[str
         spoken_words.append(t.w)
     for start in range(len(spoken_words)):  # fillers may be part of a misheard name ("an arper")
         for size in range(min(3, len(spoken_words) - start), 0, -1):
-            canon = _closest("".join(spoken_words[start:start + size]), AIRFIELD_SOUNDS)
+            canon = _closest("".join(spoken_words[start:start + size]), sounds)
             if canon:
                 return {"kind": "airfield", "name": canon, "spoken": " ".join(spoken_words[start:start + size])}
     spoken = " ".join(words[:3])
@@ -786,9 +807,11 @@ def _chatter(before: list[Tok]) -> bool:
 
 
 def parse(text: str, bot_callsign: Optional[str] = "overlord",
-          known_groups: Optional[Iterable[str]] = None) -> dict:
-    """Parse one transmission.  ``known_groups`` are the live callsign group names."""
+          known_groups: Optional[Iterable[str]] = None, airfields: Optional[Iterable[str]] = None) -> dict:
+    """Parse one transmission.  ``known_groups`` are the live callsign group names;
+    ``airfields`` the current mission's airdrome names, when known."""
     groups = {norm(g).replace(" ", "") for g in known_groups} if known_groups else None
+    sounds = airfield_sounds(frozenset(airfields) if airfields else None)
     result = {"text": text, "intent": "None", "receiver": None, "transmitter": None, "subject": None,
               "qualifier": None, "distance": None, "mission_type": None, "mission_id": None,
               "bearing": None, "range": None, "reference": None}
@@ -809,7 +832,7 @@ def parse(text: str, bot_callsign: Optional[str] = "overlord",
     intent, c_start, c_end = command
 
     def speakers(c_start):
-        receivers = [r for r in _receivers(toks, bot_callsign) if r[1] <= c_start]
+        receivers = [r for r in _receivers(toks, bot_callsign, sounds) if r[1] <= c_start]
         receiver = receivers[0] if receivers else None
         if receiver:
             transmitter = parse_callsign(toks[receiver[1]:c_start], True, groups, bot_key)
@@ -843,7 +866,7 @@ def parse(text: str, bot_callsign: Optional[str] = "overlord",
         intent = "bogeyDope"
         c_start = c_end
     elif intent == "locationOfEntity" and any(t.w in ("tanker", "tankers") for t in after) \
-            and (_subject(after, groups, bot_key) or {}).get("kind") != "tanker":
+            and (_subject(after, groups, bot_key, sounds) or {}).get("kind") != "tanker":
         # "vector to the nearest tanker": the generic word, not a named tanker callsign
         intent = "tanker"
         c_start = c_end
@@ -851,7 +874,7 @@ def parse(text: str, bot_callsign: Optional[str] = "overlord",
     result["receiver"] = receiver[2] if receiver else None
     result["transmitter"] = transmitter
     if intent == "locationOfEntity":
-        result["subject"] = _subject(after, groups, bot_key)
+        result["subject"] = _subject(after, groups, bot_key, sounds)
     elif intent == "bogeyDope":
         start = receiver[1] if receiver else 0
         tail = toks[start:c_start] + after

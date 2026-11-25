@@ -3,7 +3,8 @@ import re
 
 from . import domain
 
-_CALLSIGN = re.compile(r'([A-Za-z]{2,}(?: [A-Za-z]+)?)[ _-]?(\d)[ -]?(\d{1,2})(?!\d)')
+# A whole callsign token: DCC unit names embed UUIDs ("...-244f4688-...") that must not read as "f 4 688".
+_CALLSIGN = re.compile(r'(?<![A-Za-z0-9])([A-Za-z]{2,}(?: [A-Za-z]+)?)[ _-]?(\d)[ -]?(1\d|\d)(?!\d)')
 
 
 def spoken_callsigns(names, limit=32):

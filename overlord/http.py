@@ -146,7 +146,8 @@ def serve(routes, ready, port, host='0.0.0.0'):
                 self.respond(*json_response({'error': str(error)}, 400))
             except Exception as error:
                 METRICS.add('service_errors_total')
-                print(json.dumps({'event': 'service_error', 'type': type(error).__name__}), flush=True)
+                print(json.dumps({'event': 'service_error', 'path': self.path, 'type': type(error).__name__}),
+                      flush=True)
                 self.respond(*json_response({'error': 'inference unavailable'}, 503))
 
     server = ServiceServer((host, port), Handler)

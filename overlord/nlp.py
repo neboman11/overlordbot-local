@@ -126,7 +126,7 @@ def addressed(text: str, callsign: str, units: list, coalition: int) -> Optional
     first = 0
     while first < len(toks) and toks[first].n is None and toks[first].w in _LEADING:
         first += 1
-    receiver = next(((s, e) for s, e, r in parser._receivers(toks, callsign)
+    receiver = next(((s, e) for s, e, r in parser._receivers(toks, callsign, parser.AIRFIELD_SOUNDS)
                      if r["kind"] == "awacs" and r["callsign"] == key and s >= first), None)
     if receiver is None:
         return None

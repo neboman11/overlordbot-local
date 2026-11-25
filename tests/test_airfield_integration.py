@@ -168,6 +168,26 @@ class AirfieldIntegrationTests(unittest.TestCase):
         self.assertFalse(self.brain.validate_event(first)['valid'])
         self.assertTrue(self.brain.validate_event(second)['valid'])
 
+    def test_awacs_vectors_to_and_primes_airfields_only_the_mission_knows(self):
+        # Tacview streams no airbases and the bundled encyclopedia has no Persian Gulf data.
+        mission = snapshot(2)
+        mission['airfields'].append(dict(airfield('3', 'Sharjah Intl', 123000000), lat=25.33, lon=55.52))
+        self.service.exchange(mission)
+        world = World()
+        world.feed_line('1,T=55.0|25.0|3000|0|0|90,Type=Air+FixedWing,Name=FA-18C_hornet,'
+                        'Pilot=Silver 1-2,Color=Blue')
+        world.feed_line('2,T=55.1|25.1|0,Type=Ground+Vehicle,Name=M1A2,'
+                        'Pilot=DCC-CNV-opponent-244f4688-e758-413d-9a40-13ac43c6b7d0-1,Color=Blue')
+        brain = Brain(world, roles=('awacs', 'airfield'), airfields=self.service)
+        # "Sharja" once sound-matched the bundled Sochi-Adler; it must mean this mission's Sharjah.
+        reply = brain.respond({'text': 'Overlord Silver one two vector to Sharja', 'coalition': 2,
+                               'channel': '2:251000000:0'})['reply']
+        self.assertIn('Sharjah, bearing', reply)
+        vocabulary = brain.take_events({'coalition': 2, 'channel': '2:251000000:0'})['vocabulary']
+        self.assertIn('Silver one two', vocabulary)
+        self.assertIn('Sharjah', vocabulary)
+        self.assertNotIn('Batumi', vocabulary)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1334,6 +1334,17 @@ class AirfieldService:
             self._release(session)
             return True
 
+    def mission_airfields(self):
+        """Live airdromes of the current mission, shaped like Tacview units, for AWACS lookups."""
+        with self._lock:
+            if not self._fresh():
+                return []
+            return [{"id": "airfield:" + fid, "name": field["name"], "callsign": "", "pilot": "", "group": "",
+                     "coalition": field["coalition"], "type": field["name"], "category": "Airfield",
+                     "lat": field["lat"], "lon": field["lon"], "altitude": 0.0, "heading": 0.0,
+                     "roll": 0.0, "pitch": 0.0, "tacview_type": "Ground+Static+Aerodrome"}
+                    for fid, field in self._fields.items() if field["alive"]]
+
     # -- registry and routing --------------------------------------------------
 
     def registry(self):

@@ -102,6 +102,13 @@ class Brain:
                 registry['ready'] = False
             return registry
 
+    def _mission_airfields(self):
+        """Current mission's airdromes from the DCS bridge: Tacview streams FARPs and ships, not airbases."""
+        with self.radio_lock:
+            if self.airfields is None or not self._native_current(self.airfields):
+                return []
+            return self.airfields.mission_airfields()
+
     def native_ready(self):
         with self.radio_lock:
             services = [service for service in (self.carriers, self.airfields) if service is not None]
@@ -182,12 +189,15 @@ class Brain:
                 return answer
         is_jtac = self.jtac is not None and channel == self.jtac.channel
         controller_callsign = self.jtac.callsign if is_jtac else self.callsign
+        fields = [] if is_jtac else self._mission_airfields()
+        names = [field['name'] for field in fields]
         with self.lock, self.world.locked_snapshot() as (generation, units):
+            units = units + fields
             self._sync_generation(generation)
             if is_jtac:
                 parsed = self.jtac.parse(text, units, coalition)
             else:
-                parsed = parser.parse(text, self.callsign, domain._known_groups(units))
+                parsed = parser.parse(text, self.callsign, domain._known_groups(units), names)
             if not self.ready:
                 if is_jtac and parsed and parsed.get('intent') not in ('abort', 'laserOff', 'checkOut'):
                     # The JTAC identifies callers from Tacview: say why it cannot work instead of staying silent.
@@ -200,9 +210,9 @@ class Brain:
                 if not (is_jtac and parsed):
                     return {'reply': None, 'parsed': parsed, 'notes': 'Telemetry unavailable or stale'}
             if parsed and (parsed.get('blocked') or parsed.get('intent') not in (None, 'None')):
-                return self._answer(text, coalition, channel, generation, units, is_jtac)
+                return self._answer(text, coalition, channel, generation, units, is_jtac, names)
             if self.nlp is None or not controller_callsign:
-                return self._answer(text, coalition, channel, generation, units, is_jtac)
+                return self._answer(text, coalition, channel, generation, units, is_jtac, names)
             from .nlp import addressed
             address = addressed(text, controller_callsign, units, coalition)
             if address is None:
@@ -222,6 +232,7 @@ class Brain:
         # Inference never holds either controller or telemetry lock.
         rewritten = self.nlp.rewrite(text, controller_callsign, units, coalition, commands)
         with self.lock, self.world.locked_snapshot() as (current_generation, current_units):
+            current_units = current_units + fields
             self._sync_generation(current_generation)
             if current_generation != generation or not self.ready:
                 return {'reply': None, 'parsed': None, 'notes': 'Mission changed during interpretation'}
@@ -235,15 +246,15 @@ class Brain:
                 return {'reply': 'unable, say again using standard phraseology',
                         'parsed': parsed, 'notes': 'Local interpretation unavailable or rejected'}
             answer = self._answer(rewritten, coalition, channel, current_generation,
-                                  current_units, is_jtac)
+                                  current_units, is_jtac, names)
             answer['notes'] = 'Validated local intent fallback'
             return answer
 
-    def _answer(self, text, coalition, channel, generation, units, is_jtac):
+    def _answer(self, text, coalition, channel, generation, units, is_jtac, airfields):
         if is_jtac:
             return self.jtac.respond(text, coalition, channel, units, generation)
         before = {role: monitor.revisions() for role, monitor in self._monitors().items()}
-        parsed = parser.parse(text, self.callsign, domain._known_groups(units))
+        parsed = parser.parse(text, self.callsign, domain._known_groups(units), airfields)
         transmitter = parsed.get('transmitter')
         try:
             player = domain.find_player(units, transmitter, coalition) if transmitter else None
@@ -259,7 +270,7 @@ class Brain:
         answer = domain.handle(text, coalition, units, self.callsign, monitor=self.warning,
                                atc_monitor=self.atc, wind=self.wind, roles=self.roles,
                                awacs_pilot=self.awacs_pilot, bullseye=self.bullseye,
-                               home_airfield=self.home_airfield)
+                               home_airfield=self.home_airfield, airfields=airfields)
         if is_repeat:
             answer['parsed'] = parsed
         elif (key and answer.get('reply') and parsed.get('intent') in REPEATABLE
@@ -370,11 +381,13 @@ class Brain:
                       for event in self.jtac.take_events(coalition, channel)]
             with self.world.locked_snapshot() as (_, units):
                 callsigns = spoken_callsigns(name for unit in units if unit['coalition'] == coalition
+                                             and unit.get('category') in domain.AIR_CATEGORIES
                                              for name in (unit.get('pilot'), unit.get('callsign')))
             return {'events': events, 'vocabulary': [self.jtac.callsign, 'radio check', 'checking in', 'request task',
                                                     'ready for brief', 'nine line', 'readback', 'elevation', 'grid',
                                                     'contact', 'in hot', 'off target', 'abort', 'laser on',
                                                     'laser off'] + self.jtac.readback_phrases(coalition) + callsigns}
+        fields = self._mission_airfields()
         with self.lock, self.world.locked_snapshot() as (generation, units):
             self._sync_generation(generation)
             out = []
@@ -387,14 +400,18 @@ class Brain:
                 else:
                     remaining.append(event)
             self.events = remaining
+            # Only aircraft talk on the radio; DCC missions name hundreds of ground units.
             friendly = [unit for unit in units if unit['coalition'] == coalition
+                        and unit.get('category') in domain.AIR_CATEGORIES
                         and (unit.get('callsign') or unit.get('pilot'))][:32]
             vocabulary = [self.callsign] + spoken_callsigns(name for unit in friendly
                                                             for name in (unit.get('pilot'), unit.get('callsign')))
-            nearby = [field for field in domain.AIRFIELDS
-                      if any(domain.distance_m(field.lat, field.lon, unit['lat'], unit['lon']) <= 1000000
-                             for unit in friendly)]
-            vocabulary += [domain.pronounce_airbase(field.name) for field in (nearby or domain.AIRFIELDS)]
+            known = ([(field['name'], field['lat'], field['lon']) for field in fields]
+                     or [(field.name, field.lat, field.lon) for field in domain.AIRFIELDS])
+            nearby = [name for name, lat, lon in known
+                      if any(domain.distance_m(lat, lon, unit['lat'], unit['lon']) <= 1000000 for unit in friendly)]
+            vocabulary += list(dict.fromkeys(domain.pronounce_airbase(name)
+                                             for name in (nearby or [name for name, _, _ in known])))
             return {'events': out, 'vocabulary': vocabulary}
 
     def start(self):

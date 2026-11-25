@@ -1603,7 +1603,7 @@ def handle(text: str, coalition: int, units: list, bot_callsign: Optional[str] =
            awacs_pilot: Optional[str] = None, when: Optional[_dt.datetime] = None,
            atc_monitor: Optional[AtcMonitor] = None,
            bullseye: Optional[tuple[float, float]] = None,
-           home_airfield: Optional[str] = None) -> dict:
+           home_airfield: Optional[str] = None, airfields: Optional[Iterable[str]] = None) -> dict:
     """Parse ``text`` and build the spoken reply.
 
     ``coalition`` is the coalition of the SRS client the call arrived on; the
@@ -1619,14 +1619,16 @@ def handle(text: str, coalition: int, units: list, bot_callsign: Optional[str] =
     ``bullseye`` is a configured ``(lat, lon)`` used for bullseye references when the
     coalition's own Tacview bullseye object is not in the telemetry; without either the
     reply is an explicit "unable".  ``home_airfield`` is the configured name of the field
-    "vector home" refers to; it must be a known airfield, never a guess.
+    "vector home" refers to; it must be a known airfield, never a guess.  ``airfields`` names the
+    current mission's airdromes, so a misheard name is matched against those rather than the
+    bundled airfields.
 
     Returns ``{"reply": str | None, "parsed": dict | None, "notes": str | None}``.
     """
     if not text or not text.strip():
         return {"reply": None, "parsed": None, "notes": None}
     when = when or _dt.datetime.now(_dt.timezone.utc)
-    parsed = _parser.parse(text, bot_callsign, _known_groups(units))
+    parsed = _parser.parse(text, bot_callsign, _known_groups(units), airfields)
     roles = set(roles)
     receiver = parsed["receiver"]
     if parsed["intent"] == "None":
