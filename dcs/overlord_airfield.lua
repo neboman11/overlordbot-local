@@ -427,7 +427,7 @@ OverlordAirfield = (function()
         if names[indexKey] then corrected, used[indexKey] = names[indexKey], true end
         local n, side = parseDesignator(corrected or raw.Name)
         local strip = heading and { index = index, point = point, length = raw.length, width = raw.width, grid = grid,
-                                    course = heading }
+                                    course = heading, native = raw.Name }
         if strip then field.geometry[#field.geometry + 1] = strip end   -- physical footprint, label or not
         if not heading then
           fail(where .. ': true course unavailable')
@@ -501,6 +501,12 @@ OverlordAirfield = (function()
           table.sort(indices)
           fail(label(field.name) .. ': runways labelled ' .. key .. ' are ambiguous (native '
             .. table.concat(indices, ',') .. '); set runwayNames native:<index>')
+          -- Every native entry (merged duplicates too): the geometry needed to tell the strips apart.
+          for _, strip in ipairs(field.geometry) do
+            env.info(string.format('Overlord airfield: %s native runway %d: name %s, true course %.1f, '
+              .. 'length %.0f m, width %.0f m, centre x %.0f z %.0f', label(field.name), strip.index,
+              label(strip.native, 12), strip.course, strip.length, strip.width, strip.point.x, strip.point.z))
+          end
         end
       end
     end
